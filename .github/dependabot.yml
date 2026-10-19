@@ -1,0 +1,16 @@
+version: 2
+
+# Bisher nur GitHub Actions; sobald oberflaeche/ oder geraet/ Abhängigkeiten haben, hier ergänzen.
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: "chore(ci)"

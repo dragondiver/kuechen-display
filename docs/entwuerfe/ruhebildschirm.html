@@ -1,0 +1,735 @@
+<title>Ruhebildschirm Küchen-Display</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Layout: ruhiger Prüfbogen – Kopf mit dem Festgelegten, dann die drei Zustände von C untereinander
+     (Buchstabe und Text links, Bildschirm rechts, schmal gestapelt), darunter die verworfenen Richtungen A und B. */
+  :root {
+    --bg: #eef1f4;
+    --surface: #ffffff;
+    --fg: #151a21;
+    --muted: #5a6472;
+    --line: #d6dce3;
+    --accent: #2b63c0;
+    --shadow: rgba(16, 22, 32, .28);
+    --screen: #000000;
+    --stage: #06070a;
+    --stage-fg: #e6eaf0;
+    --stage-muted: #8d96a3;
+    --stage-line: #2a303a;
+    --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --step--1: .8125rem;
+    --step-0: 1rem;
+    --step-1: 1.1875rem;
+    --step-2: 1.625rem;
+    --step-3: 2.375rem;
+    --step-4: 4.25rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d0f13; --surface: #151920; --fg: #e7ebf0; --muted: #97a1ae; --line: #262c36;
+      --accent: #86b6ff; --shadow: rgba(0, 0, 0, .6); color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d0f13; --surface: #151920; --fg: #e7ebf0; --muted: #97a1ae; --line: #262c36;
+    --accent: #86b6ff; --shadow: rgba(0, 0, 0, .6); color-scheme: dark;
+  }
+
+  body { background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: var(--step-0); line-height: 1.5; }
+  .blatt { max-width: 1180px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 2.5rem 4rem; display: flex; flex-direction: column; gap: 2.5rem; }
+  a { color: var(--accent); text-underline-offset: .15em; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* Kopf */
+  .kopf-seite { display: flex; flex-direction: column; gap: .6rem; max-width: 46rem; }
+  .eyebrow { margin: 0; font-size: var(--step--1); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { margin: 0; font-family: var(--font-display); font-size: var(--step-3); font-weight: 300; letter-spacing: -.015em; line-height: 1.1; text-wrap: balance; }
+  .lead { margin: 0; color: var(--muted); font-size: var(--step-1); max-width: 40rem; }
+
+  /* Festgelegt */
+  .fest { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1.4rem 1.5rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+  .fest h2 { margin: 0; font-size: var(--step--1); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .fest-liste { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.1rem 2rem; }
+  .fest-liste div { min-width: 0; display: flex; flex-direction: column; gap: .15rem; }
+  .fest-liste dt { font-size: var(--step--1); color: var(--muted); }
+  .fest-liste dd { margin: 0; }
+
+  /* Entwürfe */
+  .gruppe { display: flex; flex-direction: column; }
+  .gruppe > h2 { margin: 0 0 .25rem; font-size: var(--step-1); font-weight: 600; }
+  .entwurf { display: grid; grid-template-columns: 15rem minmax(0, 1fr); gap: 2.25rem; align-items: start; padding-block: 2.5rem; border-top: 1px solid var(--line); }
+  .entwurf-text { min-width: 0; display: flex; flex-direction: column; gap: .9rem; }
+  .entwurf h3 { margin: 0; display: flex; flex-direction: column; gap: .35rem; font-size: var(--step-2); font-weight: 500; line-height: 1.15; }
+  .buchstabe { font-family: var(--font-display); font-size: var(--step-4); font-weight: 200; line-height: .85; letter-spacing: -.02em; }
+  .entwurf-text p { margin: 0; }
+  .gezeigt { font-size: var(--step--1); color: var(--muted); }
+  .annahmen { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .3rem; font-size: var(--step--1); color: var(--muted); }
+  .annahmen li::before { content: "Annahme · "; font-weight: 600; }
+  .annahmen li.nicht-im-bild::before { content: "Nicht im Bild · "; }
+  .knoepfe { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .knopf { font: inherit; font-size: var(--step--1); padding: .5rem 1rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+  .knopf:hover { border-color: var(--accent); }
+
+  .bildschirm { position: relative; width: 100%; max-width: 100%; aspect-ratio: 16 / 10; overflow: hidden; border-radius: 10px; background: var(--screen); box-shadow: 0 20px 44px -26px var(--shadow); }
+  .entwurf .bildschirm { cursor: zoom-in; }
+
+  /* Verworfen */
+  .verworfen { border-top: 1px solid var(--line); padding-top: 1.5rem; }
+  .verworfen summary { cursor: pointer; font-size: var(--step-1); font-weight: 600; }
+  .verworfen summary span { font-weight: 400; color: var(--muted); font-size: var(--step-0); }
+  .verworfen[open] summary { margin-bottom: .5rem; }
+  .vergleich { display: flex; flex-direction: column; gap: 1rem; padding-top: 1rem; }
+  .vergleich h3, .hinweis h2 { margin: 0; font-size: var(--step-1); font-weight: 600; }
+  .tabelle-rahmen { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+  table { width: 100%; min-width: 600px; border-collapse: collapse; }
+  th, td { text-align: left; vertical-align: top; padding: .8rem 1rem; border-top: 1px solid var(--line); }
+  thead th { border-top: 0; font-weight: 600; }
+  tbody th { font-weight: 400; color: var(--muted); font-size: var(--step--1); width: 11rem; }
+  .hinweis { display: flex; flex-direction: column; gap: .5rem; color: var(--muted); max-width: 46rem; }
+  .hinweis p { margin: 0; }
+
+  @media (max-width: 900px) {
+    .entwurf { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
+    .entwurf h3 { flex-direction: row; align-items: baseline; gap: .6rem; }
+    .buchstabe { font-size: var(--step-3); }
+    .fest-liste { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 560px) {
+    .fest-liste { grid-template-columns: minmax(0, 1fr); }
+    h1 { font-size: var(--step-2); }
+  }
+
+  /* Bühne: ein Entwurf bildschirmfüllend */
+  #buehne { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; border: 0; background: var(--stage); color: var(--stage-fg);
+    padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+  #buehne[open] { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; }
+  .buehne-leiste { width: min(100%, calc((100dvh - 8rem) * 1.6)); display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; }
+  .buehne-leiste p { margin: 0; flex: 1; min-width: 8rem; font-size: var(--step-1); }
+  .umschalter { display: flex; flex-wrap: wrap; border: 1px solid var(--stage-line); border-radius: 999px; padding: 3px; gap: 2px; }
+  .umschalter button, .buehne-zu { font: inherit; font-size: var(--step--1); color: var(--stage-fg); background: transparent; border: 0; border-radius: 999px; padding: .4rem .9rem; cursor: pointer; }
+  .umschalter button[aria-pressed="true"] { background: var(--stage-fg); color: var(--stage); }
+  .buehne-zu { border: 1px solid var(--stage-line); }
+  #buehne .bildschirm { width: min(100%, calc((100dvh - 8rem) * 1.6)); box-shadow: none; }
+  .buehne-tipp { margin: 0; font-size: var(--step--1); color: var(--stage-muted); }
+
+  /* ===== Bildschirm-Inhalte, aus ruhebildschirm-v2.html (nur auf .scr begrenzt) ===== */
+  .scr { position: absolute; top: 0; left: 0; width: 1280px; height: 800px; transform: scale(var(--s, .5)); transform-origin: 0 0; overflow: hidden;
+         font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif; color: #fff; line-height: normal; }
+  .scr * { box-sizing: border-box; }
+  .sky-grau { background:
+      radial-gradient(ellipse 520px 160px at 78% 30%, rgba(255,255,255,.55), transparent 70%),
+      radial-gradient(ellipse 700px 220px at 40% 18%, rgba(230,235,240,.45), transparent 70%),
+      radial-gradient(ellipse 600px 200px at 90% 62%, rgba(200,208,218,.5), transparent 70%),
+      radial-gradient(ellipse 900px 260px at 20% 80%, rgba(120,130,145,.6), transparent 70%),
+      linear-gradient(180deg, #8d99a8 0%, #6c7888 55%, #3e4652 100%); }
+  .sky-abend { background:
+      radial-gradient(circle 90px at 80% 64%, rgba(255,226,170,1), rgba(255,190,120,.6) 40%, transparent 70%),
+      radial-gradient(ellipse 800px 160px at 70% 40%, rgba(255,170,120,.35), transparent 70%),
+      radial-gradient(ellipse 600px 90px at 30% 30%, rgba(255,200,170,.25), transparent 70%),
+      linear-gradient(180deg, #22304f 0%, #5a4a6e 40%, #c57a62 75%, #e9a66d 100%); }
+  .scr .hills { position:absolute; left:0; right:0; bottom:0; height:220px;
+      background: radial-gradient(ellipse 900px 200px at 30% 100%, #1d2430 60%, transparent 61%),
+                  radial-gradient(ellipse 800px 160px at 85% 100%, #262e3b 60%, transparent 61%); }
+  .scr .hills.warm { background: radial-gradient(ellipse 900px 200px at 30% 100%, #2a2230 60%, transparent 61%),
+                  radial-gradient(ellipse 800px 160px at 85% 100%, #3a2a36 60%, transparent 61%); }
+  .scr .uhr { font-size: 112px; font-weight: 200; letter-spacing: -2px; line-height: 1; }
+  .scr .datum { font-size: 30px; font-weight: 400; opacity: .8; margin-top: 10px; }
+  .scr .kopf { font-size: 20px; letter-spacing: 3px; text-transform: uppercase; opacity: .55; margin: 56px 0 20px; }
+  .scr .termin { display:flex; align-items:baseline; gap: 26px; padding: 16px 0; border-top: 1px solid rgba(255,255,255,.14); }
+  .scr .termin .zeit { font-size: 30px; font-weight: 300; width: 96px; font-variant-numeric: tabular-nums; opacity:.85; }
+  .scr .termin .titel { font-size: 34px; font-weight: 500; flex:1; }
+  .scr .termin .wer { font-size: 22px; opacity: .65; display:flex; align-items:center; gap:10px; }
+  .scr .punkt { width: 14px; height: 14px; border-radius: 50%; display:inline-block; flex: none; }
+  .scr .p1 { background:#7fb3ff; } .scr .p2 { background:#ffb36b; } .scr .pa { background:#d9d9d9; }
+  .scr .mehr { font-size: 22px; opacity: .55; margin-top: 22px; }
+  .scr .temp { font-size: 190px; font-weight: 200; line-height: .9; letter-spacing: -6px; }
+  .scr .zustand { font-size: 34px; font-weight: 400; margin-top: 8px; }
+  .scr .hoch { font-size: 26px; opacity: .75; margin-top: 8px; }
+  .scr .verlauf { display:flex; gap: 34px; margin-top: 48px; }
+  .scr .verlauf div { text-align:center; font-size: 22px; }
+  .scr .verlauf b { display:block; font-size: 30px; font-weight: 400; margin-top: 8px; }
+  .scr .verlauf span { opacity:.6; }
+  .scr .ort { font-size: 20px; letter-spacing: 3px; text-transform: uppercase; opacity:.55; margin-bottom: 18px; }
+  .scr .glas { background: rgba(20,24,32,.38); backdrop-filter: blur(28px) saturate(1.3); -webkit-backdrop-filter: blur(28px) saturate(1.3);
+          border-radius: 36px; border: 1px solid rgba(255,255,255,.12); }
+
+  /* ===== Neu: Erinnerungsmoment ===== */
+  .scr .rand { position:absolute; inset:0; border: 7px solid rgba(255,255,255,.95); box-shadow: inset 0 0 60px rgba(255,255,255,.35); pointer-events:none; }
+  @media (prefers-reduced-motion: no-preference) {
+    .scr .rand { animation: aufleuchten 1.6s ease-in-out 3; }
+  }
+  @keyframes aufleuchten { 0%, 100% { opacity: 1; } 50% { opacity: .15; } }
+  .scr .termin.gleich { padding: 22px 0; }
+  .scr .termin.gleich .titel { font-size: 46px; }
+  .scr .termin.gleich .zeit { font-size: 34px; opacity: 1; }
+  .scr .marke { display:inline-block; font-size: 22px; font-weight: 500; padding: 6px 16px; border-radius: 999px; background: rgba(255,255,255,.22); margin-left: 16px; vertical-align: middle; }
+  .scr .termin.leise { opacity: .45; }
+
+  /* ===== Neu: Morgen und Woche, in der Formensprache von C1 ===== */
+  .scr .termin .zeit.spanne { width: 190px; }
+  .scr .glas.spalte { display:flex; flex-direction:column; }
+  .scr .rolle { flex:1; min-height:0; overflow-y:auto; scrollbar-width:none; overscroll-behavior:contain; padding-bottom: 60px;
+      -webkit-mask-image: linear-gradient(180deg, #000 82%, transparent); mask-image: linear-gradient(180deg, #000 82%, transparent); }
+  .scr .rolle::-webkit-scrollbar { display:none; }
+  .scr .tag { font-size: 18px; letter-spacing: 3px; text-transform: uppercase; opacity: .55; margin: 22px 0 4px; display:flex; justify-content:space-between; }
+  .scr .tag:first-child { margin-top: 0; }
+  .scr .eintrag { display:flex; align-items:baseline; gap: 18px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,.14); }
+  .scr .eintrag .zeit { font-size: 24px; font-weight: 300; width: 70px; font-variant-numeric: tabular-nums; opacity: .85; flex: none; }
+  .scr .eintrag .titel { font-size: 26px; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .scr .eintrag .punkt { width: 12px; height: 12px; }
+  .scr .eintrag.leer .titel { font-weight: 400; opacity: .45; }
+  /* ===== Neu: Übergang Heute ↔ Morgen ===== */
+  .scr .bahn { position:absolute; top:0; left:0; width:5120px; height:800px; display:flex; transform: translateX(calc(var(--seite, 2) * -1280px)); transition: transform .55s cubic-bezier(.22,.8,.24,1); touch-action: pan-y; }
+  .scr .raster { position:absolute; left:0; right:0; top:120px; display:grid; grid-template-columns: repeat(3, 168px); justify-content:center; column-gap: 150px; row-gap: 64px; }
+  .scr .app { display:flex; flex-direction:column; align-items:center; gap: 16px; }
+  .scr .symbol { width:168px; height:168px; border-radius: 40px; display:grid; place-items:center; background: rgba(20,24,32,.38); backdrop-filter: blur(28px) saturate(1.3); -webkit-backdrop-filter: blur(28px) saturate(1.3); border: 1px solid rgba(255,255,255,.14); }
+  .scr .symbol.orange { background: #e8762b; border-color: transparent; }
+  .scr .symbol svg { width: 84px; height: 84px; }
+  .scr .appname { font-size: 26px; font-weight: 500; text-shadow: 0 1px 12px rgba(0,0,0,.35); }
+  .scr .punkte { position:absolute; left:0; right:0; bottom:22px; display:flex; justify-content:center; gap: 14px; }
+  .scr .punkte i { width: 11px; height: 11px; border-radius: 50%; background: rgba(255,255,255,.35); }
+  .scr .punkte i.an { background: #fff; }
+  .scr .seite { position:relative; width:1280px; height:800px; flex:none; }
+  .scr .mehr[data-weiter] { cursor:pointer; }
+  .scr.uebergang { cursor: grab; user-select: none; -webkit-user-select: none; }
+  @media (prefers-reduced-motion: reduce) { .scr .bahn { transition: none; } }
+  /* ===== Neu: Wetterbild-Stile ===== */
+  .w-flach { background:
+      radial-gradient(ellipse 620px 170px at 70% 22%, rgba(210,216,224,.55), transparent 70%),
+      radial-gradient(ellipse 800px 220px at 25% 14%, rgba(190,198,208,.5), transparent 70%),
+      radial-gradient(ellipse 700px 200px at 85% 52%, rgba(160,170,182,.5), transparent 70%),
+      linear-gradient(180deg, #5f6b7a 0%, #7d8896 55%, #59636f 100%); }
+  .scr .regen-flach { position:absolute; inset:0; background: repeating-linear-gradient(100deg, transparent 0 34px, rgba(255,255,255,.13) 34px 35px, transparent 35px 71px); -webkit-mask-image: repeating-linear-gradient(180deg, #000 0 46px, transparent 46px 88px); mask-image: repeating-linear-gradient(180deg, #000 0 46px, transparent 46px 88px); }
+  .w-bewegt { background: linear-gradient(180deg, #27323f 0%, #435060 50%, #687582 100%); }
+  .scr .wolke { position:absolute; border-radius:50%; background: rgba(196,206,218,.45); filter: blur(46px); }
+  .scr .tropfen { position:absolute; inset:0; overflow:hidden; }
+  .scr .tropfen i { position:absolute; top:-100px; width:2px; border-radius:2px; background: linear-gradient(180deg, transparent, rgba(255,255,255,.9)); transform: rotate(8deg); }
+  @media (prefers-reduced-motion: no-preference) {
+    .scr .wolke { animation: ziehen 38s ease-in-out infinite alternate; }
+    .scr .wolke.w2 { animation-duration: 52s; animation-direction: alternate-reverse; }
+    .scr .wolke.w3 { animation-duration: 64s; }
+    .scr .tropfen i { animation: fallen 0.8s linear infinite; }
+  }
+  @keyframes ziehen { from { transform: translateX(-60px); } to { transform: translateX(80px); } }
+  @keyframes fallen { from { transform: translate(0, 0) rotate(8deg); } to { transform: translate(-130px, 960px) rotate(8deg); } }
+  .w-illu { background: #a9b0b3; }
+  .scr .landschaft { position:absolute; inset:0; width:100%; height:100%; }
+</style>
+
+<main class="blatt">
+
+  <header class="kopf-seite">
+    <p class="eyebrow"><a href="https://github.com/dragondiver/rundfunk/issues/133">rundfunk#133</a> · Küchen-Display · Stand 18.10.2026</p>
+    <h1>Ruhebildschirm: Richtung C</h1>
+    <p class="lead">C · Glaskarten ist gewählt. Hier die drei Zustände des Bildschirms: Normalfall, Erinnerung und Morgen/Woche. Echtes Format 1280 × 800 auf dem 8-Zoll-Display, hier verkleinert. „Groß ansehen“ zeigt einen Zustand bildschirmfüllend, dort wechselt man auch per Pfeiltaste.</p>
+  </header>
+
+  <section class="fest" aria-labelledby="fest-h">
+    <h2 id="fest-h">Schon festgelegt</h2>
+    <dl class="fest-liste">
+      <div><dt>Richtung</dt><dd>C · Glaskarten: Wetterbild als Hintergrund, links Termine, rechts Wetter. Ruhig wie Apple TV.</dd></div>
+      <div><dt>Heute</dt><dd>Termine aus dem Familienkalender (iCloud) und das Wetter, lesbar im Vorbeigehen</dd></div>
+      <div><dt>Erinnerung</dt><dd>20 Minuten vorher, nur wenn jemand da ist: weißer Rand, weicher Ton, ein gesprochener Satz. Nur einmal.</dd></div>
+      <div><dt>Alarm</dt><dd>Für einzelne Termine, auch ohne Anwesenheit. Weckerton im Braun-Stil der 70er, Elektra im Studio sagt es gleichzeitig.</dd></div>
+      <div><dt>Morgen und Woche</dt><dd>Tippen auf „Morgen … ›“. Zurück per Geste, Wischen oder nach 5 Minuten von selbst.</dd></div>
+      <div><dt>Technik</dt><dd>Browser-App, 1280 × 800, Chromium-Kiosk auf dem Pi 5</dd></div>
+    </dl>
+  </section>
+
+  <section class="gruppe" aria-labelledby="c-gruppe-h">
+    <h2 id="c-gruppe-h">Die drei Zustände von C</h2>
+
+    <section class="entwurf" data-entwurf="c" data-name="C1 · Normalfall" aria-labelledby="c-h">
+      <div class="entwurf-text">
+        <h3 id="c-h"><span class="buchstabe">C1</span> Normalfall</h3>
+        <p>Vollbild-Wetterbild, Termine und Wetter auf zwei mattierten Glaskarten wie bei tvOS. Vergangene Termine fallen heraus.</p>
+        <p class="gezeigt">Gezeigt: Sonntag 17:42, klar</p>
+        <div class="knoepfe"><button class="knopf" type="button" data-oeffne="c">Groß ansehen</button></div>
+      </div>
+      <div class="bildschirm" data-oeffne="c" aria-hidden="true"><div class="scr sky-abend">
+        <div class="hills warm"></div>
+        <div class="glas" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px;">
+          <div class="uhr" style="font-size:92px;">17:42</div>
+          <div class="datum">Sonntag, 18. Oktober</div>
+          <div class="kopf" style="margin-top:40px;">Noch heute</div>
+          <div class="termin"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
+          <div class="termin"><div class="zeit">20:15</div><div class="titel">Tatort</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+          <div class="mehr">Morgen 6 Termine ›</div>
+        </div>
+        <div class="glas" style="position:absolute;right:48px;top:48px;width:460px;padding:40px 44px;">
+          <div class="ort">Kornwestheim</div>
+          <div class="temp" style="font-size:150px;">11°</div>
+          <div class="zustand">Klar</div>
+          <div class="hoch">Nacht 5°</div>
+        </div>
+      </div></div>
+    </section>
+
+    <section class="entwurf" data-entwurf="erinnerung" data-name="C2 · Erinnerung" aria-labelledby="erinnerung-h">
+      <div class="entwurf-text">
+        <h3 id="erinnerung-h"><span class="buchstabe">C2</span> Erinnerung</h3>
+        <p>20 Minuten vor „Probe Chor“, jemand steht auf der Kochseite. Der weiße Rand leuchtet dreimal langsam auf und bleibt dann ruhig stehen. Der Termin wird größer und bekommt „in 20 Min“, die übrigen treten zurück. Nach einer Minute verschwindet der Rand, der Termin bleibt bis zum Beginn hervorgehoben.</p>
+        <ul class="annahmen">
+          <li class="nicht-im-bild">ein kurzer, weicher Ton und der Satz „In 20 Minuten Probe Chor.“</li>
+          <li class="nicht-im-bild">beim Alarm zusätzlich der Weckerton, und Elektra im Studio sagt denselben Satz</li>
+          <li>Rand 7 px breit, mit leichtem Schein nach innen</li>
+        </ul>
+        <p class="gezeigt">Gezeigt: Sonntag 18:10</p>
+        <div class="knoepfe">
+          <button class="knopf" type="button" data-oeffne="erinnerung">Groß ansehen</button>
+          <button class="knopf" type="button" data-wiederholen="erinnerung">Aufleuchten wiederholen</button>
+        </div>
+      </div>
+      <div class="bildschirm" data-oeffne="erinnerung" aria-hidden="true"><div class="scr sky-abend">
+        <div class="hills warm"></div>
+        <div class="glas" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px;">
+          <div class="uhr" style="font-size:92px;">18:10</div>
+          <div class="datum">Sonntag, 18. Oktober</div>
+          <div class="kopf" style="margin-top:40px;">Noch heute</div>
+          <div class="termin gleich"><div class="zeit">18:30</div><div class="titel">Probe Chor<span class="marke">in 20 Min</span></div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
+          <div class="termin leise"><div class="zeit">20:15</div><div class="titel">Tatort</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+          <div class="mehr">Morgen 6 Termine ›</div>
+        </div>
+        <div class="glas" style="position:absolute;right:48px;top:48px;width:460px;padding:40px 44px;">
+          <div class="ort">Kornwestheim</div>
+          <div class="temp" style="font-size:150px;">11°</div>
+          <div class="zustand">Klar</div>
+          <div class="hoch">Nacht 5°</div>
+        </div>
+        <div class="rand"></div>
+      </div></div>
+    </section>
+
+    <section class="entwurf" data-entwurf="woche" data-name="C3 · Morgen und Woche" aria-labelledby="woche-h">
+      <div class="entwurf-text">
+        <h3 id="woche-h"><span class="buchstabe">C3</span> Morgen und Woche</h3>
+        <p>Nach dem Tippen auf „Morgen 6 Termine ›“. Gleiche Glaskarten, Schrift und Zeilen wie im Normalfall. Links der morgige Tag mit Uhrzeit von–bis, rechts an Stelle des Wetters die Woche mit gekürzten Titeln.</p>
+        <ul class="annahmen">
+          <li>Das Hintergrundbild bleibt, nur die Wetterangaben fallen weg</li>
+          <li>Die Woche beginnt heute und zeigt sieben Tage</li>
+          <li>Wo die Uhr stand, steht groß „Morgen“</li>
+          <li>Beide Listen rollen mit Wischen nach oben und unten; ein weicher Auslauf unten zeigt, dass es weitergeht</li>
+          <li>Zurück zu heute per Wischen zur Seite, damit es nicht mit dem Rollen kollidiert</li>
+        </ul>
+        <p class="gezeigt">Gezeigt: Sonntag 17:43</p>
+        <div class="knoepfe"><button class="knopf" type="button" data-oeffne="woche">Groß ansehen</button></div>
+      </div>
+      <div class="bildschirm" data-oeffne="woche" aria-hidden="true"><div class="scr sky-abend">
+        <div class="hills warm"></div>
+        <div class="glas spalte" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px 0;">
+          <div class="uhr" style="font-size:92px;">Morgen</div>
+          <div class="datum">Montag, 19. Oktober</div>
+          <div class="kopf" style="margin-top:40px;">6 Termine</div>
+          <div class="rolle">
+            <div class="termin"><div class="zeit spanne">08:00–09:00</div><div class="titel">Zahnarzt</div><div class="wer"><i class="punkt p1"></i>Florian</div></div>
+            <div class="termin"><div class="zeit spanne">10:00–10:30</div><div class="titel">Handwerker Heizung</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+            <div class="termin"><div class="zeit spanne">12:30–13:30</div><div class="titel">Mittagessen mit Oma</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+            <div class="termin"><div class="zeit spanne">16:00–17:00</div><div class="titel">Physiotherapie</div><div class="wer"><i class="punkt p1"></i>Florian</div></div>
+            <div class="termin"><div class="zeit spanne">19:00–20:30</div><div class="titel">Elternabend</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
+            <div class="termin"><div class="zeit spanne">20:45–22:30</div><div class="titel">Länderspiel</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+          </div>
+        </div>
+        <div class="glas spalte" style="position:absolute;right:48px;top:48px;bottom:48px;width:460px;padding:40px 44px 0;">
+          <div class="ort">Die Woche</div>
+          <div class="rolle">
+            <div class="tag"><span>Heute · So 18.</span><span>KW 42</span></div>
+            <div class="eintrag"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><i class="punkt p2"></i></div>
+            <div class="eintrag"><div class="zeit">20:15</div><div class="titel">Tatort</div><i class="punkt pa"></i></div>
+            <div class="tag"><span>Mo 19.</span><span>KW 43</span></div>
+            <div class="eintrag"><div class="zeit">08:00</div><div class="titel">Zahnarzt</div><i class="punkt p1"></i></div>
+            <div class="eintrag"><div class="zeit">10:00</div><div class="titel">Handwerker Heizung</div><i class="punkt pa"></i></div>
+            <div class="eintrag"><div class="zeit">12:30</div><div class="titel">Mittagessen mit Oma</div><i class="punkt pa"></i></div>
+            <div class="eintrag"><div class="zeit">16:00</div><div class="titel">Physiotherapie</div><i class="punkt p1"></i></div>
+            <div class="eintrag"><div class="zeit">19:00</div><div class="titel">Elternabend</div><i class="punkt p2"></i></div>
+            <div class="eintrag"><div class="zeit">20:45</div><div class="titel">Länderspiel</div><i class="punkt pa"></i></div>
+            <div class="tag"><span>Di 20.</span></div>
+            <div class="eintrag"><div class="zeit">16:00</div><div class="titel">Klavierstunde</div><i class="punkt p2"></i></div>
+            <div class="tag"><span>Mi 21.</span></div>
+            <div class="eintrag leer"><div class="zeit"></div><div class="titel">keine Termine</div></div>
+            <div class="tag"><span>Do 22.</span></div>
+            <div class="eintrag"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><i class="punkt p2"></i></div>
+            <div class="tag"><span>Fr 23.</span></div>
+            <div class="eintrag"><div class="zeit">07:15</div><div class="titel">Flughafen, Tante Ilse abholen</div><i class="punkt p1"></i></div>
+            <div class="tag"><span>Sa 24.</span></div>
+            <div class="eintrag"><div class="zeit">10:00</div><div class="titel">Wochenmarkt</div><i class="punkt pa"></i></div>
+            <div class="eintrag"><div class="zeit">19:30</div><div class="titel">Essen bei Familie Müller mit den Kindern</div><i class="punkt pa"></i></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+    <section class="entwurf" data-entwurf="uebergang" data-name="C4 · Seiten" aria-labelledby="uebergang-h">
+      <div class="entwurf-text">
+        <h3 id="uebergang-h"><span class="buchstabe">C4</span> Seiten</h3>
+        <p>Vier Seiten nebeneinander: Apps 2 ← Apps 1 ← Heute → Morgen/Woche. Tippen auf „Morgen 6 Termine ›“ oder nach links wischen führt nach rechts, nach rechts wischen holt die linke Seite herein. Die Apps wie bei CarPlay, sechs pro Seite, Punkte unten zeigen die Seite. Jede App lässt sich auch per Stimme direkt starten. Im Bild ausprobieren: tippen oder zur Seite ziehen.</p>
+        <ul class="annahmen">
+          <li>Die App-Symbole sind Glaskacheln mit weißem Zeichen, eine orange wie in #127</li>
+          <li>Welche Apps es werden, ist offen; die zwölf hier sind Platzhalter</li>
+        </ul>
+        <div class="knoepfe">
+          <button class="knopf" type="button" data-oeffne="uebergang">Groß ansehen</button>
+        </div>
+      </div>
+      <div class="bildschirm" aria-hidden="true"><div class="scr sky-abend uebergang" style="--seite:2">
+        <div class="hills warm"></div>
+        <div class="bahn">
+          <div class="seite"><div class="raster"><div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 20h24M24 32h24M24 44h24"/><circle cx="16" cy="20" r="2"/><circle cx="16" cy="32" r="2"/><circle cx="16" cy="44" r="2"/></svg></div><div class="appname">Einkauf</div></div><div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="22" width="44" height="28" rx="5"/><circle cx="40" cy="36" r="7"/><path d="M18 32h10M18 40h10M20 22l24-10"/></svg></div><div class="appname">Radio</div></div><div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 40a14 14 0 1 1 16 0v6H24z"/><path d="M26 52h12"/></svg></div><div class="appname">Licht</div></div><div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="20" width="44" height="30" rx="6"/><circle cx="32" cy="35" r="9"/><path d="M24 20l4-6h8l4 6"/></svg></div><div class="appname">Kamera</div></div><div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 30L32 14l20 16"/><path d="M18 26v24h28V26"/><path d="M28 50V38h8v12"/></svg></div><div class="appname">Zuhause</div></div><div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="8"/><path d="M32 12v8M32 44v8M12 32h8M44 32h8M18 18l6 6M40 40l6 6M46 18l-6 6M18 46l6-6"/></svg></div><div class="appname">Einstellungen</div></div></div></div>
+          <div class="seite"><div class="raster"><div class="app"><div class="symbol orange"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 26h36v14a10 10 0 0 1-10 10H24a10 10 0 0 1-10-10z"/><path d="M10 26h44M24 20c0-4 4-4 4-8M36 20c0-4 4-4 4-8"/></svg></div><div class="appname">Rezepte</div></div><div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="12" y="14" width="40" height="36" rx="4"/><path d="M20 24h24M20 32h24M20 40h14"/></svg></div><div class="appname">News</div></div><div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M26 44V18l22-5v26"/><circle cx="20" cy="44" r="6"/><circle cx="42" cy="39" r="6"/></svg></div><div class="appname">Spotify</div></div><div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="16" width="44" height="32" rx="8"/><path d="M28 25v14l12-7z"/></svg></div><div class="appname">YouTube</div></div><div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="20"/><path d="M12 32h40M32 12c-8 8-8 32 0 40M32 12c8 8 8 32 0 40"/></svg></div><div class="appname">Browser</div></div><div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="34" r="18"/><path d="M32 24v10l7 5M26 12h12"/></svg></div><div class="appname">Timer</div></div></div></div>
+          <div class="seite">
+            <div class="glas" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px;">
+          <div class="uhr" style="font-size:92px;">17:42</div>
+          <div class="datum">Sonntag, 18. Oktober</div>
+          <div class="kopf" style="margin-top:40px;">Noch heute</div>
+          <div class="termin"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
+          <div class="termin"><div class="zeit">20:15</div><div class="titel">Tatort</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+          <div class="mehr" data-weiter>Morgen 6 Termine ›</div>
+        </div>
+        <div class="glas" style="position:absolute;right:48px;top:48px;width:460px;padding:40px 44px;">
+          <div class="ort">Kornwestheim</div>
+          <div class="temp" style="font-size:150px;">11°</div>
+          <div class="zustand">Klar</div>
+          <div class="hoch">Nacht 5°</div>
+        </div>
+          </div>
+          <div class="seite">
+            <div class="glas spalte" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px 0;">
+          <div class="uhr" style="font-size:92px;">Morgen</div>
+          <div class="datum">Montag, 19. Oktober</div>
+          <div class="kopf" style="margin-top:40px;">6 Termine</div>
+          <div class="rolle">
+            <div class="termin"><div class="zeit spanne">08:00–09:00</div><div class="titel">Zahnarzt</div><div class="wer"><i class="punkt p1"></i>Florian</div></div>
+            <div class="termin"><div class="zeit spanne">10:00–10:30</div><div class="titel">Handwerker Heizung</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+            <div class="termin"><div class="zeit spanne">12:30–13:30</div><div class="titel">Mittagessen mit Oma</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+            <div class="termin"><div class="zeit spanne">16:00–17:00</div><div class="titel">Physiotherapie</div><div class="wer"><i class="punkt p1"></i>Florian</div></div>
+            <div class="termin"><div class="zeit spanne">19:00–20:30</div><div class="titel">Elternabend</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
+            <div class="termin"><div class="zeit spanne">20:45–22:30</div><div class="titel">Länderspiel</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+          </div>
+        </div>
+        <div class="glas spalte" style="position:absolute;right:48px;top:48px;bottom:48px;width:460px;padding:40px 44px 0;">
+          <div class="ort">Die Woche</div>
+          <div class="rolle">
+            <div class="tag"><span>Heute · So 18.</span><span>KW 42</span></div>
+            <div class="eintrag"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><i class="punkt p2"></i></div>
+            <div class="eintrag"><div class="zeit">20:15</div><div class="titel">Tatort</div><i class="punkt pa"></i></div>
+            <div class="tag"><span>Mo 19.</span><span>KW 43</span></div>
+            <div class="eintrag"><div class="zeit">08:00</div><div class="titel">Zahnarzt</div><i class="punkt p1"></i></div>
+            <div class="eintrag"><div class="zeit">10:00</div><div class="titel">Handwerker Heizung</div><i class="punkt pa"></i></div>
+            <div class="eintrag"><div class="zeit">12:30</div><div class="titel">Mittagessen mit Oma</div><i class="punkt pa"></i></div>
+            <div class="eintrag"><div class="zeit">16:00</div><div class="titel">Physiotherapie</div><i class="punkt p1"></i></div>
+            <div class="eintrag"><div class="zeit">19:00</div><div class="titel">Elternabend</div><i class="punkt p2"></i></div>
+            <div class="eintrag"><div class="zeit">20:45</div><div class="titel">Länderspiel</div><i class="punkt pa"></i></div>
+            <div class="tag"><span>Di 20.</span></div>
+            <div class="eintrag"><div class="zeit">16:00</div><div class="titel">Klavierstunde</div><i class="punkt p2"></i></div>
+            <div class="tag"><span>Mi 21.</span></div>
+            <div class="eintrag leer"><div class="zeit"></div><div class="titel">keine Termine</div></div>
+            <div class="tag"><span>Do 22.</span></div>
+            <div class="eintrag"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><i class="punkt p2"></i></div>
+            <div class="tag"><span>Fr 23.</span></div>
+            <div class="eintrag"><div class="zeit">07:15</div><div class="titel">Flughafen, Tante Ilse abholen</div><i class="punkt p1"></i></div>
+            <div class="tag"><span>Sa 24.</span></div>
+            <div class="eintrag"><div class="zeit">10:00</div><div class="titel">Wochenmarkt</div><i class="punkt pa"></i></div>
+            <div class="eintrag"><div class="zeit">19:30</div><div class="titel">Essen bei Familie Müller mit den Kindern</div><i class="punkt pa"></i></div>
+          </div>
+        </div>
+          </div>
+        <div class="punkte"><i></i><i></i><i class="an"></i><i></i></div>
+      </div></div>
+    </section>
+  </section>
+
+  <section class="gruppe" aria-labelledby="wetter-gruppe-h">
+    <h2 id="wetter-gruppe-h">Wetterbild: drei Stile</h2>
+    <p class="gezeigt" style="margin:0 0 .25rem">Dieselbe Lage, leichter Regen am Sonntagnachmittag, mit den Glaskarten von C darüber. Noch nicht entschieden.</p>
+
+    <section class="entwurf" data-entwurf="w1" data-name="W1 · Flach" aria-labelledby="w1-h">
+      <div class="entwurf-text">
+        <h3 id="w1-h"><span class="buchstabe">W1</span> Flach</h3>
+        <p>Wie die bisherigen Platzhalter: Himmel als Farbverlauf, weiche Wolkenflecken, dunkle Hügel, Regen als feine, stehende Striche.</p>
+        <ul class="annahmen">
+          <li>Ein Bild pro Wetterlage und Tageszeit, als CSS oder Vektorgrafik</li>
+          <li>Keine Bewegung, schont den Pi am meisten</li>
+        </ul>
+        <div class="knoepfe"><button class="knopf" type="button" data-oeffne="w1">Groß ansehen</button></div>
+      </div>
+      <div class="bildschirm" data-oeffne="w1" aria-hidden="true"><div class="scr w-flach">
+        <div class="regen-flach"></div><div class="hills" style="background: radial-gradient(ellipse 900px 200px at 30% 100%, #39424d 60%, transparent 61%), radial-gradient(ellipse 800px 160px at 85% 100%, #444e5a 60%, transparent 61%);"></div>
+        <div class="glas" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px;">
+          <div class="uhr" style="font-size:92px;">15:20</div>
+          <div class="datum">Sonntag, 18. Oktober</div>
+          <div class="kopf" style="margin-top:40px;">Noch heute</div>
+          <div class="termin"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
+          <div class="termin"><div class="zeit">20:15</div><div class="titel">Tatort</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+          <div class="mehr">Morgen 6 Termine ›</div>
+        </div>
+        <div class="glas" style="position:absolute;right:48px;top:48px;width:460px;padding:40px 44px;">
+          <div class="ort">Kornwestheim</div>
+          <div class="temp" style="font-size:150px;">9°</div>
+          <div class="zustand">Leichter Regen</div>
+          <div class="hoch">H 11°  ·  T 6°</div>
+        </div>
+      </div></div>
+    </section>
+    <section class="entwurf" data-entwurf="w2" data-name="W2 · Bewegt" aria-labelledby="w2-h">
+      <div class="entwurf-text">
+        <h3 id="w2-h"><span class="buchstabe">W2</span> Bewegt</h3>
+        <p>Angelehnt an die Wetter-App von Apple: Himmel mit Tiefe, Wolken ziehen langsam, Regen fällt.</p>
+        <ul class="annahmen">
+          <li>Unter der Glaskarte muss der Weichzeichner ständig neu rechnen, das ist die größte Last für den Pi 5</li>
+          <li>Bewegung ließe sich nachts oder ohne Anwesenheit abschalten</li>
+        </ul>
+        <div class="knoepfe"><button class="knopf" type="button" data-oeffne="w2">Groß ansehen</button></div>
+      </div>
+      <div class="bildschirm" data-oeffne="w2" aria-hidden="true"><div class="scr w-bewegt">
+        <div class="wolke" style="left:-120px;top:-60px;width:900px;height:320px;"></div>
+        <div class="wolke w2" style="left:520px;top:20px;width:1000px;height:300px;"></div>
+        <div class="wolke w3" style="left:200px;top:230px;width:900px;height:220px;opacity:.55"></div>
+        <div class="tropfen"><i style="left:32.4%;height:49px;animation-duration:0.71s;animation-delay:-0.05s;opacity:0.54"></i><i style="left:9.4%;height:77px;animation-duration:0.57s;animation-delay:-0.51s;opacity:0.26"></i><i style="left:43.4%;height:44px;animation-duration:0.65s;animation-delay:-0.55s;opacity:0.27"></i><i style="left:56.5%;height:54px;animation-duration:0.80s;animation-delay:-0.58s;opacity:0.27"></i><i style="left:58.6%;height:43px;animation-duration:0.94s;animation-delay:-0.05s;opacity:0.55"></i><i style="left:29.0%;height:49px;animation-duration:0.77s;animation-delay:-0.57s;opacity:0.45"></i><i style="left:68.2%;height:46px;animation-duration:0.78s;animation-delay:-0.64s;opacity:0.38"></i><i style="left:54.8%;height:44px;animation-duration:0.78s;animation-delay:-0.62s;opacity:0.42"></i><i style="left:53.2%;height:60px;animation-duration:0.74s;animation-delay:-0.92s;opacity:0.38"></i><i style="left:24.8%;height:51px;animation-duration:0.83s;animation-delay:-0.24s;opacity:0.45"></i><i style="left:52.5%;height:61px;animation-duration:0.84s;animation-delay:-0.29s;opacity:0.59"></i><i style="left:11.8%;height:66px;animation-duration:0.62s;animation-delay:-0.34s;opacity:0.58"></i><i style="left:42.2%;height:44px;animation-duration:0.86s;animation-delay:-0.57s;opacity:0.56"></i><i style="left:31.4%;height:62px;animation-duration:0.79s;animation-delay:-0.58s;opacity:0.41"></i><i style="left:84.0%;height:57px;animation-duration:0.74s;animation-delay:-0.66s;opacity:0.27"></i><i style="left:70.1%;height:76px;animation-duration:0.95s;animation-delay:-0.82s;opacity:0.35"></i><i style="left:38.6%;height:62px;animation-duration:0.56s;animation-delay:-0.46s;opacity:0.31"></i><i style="left:11.7%;height:43px;animation-duration:0.64s;animation-delay:-0.29s;opacity:0.51"></i><i style="left:39.8%;height:71px;animation-duration:0.58s;animation-delay:-0.45s;opacity:0.44"></i><i style="left:88.3%;height:67px;animation-duration:0.90s;animation-delay:-0.28s;opacity:0.40"></i><i style="left:35.9%;height:64px;animation-duration:0.93s;animation-delay:-0.15s;opacity:0.31"></i><i style="left:23.2%;height:54px;animation-duration:0.55s;animation-delay:-0.83s;opacity:0.31"></i><i style="left:28.2%;height:49px;animation-duration:0.72s;animation-delay:-0.37s;opacity:0.45"></i><i style="left:95.3%;height:72px;animation-duration:0.93s;animation-delay:-0.65s;opacity:0.51"></i><i style="left:45.7%;height:75px;animation-duration:0.71s;animation-delay:-0.40s;opacity:0.29"></i><i style="left:63.4%;height:43px;animation-duration:0.63s;animation-delay:-0.98s;opacity:0.40"></i><i style="left:11.0%;height:78px;animation-duration:0.57s;animation-delay:-0.00s;opacity:0.30"></i><i style="left:10.1%;height:63px;animation-duration:0.80s;animation-delay:-0.07s;opacity:0.32"></i><i style="left:37.6%;height:80px;animation-duration:0.65s;animation-delay:-0.35s;opacity:0.38"></i><i style="left:12.3%;height:71px;animation-duration:0.95s;animation-delay:-0.47s;opacity:0.42"></i><i style="left:8.6%;height:46px;animation-duration:0.85s;animation-delay:-0.74s;opacity:0.42"></i><i style="left:69.2%;height:73px;animation-duration:0.56s;animation-delay:-0.95s;opacity:0.43"></i><i style="left:14.7%;height:74px;animation-duration:0.92s;animation-delay:-0.76s;opacity:0.35"></i><i style="left:64.3%;height:45px;animation-duration:0.83s;animation-delay:-0.26s;opacity:0.38"></i><i style="left:16.7%;height:54px;animation-duration:0.76s;animation-delay:-0.78s;opacity:0.37"></i><i style="left:22.3%;height:52px;animation-duration:0.87s;animation-delay:-0.82s;opacity:0.51"></i><i style="left:22.7%;height:73px;animation-duration:0.75s;animation-delay:-0.73s;opacity:0.60"></i><i style="left:79.0%;height:70px;animation-duration:0.65s;animation-delay:-0.69s;opacity:0.58"></i><i style="left:44.7%;height:62px;animation-duration:0.93s;animation-delay:-0.36s;opacity:0.33"></i><i style="left:22.7%;height:52px;animation-duration:0.69s;animation-delay:-0.48s;opacity:0.59"></i><i style="left:61.0%;height:40px;animation-duration:0.74s;animation-delay:-0.65s;opacity:0.53"></i><i style="left:8.5%;height:47px;animation-duration:0.91s;animation-delay:-0.78s;opacity:0.51"></i><i style="left:47.8%;height:51px;animation-duration:0.72s;animation-delay:-0.64s;opacity:0.28"></i><i style="left:94.6%;height:65px;animation-duration:0.74s;animation-delay:-0.74s;opacity:0.28"></i><i style="left:15.9%;height:48px;animation-duration:0.56s;animation-delay:-0.59s;opacity:0.41"></i><i style="left:65.6%;height:79px;animation-duration:0.88s;animation-delay:-0.98s;opacity:0.48"></i><i style="left:35.0%;height:75px;animation-duration:0.77s;animation-delay:-0.02s;opacity:0.53"></i><i style="left:72.6%;height:46px;animation-duration:0.76s;animation-delay:-0.93s;opacity:0.40"></i><i style="left:87.2%;height:53px;animation-duration:0.56s;animation-delay:-0.21s;opacity:0.43"></i><i style="left:76.4%;height:60px;animation-duration:0.65s;animation-delay:-0.42s;opacity:0.30"></i><i style="left:91.0%;height:62px;animation-duration:0.91s;animation-delay:-0.66s;opacity:0.54"></i><i style="left:51.7%;height:72px;animation-duration:0.60s;animation-delay:-0.15s;opacity:0.43"></i><i style="left:87.3%;height:51px;animation-duration:0.79s;animation-delay:-0.78s;opacity:0.30"></i><i style="left:14.2%;height:79px;animation-duration:0.84s;animation-delay:-0.56s;opacity:0.36"></i><i style="left:51.8%;height:75px;animation-duration:0.74s;animation-delay:-0.78s;opacity:0.56"></i><i style="left:5.7%;height:52px;animation-duration:0.66s;animation-delay:-0.77s;opacity:0.43"></i><i style="left:56.2%;height:44px;animation-duration:0.73s;animation-delay:-0.61s;opacity:0.43"></i><i style="left:51.2%;height:57px;animation-duration:0.73s;animation-delay:-0.53s;opacity:0.42"></i><i style="left:94.2%;height:73px;animation-duration:0.90s;animation-delay:-0.94s;opacity:0.34"></i><i style="left:56.0%;height:52px;animation-duration:0.89s;animation-delay:-0.14s;opacity:0.29"></i><i style="left:44.2%;height:44px;animation-duration:0.82s;animation-delay:-0.43s;opacity:0.32"></i><i style="left:30.3%;height:47px;animation-duration:0.91s;animation-delay:-0.15s;opacity:0.50"></i><i style="left:66.0%;height:49px;animation-duration:0.65s;animation-delay:-0.14s;opacity:0.41"></i><i style="left:74.7%;height:46px;animation-duration:0.71s;animation-delay:-0.49s;opacity:0.60"></i><i style="left:83.2%;height:50px;animation-duration:0.83s;animation-delay:-0.99s;opacity:0.39"></i><i style="left:42.1%;height:62px;animation-duration:0.68s;animation-delay:-0.72s;opacity:0.26"></i><i style="left:55.4%;height:68px;animation-duration:0.83s;animation-delay:-0.38s;opacity:0.43"></i><i style="left:29.5%;height:44px;animation-duration:0.60s;animation-delay:-0.92s;opacity:0.33"></i><i style="left:87.6%;height:45px;animation-duration:0.66s;animation-delay:-0.04s;opacity:0.52"></i><i style="left:27.0%;height:48px;animation-duration:0.88s;animation-delay:-0.85s;opacity:0.49"></i><i style="left:94.6%;height:65px;animation-duration:0.61s;animation-delay:-0.92s;opacity:0.45"></i><i style="left:70.0%;height:45px;animation-duration:0.66s;animation-delay:-0.80s;opacity:0.31"></i><i style="left:89.5%;height:57px;animation-duration:0.93s;animation-delay:-0.63s;opacity:0.53"></i><i style="left:8.4%;height:54px;animation-duration:0.58s;animation-delay:-0.86s;opacity:0.41"></i><i style="left:33.9%;height:75px;animation-duration:0.72s;animation-delay:-0.92s;opacity:0.47"></i><i style="left:4.3%;height:55px;animation-duration:0.93s;animation-delay:-0.97s;opacity:0.34"></i><i style="left:18.1%;height:59px;animation-duration:0.80s;animation-delay:-0.53s;opacity:0.32"></i><i style="left:44.6%;height:51px;animation-duration:0.66s;animation-delay:-0.80s;opacity:0.60"></i><i style="left:3.7%;height:41px;animation-duration:0.84s;animation-delay:-0.55s;opacity:0.32"></i><i style="left:47.5%;height:68px;animation-duration:0.59s;animation-delay:-0.82s;opacity:0.40"></i><i style="left:49.5%;height:65px;animation-duration:0.94s;animation-delay:-0.31s;opacity:0.33"></i><i style="left:23.0%;height:52px;animation-duration:0.88s;animation-delay:-0.71s;opacity:0.47"></i><i style="left:40.5%;height:62px;animation-duration:0.94s;animation-delay:-0.84s;opacity:0.25"></i><i style="left:62.5%;height:56px;animation-duration:0.72s;animation-delay:-0.06s;opacity:0.48"></i><i style="left:38.1%;height:72px;animation-duration:0.82s;animation-delay:-0.28s;opacity:0.33"></i><i style="left:29.3%;height:69px;animation-duration:0.62s;animation-delay:-0.27s;opacity:0.25"></i><i style="left:36.4%;height:61px;animation-duration:0.94s;animation-delay:-0.55s;opacity:0.34"></i><i style="left:96.6%;height:59px;animation-duration:0.64s;animation-delay:-0.18s;opacity:0.37"></i><i style="left:8.4%;height:57px;animation-duration:0.75s;animation-delay:-0.20s;opacity:0.43"></i><i style="left:0.5%;height:56px;animation-duration:0.88s;animation-delay:-0.14s;opacity:0.46"></i><i style="left:39.4%;height:59px;animation-duration:0.67s;animation-delay:-0.23s;opacity:0.45"></i><i style="left:52.9%;height:49px;animation-duration:0.81s;animation-delay:-0.72s;opacity:0.56"></i><i style="left:39.0%;height:60px;animation-duration:0.84s;animation-delay:-0.49s;opacity:0.35"></i><i style="left:61.9%;height:49px;animation-duration:0.57s;animation-delay:-0.84s;opacity:0.56"></i><i style="left:62.7%;height:72px;animation-duration:0.61s;animation-delay:-0.52s;opacity:0.43"></i><i style="left:83.5%;height:41px;animation-duration:0.88s;animation-delay:-0.58s;opacity:0.56"></i><i style="left:68.3%;height:54px;animation-duration:0.58s;animation-delay:-0.04s;opacity:0.47"></i><i style="left:96.0%;height:64px;animation-duration:0.88s;animation-delay:-0.56s;opacity:0.47"></i><i style="left:62.6%;height:55px;animation-duration:0.75s;animation-delay:-0.00s;opacity:0.53"></i><i style="left:74.8%;height:72px;animation-duration:0.91s;animation-delay:-0.09s;opacity:0.43"></i><i style="left:74.6%;height:70px;animation-duration:0.65s;animation-delay:-0.07s;opacity:0.34"></i><i style="left:72.9%;height:53px;animation-duration:0.64s;animation-delay:-0.65s;opacity:0.41"></i><i style="left:84.6%;height:44px;animation-duration:0.74s;animation-delay:-0.68s;opacity:0.52"></i><i style="left:61.7%;height:52px;animation-duration:0.58s;animation-delay:-0.15s;opacity:0.34"></i><i style="left:74.3%;height:59px;animation-duration:0.80s;animation-delay:-0.13s;opacity:0.42"></i><i style="left:48.6%;height:46px;animation-duration:0.83s;animation-delay:-0.68s;opacity:0.35"></i><i style="left:51.7%;height:69px;animation-duration:0.74s;animation-delay:-0.77s;opacity:0.60"></i><i style="left:54.9%;height:59px;animation-duration:0.94s;animation-delay:-0.94s;opacity:0.26"></i><i style="left:45.9%;height:72px;animation-duration:0.94s;animation-delay:-0.45s;opacity:0.34"></i><i style="left:21.0%;height:53px;animation-duration:0.58s;animation-delay:-0.09s;opacity:0.51"></i></div>
+        <div class="glas" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px;">
+          <div class="uhr" style="font-size:92px;">15:20</div>
+          <div class="datum">Sonntag, 18. Oktober</div>
+          <div class="kopf" style="margin-top:40px;">Noch heute</div>
+          <div class="termin"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
+          <div class="termin"><div class="zeit">20:15</div><div class="titel">Tatort</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+          <div class="mehr">Morgen 6 Termine ›</div>
+        </div>
+        <div class="glas" style="position:absolute;right:48px;top:48px;width:460px;padding:40px 44px;">
+          <div class="ort">Kornwestheim</div>
+          <div class="temp" style="font-size:150px;">9°</div>
+          <div class="zustand">Leichter Regen</div>
+          <div class="hoch">H 11°  ·  T 6°</div>
+        </div>
+      </div></div>
+    </section>
+    <section class="entwurf" data-entwurf="w3" data-name="W3 · Illustriert" aria-labelledby="w3-h">
+      <div class="entwurf-text">
+        <h3 id="w3-h"><span class="buchstabe">W3</span> Illustriert</h3>
+        <p>Eine ruhige, gezeichnete Landschaft: Hügel, in der Ferne der Stuttgarter Fernsehturm, ein paar Häuser und Bäume. Mit dem Wetter ändern sich Himmel, Licht und Regen, die Landschaft bleibt.</p>
+        <ul class="annahmen">
+          <li>Der Fernsehturm steht als Silhouette in der Ferne, Häuser und Hügel sind frei erfunden</li>
+          <li>Die Landschaft wird einmal gezeichnet, pro Wetterlage wechseln nur die Farben und der Niederschlag</li>
+        </ul>
+        <div class="knoepfe"><button class="knopf" type="button" data-oeffne="w3">Groß ansehen</button></div>
+      </div>
+      <div class="bildschirm" data-oeffne="w3" aria-hidden="true"><div class="scr w-illu">
+        <svg class="landschaft" viewBox="0 0 1280 800" preserveAspectRatio="none" aria-hidden="true">
+          <defs><linearGradient id="himmel3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6f7c8b"/><stop offset=".6" stop-color="#a9b0b3"/><stop offset="1" stop-color="#c3c3bb"/></linearGradient></defs>
+          <rect width="1280" height="800" fill="url(#himmel3)"/>
+          <path d="M0 520 C180 470 320 500 470 470 S800 430 960 470 1180 450 1280 470 V800 H0Z" fill="#8f9893"/>
+          <g fill="#7e8883">
+            <path d="M722 470 L727 252 L733 252 L738 470Z"/>
+            <rect x="717" y="222" width="26" height="32" rx="3"/>
+            <rect x="723" y="212" width="14" height="11"/>
+            <rect x="728.5" y="148" width="3" height="65"/>
+          </g>
+          <g fill="#6f7a74">
+            <rect x="760" y="470" width="60" height="40"/><path d="M754 472 L790 446 L826 472Z"/>
+            <rect x="884" y="478" width="54" height="34"/><path d="M878 480 L911 456 L944 480Z"/>
+            <rect x="960" y="482" width="44" height="30"/><path d="M955 484 L982 464 L1009 484Z"/>
+          </g>
+          <path d="M0 600 C220 540 380 580 560 556 S900 520 1080 560 1240 548 1280 556 V800 H0Z" fill="#5d6862"/>
+          <g fill="#4a554f"><circle cx="210" cy="560" r="34"/><circle cx="250" cy="566" r="26"/><circle cx="1120" cy="548" r="30"/><rect x="207" y="580" width="6" height="30"/><rect x="1117" y="566" width="6" height="30"/></g>
+          <path d="M0 690 C260 640 520 680 760 660 S1120 630 1280 650 V800 H0Z" fill="#3b4540"/>
+          <g stroke="#ffffff" stroke-opacity=".28" stroke-width="2" stroke-linecap="round"><line x1="340" y1="273" x2="334" y2="311"/><line x1="784" y1="480" x2="778" y2="518"/><line x1="363" y1="86" x2="357" y2="124"/><line x1="475" y1="378" x2="469" y2="416"/><line x1="1139" y1="300" x2="1133" y2="338"/><line x1="207" y1="722" x2="201" y2="760"/><line x1="886" y1="308" x2="880" y2="346"/><line x1="945" y1="316" x2="939" y2="354"/><line x1="489" y1="92" x2="483" y2="130"/><line x1="431" y1="247" x2="425" y2="285"/><line x1="440" y1="303" x2="434" y2="341"/><line x1="1222" y1="149" x2="1216" y2="187"/><line x1="15" y1="562" x2="9" y2="600"/><line x1="329" y1="49" x2="323" y2="87"/><line x1="507" y1="661" x2="501" y2="699"/><line x1="99" y1="703" x2="93" y2="741"/><line x1="982" y1="649" x2="976" y2="687"/><line x1="365" y1="39" x2="359" y2="77"/><line x1="861" y1="483" x2="855" y2="521"/><line x1="194" y1="738" x2="188" y2="776"/><line x1="567" y1="240" x2="561" y2="278"/><line x1="1005" y1="597" x2="999" y2="635"/><line x1="556" y1="22" x2="550" y2="60"/><line x1="990" y1="304" x2="984" y2="342"/><line x1="1138" y1="421" x2="1132" y2="459"/><line x1="264" y1="61" x2="258" y2="99"/><line x1="1214" y1="312" x2="1208" y2="350"/><line x1="799" y1="105" x2="793" y2="143"/><line x1="1130" y1="369" x2="1124" y2="407"/><line x1="1185" y1="418" x2="1179" y2="456"/><line x1="222" y1="315" x2="216" y2="353"/><line x1="366" y1="194" x2="360" y2="232"/><line x1="960" y1="496" x2="954" y2="534"/><line x1="528" y1="181" x2="522" y2="219"/><line x1="628" y1="508" x2="622" y2="546"/><line x1="156" y1="489" x2="150" y2="527"/><line x1="98" y1="380" x2="92" y2="418"/><line x1="1055" y1="418" x2="1049" y2="456"/><line x1="589" y1="253" x2="583" y2="291"/><line x1="987" y1="325" x2="981" y2="363"/><line x1="712" y1="186" x2="706" y2="224"/><line x1="227" y1="422" x2="221" y2="460"/><line x1="415" y1="280" x2="409" y2="318"/><line x1="1052" y1="154" x2="1046" y2="192"/><line x1="26" y1="662" x2="20" y2="700"/><line x1="498" y1="567" x2="492" y2="605"/><line x1="273" y1="205" x2="267" y2="243"/><line x1="978" y1="379" x2="972" y2="417"/><line x1="747" y1="274" x2="741" y2="312"/><line x1="893" y1="402" x2="887" y2="440"/><line x1="1027" y1="645" x2="1021" y2="683"/><line x1="120" y1="682" x2="114" y2="720"/><line x1="500" y1="491" x2="494" y2="529"/><line x1="561" y1="237" x2="555" y2="275"/><line x1="1059" y1="736" x2="1053" y2="774"/><line x1="165" y1="323" x2="159" y2="361"/><line x1="993" y1="611" x2="987" y2="649"/><line x1="1259" y1="372" x2="1253" y2="410"/><line x1="95" y1="707" x2="89" y2="745"/><line x1="1207" y1="401" x2="1201" y2="439"/><line x1="609" y1="341" x2="603" y2="379"/><line x1="1018" y1="170" x2="1012" y2="208"/><line x1="198" y1="739" x2="192" y2="777"/><line x1="142" y1="627" x2="136" y2="665"/><line x1="911" y1="643" x2="905" y2="681"/><line x1="1163" y1="65" x2="1157" y2="103"/><line x1="1010" y1="1" x2="1004" y2="39"/><line x1="163" y1="433" x2="157" y2="471"/><line x1="49" y1="543" x2="43" y2="581"/><line x1="1251" y1="476" x2="1245" y2="514"/><line x1="687" y1="332" x2="681" y2="370"/><line x1="993" y1="76" x2="987" y2="114"/><line x1="390" y1="717" x2="384" y2="755"/><line x1="249" y1="198" x2="243" y2="236"/><line x1="1028" y1="1" x2="1022" y2="39"/><line x1="699" y1="757" x2="693" y2="795"/><line x1="362" y1="240" x2="356" y2="278"/><line x1="1091" y1="184" x2="1085" y2="222"/><line x1="684" y1="416" x2="678" y2="454"/><line x1="38" y1="313" x2="32" y2="351"/><line x1="845" y1="42" x2="839" y2="80"/><line x1="252" y1="672" x2="246" y2="710"/><line x1="841" y1="62" x2="835" y2="100"/><line x1="296" y1="322" x2="290" y2="360"/><line x1="481" y1="375" x2="475" y2="413"/><line x1="905" y1="546" x2="899" y2="584"/><line x1="471" y1="301" x2="465" y2="339"/><line x1="9" y1="222" x2="3" y2="260"/><line x1="1099" y1="51" x2="1093" y2="89"/><line x1="644" y1="152" x2="638" y2="190"/><line x1="996" y1="147" x2="990" y2="185"/><line x1="605" y1="201" x2="599" y2="239"/><line x1="1156" y1="83" x2="1150" y2="121"/><line x1="811" y1="464" x2="805" y2="502"/><line x1="1165" y1="369" x2="1159" y2="407"/><line x1="1184" y1="43" x2="1178" y2="81"/><line x1="773" y1="701" x2="767" y2="739"/><line x1="71" y1="18" x2="65" y2="56"/><line x1="775" y1="316" x2="769" y2="354"/><line x1="923" y1="140" x2="917" y2="178"/><line x1="585" y1="541" x2="579" y2="579"/><line x1="408" y1="86" x2="402" y2="124"/><line x1="103" y1="126" x2="97" y2="164"/><line x1="248" y1="496" x2="242" y2="534"/><line x1="682" y1="355" x2="676" y2="393"/><line x1="405" y1="551" x2="399" y2="589"/><line x1="1091" y1="749" x2="1085" y2="787"/><line x1="575" y1="83" x2="569" y2="121"/><line x1="102" y1="61" x2="96" y2="99"/><line x1="546" y1="673" x2="540" y2="711"/><line x1="729" y1="577" x2="723" y2="615"/><line x1="494" y1="584" x2="488" y2="622"/><line x1="401" y1="611" x2="395" y2="649"/><line x1="114" y1="536" x2="108" y2="574"/><line x1="254" y1="412" x2="248" y2="450"/><line x1="580" y1="246" x2="574" y2="284"/><line x1="959" y1="361" x2="953" y2="399"/><line x1="821" y1="188" x2="815" y2="226"/><line x1="813" y1="308" x2="807" y2="346"/><line x1="488" y1="353" x2="482" y2="391"/><line x1="1044" y1="47" x2="1038" y2="85"/><line x1="253" y1="48" x2="247" y2="86"/><line x1="787" y1="276" x2="781" y2="314"/><line x1="435" y1="725" x2="429" y2="763"/><line x1="57" y1="567" x2="51" y2="605"/><line x1="896" y1="702" x2="890" y2="740"/><line x1="387" y1="548" x2="381" y2="586"/><line x1="774" y1="612" x2="768" y2="650"/><line x1="1230" y1="50" x2="1224" y2="88"/><line x1="1074" y1="82" x2="1068" y2="120"/><line x1="930" y1="354" x2="924" y2="392"/><line x1="1009" y1="600" x2="1003" y2="638"/><line x1="1188" y1="619" x2="1182" y2="657"/><line x1="173" y1="377" x2="167" y2="415"/><line x1="11" y1="708" x2="5" y2="746"/><line x1="394" y1="526" x2="388" y2="564"/><line x1="197" y1="179" x2="191" y2="217"/><line x1="1120" y1="350" x2="1114" y2="388"/><line x1="1019" y1="453" x2="1013" y2="491"/><line x1="665" y1="298" x2="659" y2="336"/></g>
+        </svg>
+        <div class="glas" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px;">
+          <div class="uhr" style="font-size:92px;">15:20</div>
+          <div class="datum">Sonntag, 18. Oktober</div>
+          <div class="kopf" style="margin-top:40px;">Noch heute</div>
+          <div class="termin"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
+          <div class="termin"><div class="zeit">20:15</div><div class="titel">Tatort</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+          <div class="mehr">Morgen 6 Termine ›</div>
+        </div>
+        <div class="glas" style="position:absolute;right:48px;top:48px;width:460px;padding:40px 44px;">
+          <div class="ort">Kornwestheim</div>
+          <div class="temp" style="font-size:150px;">9°</div>
+          <div class="zustand">Leichter Regen</div>
+          <div class="hoch">H 11°  ·  T 6°</div>
+        </div>
+      </div></div>
+    </section>
+  </section>
+
+  <details class="verworfen">
+    <summary>Verworfen: A und B <span>· A: Bilder können das Lesen erschweren. B: zu unruhig.</span></summary>
+
+    <section class="entwurf" data-entwurf="a" data-name="A · Vollbild" aria-labelledby="a-h">
+      <div class="entwurf-text">
+        <h3 id="a-h"><span class="buchstabe">A</span> Vollbild</h3>
+        <p>Das Wetterbild füllt den ganzen Schirm, links dunkelt ein weicher Verlauf ab, damit die Termine lesbar bleiben. Rechts steht nur die Temperatur, groß und ohne Kasten.</p>
+        <p class="gezeigt">Gezeigt: Sonntag 08:14, bedeckt</p>
+        <div class="knoepfe"><button class="knopf" type="button" data-oeffne="a">Groß ansehen</button></div>
+      </div>
+      <div class="bildschirm" data-oeffne="a" aria-hidden="true"><div class="scr sky-grau">
+        <div class="hills"></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(90deg, rgba(10,14,20,.78) 0%, rgba(10,14,20,.55) 45%, rgba(10,14,20,0) 70%);"></div>
+        <div style="position:absolute;left:72px;top:64px;width:620px;">
+          <div class="uhr">08:14</div>
+          <div class="datum">Sonntag, 18. Oktober</div>
+          <div class="kopf">Heute</div>
+          <div class="termin"><div class="zeit">10:30</div><div class="titel">Schwimmen</div><div class="wer"><i class="punkt p1"></i>Florian</div></div>
+          <div class="termin"><div class="zeit">14:00</div><div class="titel">Kaffee bei Oma</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+          <div class="termin"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
+          <div class="mehr">Morgen 2 Termine ›</div>
+        </div>
+        <div style="position:absolute;right:80px;top:96px;text-align:right;text-shadow:0 2px 24px rgba(0,0,0,.35);">
+          <div class="ort">Kornwestheim</div>
+          <div class="temp">12°</div>
+          <div class="zustand">Bedeckt</div>
+          <div class="hoch">H 15°  ·  T 7°</div>
+        </div>
+      </div></div>
+    </section>
+
+    <section class="entwurf" data-entwurf="b" data-name="B · Geteilt" aria-labelledby="b-h">
+      <div class="entwurf-text">
+        <h3 id="b-h"><span class="buchstabe">B</span> Geteilt</h3>
+        <p>Links eine ruhige dunkle Fläche nur für Termine, rechts ein Fenster mit dem Wetterbild. Klare Trennung, Termine bleiben bei jedem Bild gleich gut lesbar. Mit Verlauf über den Tag.</p>
+        <p class="gezeigt">Gezeigt: Sonntag 08:14, bedeckt</p>
+        <div class="knoepfe"><button class="knopf" type="button" data-oeffne="b">Groß ansehen</button></div>
+      </div>
+      <div class="bildschirm" data-oeffne="b" aria-hidden="true"><div class="scr" style="background:#0d0f13;">
+        <div class="sky-grau" style="position:absolute;right:0;top:0;bottom:0;width:540px;"><div class="hills"></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.45) 100%);"></div>
+        </div>
+        <div style="position:absolute;left:72px;top:64px;width:600px;">
+          <div class="uhr">08:14</div>
+          <div class="datum">Sonntag, 18. Oktober</div>
+          <div class="kopf">Heute</div>
+          <div class="termin"><div class="zeit">10:30</div><div class="titel">Schwimmen</div><div class="wer"><i class="punkt p1"></i>Florian</div></div>
+          <div class="termin"><div class="zeit">14:00</div><div class="titel">Kaffee bei Oma</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+          <div class="termin"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
+          <div class="mehr">Morgen 2 Termine ›</div>
+        </div>
+        <div style="position:absolute;right:0;width:540px;bottom:64px;padding:0 60px;">
+          <div class="ort">Kornwestheim</div>
+          <div class="temp">12°</div>
+          <div class="zustand">Bedeckt · H 15° T 7°</div>
+          <div class="verlauf">
+            <div><span>11</span><b>13°</b></div><div><span>14</span><b>15°</b></div><div><span>17</span><b>13°</b></div><div><span>20</span><b>10°</b></div>
+          </div>
+        </div>
+      </div></div>
+    </section>
+
+    <section class="vergleich" aria-labelledby="vergleich-h">
+      <h3 id="vergleich-h">Worin sich A, B und C unterscheiden</h3>
+      <div class="tabelle-rahmen">
+        <table>
+          <thead>
+            <tr><td></td><th scope="col">A · Vollbild</th><th scope="col">B · Geteilt</th><th scope="col">C · Glaskarten</th></tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row">Wetterbild</th><td>ganzer Schirm</td><td>Fenster rechts</td><td>ganzer Schirm</td></tr>
+            <tr><th scope="row">Termine lesbar durch</th><td>weichen Verlauf von links</td><td>eigene dunkle Fläche</td><td>mattierte Glaskarte</td></tr>
+            <tr><th scope="row">Wetterangaben</th><td>Temperatur, Zustand, Höchst- und Tiefstwert</td><td>dazu Verlauf über den Tag</td><td>Temperatur, Zustand, Nachtwert</td></tr>
+            <tr><th scope="row">Worauf achten</th><td>Lesbarkeit hängt stärker vom Bild ab</td><td>am wenigsten Wetterbild zu sehen</td><td>Glaseffekt muss auf dem Pi 5 flüssig laufen</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </details>
+
+  <section class="hinweis" aria-labelledby="hinweis-h">
+    <h2 id="hinweis-h">Platzhalter</h2>
+    <p>Die Wetterbilder sind Farbverläufe, Namen und Termine sind erfunden. Ausgangspunkt war die Entwurfsdatei ruhebildschirm-v2.html aus dem Gespräch vom 18.10.2026.</p>
+  </section>
+
+</main>
+
+<dialog id="buehne" aria-labelledby="buehne-titel">
+  <div class="buehne-leiste">
+    <p id="buehne-titel"></p>
+    <div class="umschalter" role="group" aria-label="Entwurf wählen" id="umschalter"></div>
+    <button type="button" class="buehne-zu" id="buehne-zu">Schließen</button>
+  </div>
+  <div class="bildschirm" id="buehne-bild" aria-hidden="true"></div>
+  <p class="buehne-tipp">Pfeiltasten wechseln den Entwurf, Esc schließt.</p>
+</dialog>
+
+<script>
+  (function () {
+    const abschnitte = Array.from(document.querySelectorAll('.entwurf[data-entwurf]'));
+    const REIHE = abschnitte.map(function (s) { return s.dataset.entwurf; });
+    const NAMEN = {};
+    abschnitte.forEach(function (s) { NAMEN[s.dataset.entwurf] = s.dataset.name; });
+
+    // Jeder Bildschirm skaliert die 1280 × 800-Fläche auf seine Breite.
+    const ro = new ResizeObserver(function (eintraege) {
+      for (const e of eintraege) e.target.style.setProperty('--s', e.contentRect.width / 1280);
+    });
+    document.querySelectorAll('.bildschirm').forEach(function (el) { ro.observe(el); });
+
+    const buehne = document.getElementById('buehne');
+    const bild = document.getElementById('buehne-bild');
+    const titel = document.getElementById('buehne-titel');
+    const umschalter = document.getElementById('umschalter');
+    let aktuell = REIHE[0];
+
+    REIHE.forEach(function (id) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.dataset.ziel = id;
+      b.textContent = NAMEN[id].split(' · ')[0];
+      b.setAttribute('aria-label', NAMEN[id]);
+      b.addEventListener('click', function () { zeige(id); });
+      umschalter.appendChild(b);
+    });
+
+    function zeige(id) {
+      aktuell = id;
+      const quelle = document.querySelector('.entwurf[data-entwurf="' + id + '"] .scr');
+      bild.replaceChildren(quelle.cloneNode(true));
+      titel.textContent = NAMEN[id];
+      umschalter.querySelectorAll('[data-ziel]').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.ziel === id));
+      });
+    }
+
+    function oeffne(id) {
+      zeige(id);
+      if (buehne.open) return;
+      try { buehne.showModal(); } catch (e) { buehne.setAttribute('open', ''); }
+      document.getElementById('buehne-zu').focus();
+    }
+
+    document.querySelectorAll('[data-oeffne]').forEach(function (el) {
+      el.addEventListener('click', function () { oeffne(el.dataset.oeffne); });
+    });
+    // Animation neu starten, indem der Bildschirm frisch eingesetzt wird.
+    document.querySelectorAll('[data-wiederholen]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        const scr = document.querySelector('.entwurf[data-entwurf="' + el.dataset.wiederholen + '"] .scr');
+        scr.replaceWith(scr.cloneNode(true));
+      });
+    });
+    // Seiten: Tippen auf „Morgen … ›“ oder Wischen zur Seite blättert.
+    function seiteVon(scr) { return parseInt(scr.style.getPropertyValue('--seite') || '2', 10); }
+    function setzeSeite(scr, i) {
+      i = Math.max(0, Math.min(3, i));
+      scr.style.setProperty('--seite', i);
+      scr.querySelectorAll('.punkte i').forEach(function (p, n) { p.classList.toggle('an', n === i); });
+    }
+    document.addEventListener('click', function (e) {
+      const weiter = e.target.closest('.scr.uebergang .mehr[data-weiter]');
+      if (weiter) setzeSeite(weiter.closest('.scr'), 3);
+    });
+    let start = null;
+    document.addEventListener('pointerdown', function (e) {
+      const scr = e.target.closest('.scr.uebergang');
+      start = scr ? { scr: scr, x: e.clientX, y: e.clientY } : null;
+    });
+    document.addEventListener('pointerup', function (e) {
+      if (!start) return;
+      const dx = e.clientX - start.x, dy = e.clientY - start.y;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) setzeSeite(start.scr, seiteVon(start.scr) + (dx < 0 ? 1 : -1));
+      start = null;
+    });
+    document.getElementById('buehne-zu').addEventListener('click', function () { buehne.close(); });
+    buehne.addEventListener('keydown', function (e) {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const i = REIHE.indexOf(aktuell);
+      zeige(REIHE[(i + (e.key === 'ArrowRight' ? 1 : REIHE.length - 1)) % REIHE.length]);
+      e.preventDefault();
+    });
+  })();
+</script>

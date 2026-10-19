@@ -1,0 +1,6 @@
+# Renderbilder lassen sich aus den Blender-Skripten neu erzeugen (entwurf_o.py schreibt nach gehaeuse/renders/).
+gehaeuse/renders/
+*.blend1
+.DS_Store
+__pycache__/
+.env
