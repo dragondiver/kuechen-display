@@ -11,5 +11,5 @@ gehaeuse/referenz/
 # Wetterbilder: Originale der Bild-API und Prüfbilder bleiben lokal.
 docs/entwuerfe/wetter/roh/
 docs/entwuerfe/wetter/pruefung/
-docs/entwuerfe/wetter/ideen/roh/
-docs/entwuerfe/wetter/ideen/pruefung/
+docs/entwuerfe/wetter/*/roh/
+docs/entwuerfe/wetter/*/pruefung/
