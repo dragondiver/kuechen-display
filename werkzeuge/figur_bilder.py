@@ -69,8 +69,7 @@ ZUSTAENDE = [
     ),
     Zustand(
         "sprechen-offen",
-        "Identical image, change only the mouth: open in a friendly smile while talking, "
-        "as in the right character of the reference.",
+        "Identical image, change only the mouth: open in a friendly smile while talking.",
         True,
     ),
     Zustand(
