@@ -1,5 +1,7 @@
 # Wie das Küchen-Display entstand
 
+Als Website mit klickbaren Entwürfen: <https://dragondiver.github.io/kuechen-display/>
+
 Eine kurze Entwicklungsgeschichte. Die Einzelheiten und alle Festlegungen stehen in
 den Issues, vor allem in [#1](https://github.com/dragondiver/kuechen-display/issues/1)
 (Übersicht), [#15](https://github.com/dragondiver/kuechen-display/issues/15)
@@ -50,6 +52,8 @@ Ein Abend Design-Gespräch, Ergebnis in [#15](https://github.com/dragondiver/kue
 - **Seiten:** Apps ← Heute → Morgen/Woche, geblättert per Wischen, Apps wie bei CarPlay.
 - **Wetterbild:** illustriert statt Foto, mit dem **Stuttgarter Fernsehturm** in der Lücke
   zwischen den Karten.
+
+Zum Ausprobieren: [Ruhebildschirm-Entwürfe](entwuerfe/ruhebildschirm.html).
 
 ## Eigenes Repo und eine Elektra (19. Oktober)
 

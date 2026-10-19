@@ -14,3 +14,5 @@ Siehe README. Ergänzend für die Arbeit hier:
 - **Drucker:** Bambu Lab A1 ohne AMS, eine Farbe pro Teil, Bett ca. 256 mm.
 - **Abläufe dokumentieren:** Was Florian selbst ausführt (Skripte, Einrichtung), bekommt im selben PR
   eine Markdown-Anleitung unter `docs/` mit Schritten und genauen Befehlen (Beispiel: `docs/bilder-erzeugen.md`).
+- **GitHub Pages** veröffentlicht `docs/` unter https://dragondiver.github.io/kuechen-display/ (seit 19.10.2026).
+  HTML-Seiten in `docs/` brauchen einen vollständigen Kopf (`<!doctype html>`, charset, viewport); `docs/index.md` ist die Startseite.

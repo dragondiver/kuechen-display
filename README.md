@@ -10,6 +10,8 @@ und seine Unterkarten. Die Issues lagen bis zum 19.10.2026 in `rundfunk`.
 
 Wie es dazu kam: [Entwicklungsgeschichte](docs/geschichte.md).
 
+Die Entwürfe als Website (GitHub Pages, Ordner `docs/`): <https://dragondiver.github.io/kuechen-display/>. Im Repo zeigt GitHub HTML-Dateien nur als Quelltext.
+
 ## Was wo liegt
 
 | Ordner | Inhalt |
