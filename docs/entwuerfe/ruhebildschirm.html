@@ -271,6 +271,16 @@
   @keyframes bogenatmen { 0%,100% { opacity:1; } 50% { opacity:.55; } }
   @keyframes mundauf { from { transform: scaleY(.35); } to { transform: scaleY(1); } }
   @keyframes zopfwippen { from { transform: rotate(-2deg); } to { transform: rotate(3deg); } }
+  /* ===== Neu: Figur F2 aus Bildern ===== */
+  .scr .figur2 .fb { opacity:0; }
+  .scr[data-zustand="hoert"] .figur2 .fb-zuhoeren,
+  .scr[data-zustand="denkt"] .figur2 .fb-nachdenken,
+  .scr[data-zustand="spricht"] .figur2 .fb-sprechen-offen { opacity:1; }
+  @media (prefers-reduced-motion: no-preference) {
+    .scr[data-zustand="spricht"] .figur2 .fb-sprechen-halb { animation: mundwechsel .36s steps(1) infinite; }
+    .scr[data-zustand="spricht"] .figur2 .fb-sprechen-offen { animation: mundwechsel .36s steps(1) infinite reverse; }
+  }
+  @keyframes mundwechsel { 0% { opacity:1; } 50% { opacity:0; } }
 </style>
 
 <main class="blatt">
@@ -607,7 +617,7 @@
 
   <section class="gruppe" aria-labelledby="gesicht-gruppe-h">
     <h2 id="gesicht-gruppe-h">Gesicht und Figur</h2>
-    <p class="gezeigt" style="margin:0 0 .25rem">Unten rechts, nur während Elektra zuhört. Mit den Knöpfen den Zustand wechseln: zuhören, nachdenken, sprechen. G1 bis G3 haben dir nicht gefallen; F1 folgt deinem Vorbild. Noch nicht entschieden.</p>
+    <p class="gezeigt" style="margin:0 0 .25rem">Unten rechts, nur während Elektra zuhört. Mit den Knöpfen den Zustand wechseln: zuhören, nachdenken, sprechen. G1 bis G3 haben dir nicht gefallen; F1 ist meine Zeichnung nach deinem Vorbild, F2 sind die Bilder aus der Bild-API. Noch nicht entschieden.</p>
     <section class="entwurf" data-entwurf="g1" data-name="G1 · Zwei Punkte" aria-labelledby="g1-h">
       <div class="entwurf-text">
         <h3 id="g1-h"><span class="buchstabe">G1</span> Zwei Punkte</h3>
@@ -824,6 +834,72 @@
             <path class="mund-auf" d="M131 120 Q140 136 149 120 Z" fill="#3b2626"/>
             <circle cx="92" cy="108" r="9" fill="#fff"/><circle cx="92" cy="108" r="5" fill="none" stroke="#f39a2b" stroke-width="3"/>
           </g>
+          <g class="mikro">
+            <circle cx="120" cy="214" r="21" fill="#fff" stroke="#f39a2b" stroke-width="3"/>
+            <rect x="115" y="202" width="10" height="16" rx="5" fill="#3c3f46"/>
+            <path d="M110 212 Q120 228 130 212 M120 222 V227 M114 227 H126" fill="none" stroke="#3c3f46" stroke-width="2.5" stroke-linecap="round"/>
+          </g>
+        </svg>
+      </div></div>
+    </section>
+    <section class="entwurf" data-entwurf="f2" data-name="F2 · Figur aus der Bild-API" aria-labelledby="f2-h">
+      <div class="entwurf-text">
+        <h3 id="f2-h"><span class="buchstabe">F2</span> Figur aus der Bild-API</h3>
+        <p>Deine Vorlage, mit <code>werkzeuge/figur_bilder.py</code> in vier Bilder zerlegt: zuhören, sprechen (Mund halb und offen im Wechsel) und nachdenken. Schallbögen und Mikrofon-Knopf zeichnet die Seite selbst darüber.</p>
+        <ul class="annahmen">
+          <li>Bilder in 256 px, wie sie aufs Display kämen</li>
+          <li>Mundwechsel hier im festen Takt; am Gerät folgt er der Lautstärke von Elektras Stimme</li>
+        </ul>
+        <div class="knoepfe" role="group" aria-label="Zustand von F2">
+          <button class="knopf" type="button" data-zustand-ziel="f2" data-zustand="hoert" aria-pressed="true">Zuhören</button>
+          <button class="knopf" type="button" data-zustand-ziel="f2" data-zustand="denkt" aria-pressed="false">Nachdenken</button>
+          <button class="knopf" type="button" data-zustand-ziel="f2" data-zustand="spricht" aria-pressed="false">Sprechen</button>
+        </div>
+        <div class="knoepfe"><button class="knopf" type="button" data-oeffne="f2">Groß ansehen</button></div>
+      </div>
+      <div class="bildschirm" data-oeffne="f2" aria-hidden="true"><div class="scr w-illu" data-zustand="hoert">
+        <svg class="landschaft" viewBox="0 0 1280 800" preserveAspectRatio="none" aria-hidden="true">
+          <defs><linearGradient id="himmel3b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6f7c8b"/><stop offset=".6" stop-color="#a9b0b3"/><stop offset="1" stop-color="#c3c3bb"/></linearGradient></defs>
+          <rect width="1280" height="800" fill="url(#himmel3b)"/>
+          <path d="M0 520 C180 470 320 500 470 470 S800 430 960 470 1180 450 1280 470 V800 H0Z" fill="#8f9893"/>
+          <g fill="#7e8883">
+            <path d="M722 470 L727 252 L733 252 L738 470Z"/>
+            <rect x="717" y="222" width="26" height="32" rx="3"/>
+            <rect x="723" y="212" width="14" height="11"/>
+            <rect x="728.5" y="148" width="3" height="65"/>
+          </g>
+          <g fill="#6f7a74">
+            <rect x="760" y="470" width="60" height="40"/><path d="M754 472 L790 446 L826 472Z"/>
+            <rect x="884" y="478" width="54" height="34"/><path d="M878 480 L911 456 L944 480Z"/>
+            <rect x="960" y="482" width="44" height="30"/><path d="M955 484 L982 464 L1009 484Z"/>
+          </g>
+          <path d="M0 600 C220 540 380 580 560 556 S900 520 1080 560 1240 548 1280 556 V800 H0Z" fill="#5d6862"/>
+          <g fill="#4a554f"><circle cx="210" cy="560" r="34"/><circle cx="250" cy="566" r="26"/><circle cx="1120" cy="548" r="30"/><rect x="207" y="580" width="6" height="30"/><rect x="1117" y="566" width="6" height="30"/></g>
+          <path d="M0 690 C260 640 520 680 760 660 S1120 630 1280 650 V800 H0Z" fill="#3b4540"/>
+          <g stroke="#ffffff" stroke-opacity=".28" stroke-width="2" stroke-linecap="round"><line x1="340" y1="273" x2="334" y2="311"/><line x1="784" y1="480" x2="778" y2="518"/><line x1="363" y1="86" x2="357" y2="124"/><line x1="475" y1="378" x2="469" y2="416"/><line x1="1139" y1="300" x2="1133" y2="338"/><line x1="207" y1="722" x2="201" y2="760"/><line x1="886" y1="308" x2="880" y2="346"/><line x1="945" y1="316" x2="939" y2="354"/><line x1="489" y1="92" x2="483" y2="130"/><line x1="431" y1="247" x2="425" y2="285"/><line x1="440" y1="303" x2="434" y2="341"/><line x1="1222" y1="149" x2="1216" y2="187"/><line x1="15" y1="562" x2="9" y2="600"/><line x1="329" y1="49" x2="323" y2="87"/><line x1="507" y1="661" x2="501" y2="699"/><line x1="99" y1="703" x2="93" y2="741"/><line x1="982" y1="649" x2="976" y2="687"/><line x1="365" y1="39" x2="359" y2="77"/><line x1="861" y1="483" x2="855" y2="521"/><line x1="194" y1="738" x2="188" y2="776"/><line x1="567" y1="240" x2="561" y2="278"/><line x1="1005" y1="597" x2="999" y2="635"/><line x1="556" y1="22" x2="550" y2="60"/><line x1="990" y1="304" x2="984" y2="342"/><line x1="1138" y1="421" x2="1132" y2="459"/><line x1="264" y1="61" x2="258" y2="99"/><line x1="1214" y1="312" x2="1208" y2="350"/><line x1="799" y1="105" x2="793" y2="143"/><line x1="1130" y1="369" x2="1124" y2="407"/><line x1="1185" y1="418" x2="1179" y2="456"/><line x1="222" y1="315" x2="216" y2="353"/><line x1="366" y1="194" x2="360" y2="232"/><line x1="960" y1="496" x2="954" y2="534"/><line x1="528" y1="181" x2="522" y2="219"/><line x1="628" y1="508" x2="622" y2="546"/><line x1="156" y1="489" x2="150" y2="527"/><line x1="98" y1="380" x2="92" y2="418"/><line x1="1055" y1="418" x2="1049" y2="456"/><line x1="589" y1="253" x2="583" y2="291"/><line x1="987" y1="325" x2="981" y2="363"/><line x1="712" y1="186" x2="706" y2="224"/><line x1="227" y1="422" x2="221" y2="460"/><line x1="415" y1="280" x2="409" y2="318"/><line x1="1052" y1="154" x2="1046" y2="192"/><line x1="26" y1="662" x2="20" y2="700"/><line x1="498" y1="567" x2="492" y2="605"/><line x1="273" y1="205" x2="267" y2="243"/><line x1="978" y1="379" x2="972" y2="417"/><line x1="747" y1="274" x2="741" y2="312"/><line x1="893" y1="402" x2="887" y2="440"/><line x1="1027" y1="645" x2="1021" y2="683"/><line x1="120" y1="682" x2="114" y2="720"/><line x1="500" y1="491" x2="494" y2="529"/><line x1="561" y1="237" x2="555" y2="275"/><line x1="1059" y1="736" x2="1053" y2="774"/><line x1="165" y1="323" x2="159" y2="361"/><line x1="993" y1="611" x2="987" y2="649"/><line x1="1259" y1="372" x2="1253" y2="410"/><line x1="95" y1="707" x2="89" y2="745"/><line x1="1207" y1="401" x2="1201" y2="439"/><line x1="609" y1="341" x2="603" y2="379"/><line x1="1018" y1="170" x2="1012" y2="208"/><line x1="198" y1="739" x2="192" y2="777"/><line x1="142" y1="627" x2="136" y2="665"/><line x1="911" y1="643" x2="905" y2="681"/><line x1="1163" y1="65" x2="1157" y2="103"/><line x1="1010" y1="1" x2="1004" y2="39"/><line x1="163" y1="433" x2="157" y2="471"/><line x1="49" y1="543" x2="43" y2="581"/><line x1="1251" y1="476" x2="1245" y2="514"/><line x1="687" y1="332" x2="681" y2="370"/><line x1="993" y1="76" x2="987" y2="114"/><line x1="390" y1="717" x2="384" y2="755"/><line x1="249" y1="198" x2="243" y2="236"/><line x1="1028" y1="1" x2="1022" y2="39"/><line x1="699" y1="757" x2="693" y2="795"/><line x1="362" y1="240" x2="356" y2="278"/><line x1="1091" y1="184" x2="1085" y2="222"/><line x1="684" y1="416" x2="678" y2="454"/><line x1="38" y1="313" x2="32" y2="351"/><line x1="845" y1="42" x2="839" y2="80"/><line x1="252" y1="672" x2="246" y2="710"/><line x1="841" y1="62" x2="835" y2="100"/><line x1="296" y1="322" x2="290" y2="360"/><line x1="481" y1="375" x2="475" y2="413"/><line x1="905" y1="546" x2="899" y2="584"/><line x1="471" y1="301" x2="465" y2="339"/><line x1="9" y1="222" x2="3" y2="260"/><line x1="1099" y1="51" x2="1093" y2="89"/><line x1="644" y1="152" x2="638" y2="190"/><line x1="996" y1="147" x2="990" y2="185"/><line x1="605" y1="201" x2="599" y2="239"/><line x1="1156" y1="83" x2="1150" y2="121"/><line x1="811" y1="464" x2="805" y2="502"/><line x1="1165" y1="369" x2="1159" y2="407"/><line x1="1184" y1="43" x2="1178" y2="81"/><line x1="773" y1="701" x2="767" y2="739"/><line x1="71" y1="18" x2="65" y2="56"/><line x1="775" y1="316" x2="769" y2="354"/><line x1="923" y1="140" x2="917" y2="178"/><line x1="585" y1="541" x2="579" y2="579"/><line x1="408" y1="86" x2="402" y2="124"/><line x1="103" y1="126" x2="97" y2="164"/><line x1="248" y1="496" x2="242" y2="534"/><line x1="682" y1="355" x2="676" y2="393"/><line x1="405" y1="551" x2="399" y2="589"/><line x1="1091" y1="749" x2="1085" y2="787"/><line x1="575" y1="83" x2="569" y2="121"/><line x1="102" y1="61" x2="96" y2="99"/><line x1="546" y1="673" x2="540" y2="711"/><line x1="729" y1="577" x2="723" y2="615"/><line x1="494" y1="584" x2="488" y2="622"/><line x1="401" y1="611" x2="395" y2="649"/><line x1="114" y1="536" x2="108" y2="574"/><line x1="254" y1="412" x2="248" y2="450"/><line x1="580" y1="246" x2="574" y2="284"/><line x1="959" y1="361" x2="953" y2="399"/><line x1="821" y1="188" x2="815" y2="226"/><line x1="813" y1="308" x2="807" y2="346"/><line x1="488" y1="353" x2="482" y2="391"/><line x1="1044" y1="47" x2="1038" y2="85"/><line x1="253" y1="48" x2="247" y2="86"/><line x1="787" y1="276" x2="781" y2="314"/><line x1="435" y1="725" x2="429" y2="763"/><line x1="57" y1="567" x2="51" y2="605"/><line x1="896" y1="702" x2="890" y2="740"/><line x1="387" y1="548" x2="381" y2="586"/><line x1="774" y1="612" x2="768" y2="650"/><line x1="1230" y1="50" x2="1224" y2="88"/><line x1="1074" y1="82" x2="1068" y2="120"/><line x1="930" y1="354" x2="924" y2="392"/><line x1="1009" y1="600" x2="1003" y2="638"/><line x1="1188" y1="619" x2="1182" y2="657"/><line x1="173" y1="377" x2="167" y2="415"/><line x1="11" y1="708" x2="5" y2="746"/><line x1="394" y1="526" x2="388" y2="564"/><line x1="197" y1="179" x2="191" y2="217"/><line x1="1120" y1="350" x2="1114" y2="388"/><line x1="1019" y1="453" x2="1013" y2="491"/><line x1="665" y1="298" x2="659" y2="336"/></g>
+        </svg>
+        <div class="glas" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px;">
+          <div class="uhr" style="font-size:92px;">15:20</div>
+          <div class="datum">Sonntag, 18. Oktober</div>
+          <div class="kopf" style="margin-top:40px;">Noch heute</div>
+          <div class="termin"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
+          <div class="termin"><div class="zeit">20:15</div><div class="titel">Tatort</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+          <div class="mehr">Morgen 6 Termine ›</div>
+        </div>
+        <div class="glas" style="position:absolute;right:48px;top:48px;width:460px;padding:40px 44px;">
+          <div class="ort">Kornwestheim</div>
+          <div class="temp" style="font-size:150px;">9°</div>
+          <div class="zustand">Leichter Regen</div>
+          <div class="hoch">H 11°  ·  T 6°</div>
+        </div>
+        <svg class="figur figur2" viewBox="0 0 240 250" aria-hidden="true">
+          <defs><clipPath id="fkreis2"><circle cx="120" cy="112" r="92"/></clipPath></defs>
+          <circle cx="120" cy="112" r="92" fill="rgba(246,242,236,.93)"/>
+          <g class="boegen">
+            <path class="b1" d="M26 84 Q12 112 26 140"/><path class="b2" d="M12 72 Q-6 112 12 152"/>
+            <path class="b1" d="M214 84 Q228 112 214 140"/><path class="b2" d="M228 72 Q246 112 228 152"/>
+          </g>
+          <g clip-path="url(#fkreis2)"><image class="fb fb-zuhoeren" href="figur/zuhoeren-klein.png" x="22" y="18" width="196" height="196"/><image class="fb fb-sprechen-halb" href="figur/sprechen-halb-klein.png" x="22" y="18" width="196" height="196"/><image class="fb fb-sprechen-offen" href="figur/sprechen-offen-klein.png" x="22" y="18" width="196" height="196"/><image class="fb fb-nachdenken" href="figur/nachdenken-klein.png" x="22" y="18" width="196" height="196"/></g>
           <g class="mikro">
             <circle cx="120" cy="214" r="21" fill="#fff" stroke="#f39a2b" stroke-width="3"/>
             <rect x="115" y="202" width="10" height="16" rx="5" fill="#3c3f46"/>
