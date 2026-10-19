@@ -12,3 +12,5 @@ Siehe README. Ergänzend für die Arbeit hier:
   Renders gehören nicht ins Git.
 - **Sprache** gehört nach rundfunk (rundfunk#128). Hier nur, was auf dem Pi 5 läuft.
 - **Drucker:** Bambu Lab A1 ohne AMS, eine Farbe pro Teil, Bett ca. 256 mm.
+- **Abläufe dokumentieren:** Was Florian selbst ausführt (Skripte, Einrichtung), bekommt im selben PR
+  eine Markdown-Anleitung unter `docs/` mit Schritten und genauen Befehlen (Beispiel: `docs/bilder-erzeugen.md`).
