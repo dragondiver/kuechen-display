@@ -29,7 +29,7 @@ blender -b -P gehaeuse/blender/entwurf_o.py -- w75 acht mantel skala
 Das Sprach-Gehirn (GPT-Live, Werkzeuge, Home Assistant, Nachrichten) lebt in
 [rundfunk](https://github.com/dragondiver/rundfunk). Wie das Display daran spricht,
 entscheidet [rundfunk#128](https://github.com/dragondiver/rundfunk/issues/128); dort
-bleiben auch #134 (Stimmung) und #135 (Gespräch wandert zwischen den Geräten).
+bleiben auch rundfunk#134 (Stimmung) und rundfunk#135 (Gespräch wandert zwischen den Geräten).
 
 ## Alte Nummern
 
