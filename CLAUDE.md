@@ -2,8 +2,8 @@
 
 Siehe README. Ergänzend für die Arbeit hier:
 
-- **Festlegungen stehen in den Issues**, nicht im Code. #108 ist die Übersicht, #133 enthält
-  die Zusammenfassung zur Oberfläche (18.10.2026), #127 die Apps-Seiten. Vor dem Bauen dort lesen.
+- **Festlegungen stehen in den Issues**, nicht im Code. #1 ist die Übersicht, #15 enthält
+  die Zusammenfassung zur Oberfläche (18.10.2026), #10 die Apps-Seiten. Vor dem Bauen dort lesen.
 - **Entwürfe vor Code:** Oberflächen werden erst als Entwurf (HTML im Artefakt oder in
   `docs/entwuerfe/`) besprochen. Screenshots von Florian sind Vorbild für den *Inhalt*,
   das Aussehen folgt dem gewählten Design (C · Glaskarten).

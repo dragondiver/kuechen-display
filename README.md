@@ -5,7 +5,7 @@ reSpeaker XVF3800 Flex und Kamera in einem Gehäuse im Braun-Stil (nach dem RT 2
 Es steht auf der Halbinsel in der offenen Küche, zeigt im Ruhebildschirm Termine und
 Wetter, startet Apps und ist Sprachgerät wie Elektra.
 
-Übersicht und alle Festlegungen: [#108](https://github.com/dragondiver/kuechen-display/issues/108)
+Übersicht und alle Festlegungen: [#1](https://github.com/dragondiver/kuechen-display/issues/1)
 und seine Unterkarten. Die Issues lagen bis zum 19.10.2026 in `rundfunk`.
 
 ## Was wo liegt
@@ -15,7 +15,7 @@ und seine Unterkarten. Die Issues lagen bis zum 19.10.2026 in `rundfunk`.
 | `gehaeuse/blender/` | Gehäuse als Blender-Skripte, `entwurf_o.py` ist der aktuelle Stand; ältere Buchstaben sind die Entwurfsgeschichte |
 | `gehaeuse/referenz/` | Maßzeichnung des Displays, Vorbilder (Braun RT 20) |
 | `docs/entwuerfe/` | Entwurfsseiten: Galerie, Entwurfsgeschichte, Hardware-Auswahl, Ruhebildschirm |
-| `oberflaeche/` | *kommt:* Browser-App für den Chromium-Kiosk (1280 × 800), #127, #133 |
+| `oberflaeche/` | *kommt:* Browser-App für den Chromium-Kiosk (1280 × 800), #10, #15 |
 | `geraet/` | *kommt:* Einrichtung des Pi 5 (Kiosk, Dienste, Deploy) |
 
 Gehäuse rendern (Blender im Hintergrund, Bilder landen in `gehaeuse/renders/`, nicht im Git):
@@ -30,3 +30,20 @@ Das Sprach-Gehirn (GPT-Live, Werkzeuge, Home Assistant, Nachrichten) lebt in
 [rundfunk](https://github.com/dragondiver/rundfunk). Wie das Display daran spricht,
 entscheidet [rundfunk#128](https://github.com/dragondiver/rundfunk/issues/128); dort
 bleiben auch #134 (Stimmung) und #135 (Gespräch wandert zwischen den Geräten).
+
+## Alte Nummern
+
+Beim Umzug aus rundfunk haben die Issues neue Nummern bekommen; alte Links leiten weiter.
+
+| rundfunk | hier | | rundfunk | hier |
+|---|---|---|---|---|
+| #108 | #1 Übersicht | | #129 | #11 |
+| #109 | #2 | | #130 | #12 |
+| #120 | #3 | | #131 | #13 |
+| #121 | #4 | | #132 | #14 |
+| #122 | #5 | | #133 | #15 Ruhebildschirm |
+| #123 | #6 | | #144 | #16 |
+| #124 | #7 | | #174 | #17 |
+| #125 | #8 | | #175 | #18 Tischtest |
+| #126 | #9 | | #182 | #19 |
+| #127 | #10 Apps-Seiten | | | |
