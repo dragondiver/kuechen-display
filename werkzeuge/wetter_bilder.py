@@ -18,6 +18,7 @@ Aufruf (im Repo-Wurzelverzeichnis):
     uv run werkzeuge/wetter_bilder.py --probe
     uv run --env-file ../rundfunk/.env werkzeuge/wetter_bilder.py
     uv run werkzeuge/wetter_bilder.py --pruefen   # Prüfbilder mit den Kartenflächen
+    uv run werkzeuge/wetter_bilder.py --neu-zuschneiden [--turm-x N]   # ohne API
 
 Ergebnis: docs/entwuerfe/wetter/<lage>.png (1280 × 800); die unbeschnittenen
 Originale liegen in wetter/roh/ (nicht im Git). Mit --pruefen zusätzlich
@@ -108,15 +109,53 @@ def prompt_fuer(lage: Lage) -> str:
     return f"{GRUNDREGELN} {lage.beschreibung}"
 
 
-def zuschneiden(png: bytes) -> bytes:
-    """Auf 1280 px Breite skalieren und mittig auf 800 px Höhe schneiden."""
+def fenster(roh_breite: int, roh_hoehe: int, turm_x: int) -> tuple[int, int, int, int]:
+    """Ausschnitt (links, oben, breite, hoehe) im Rohbild, in dem der Turm bei
+    TURM_X/BREITE der Breite steht – so groß wie möglich, Seitenverhältnis 16:10,
+    senkrecht mittig. Das Modell hält die Turmposition aus dem Prompt nicht ein
+    (erster Lauf 19.10.2026: 70 % statt 57 %), deshalb wird hier verschoben."""
+    anteil = TURM_X / BREITE
+    breite = min(
+        roh_breite,
+        turm_x / anteil,
+        (roh_breite - turm_x) / (1 - anteil),
+        roh_hoehe * BREITE / HOEHE,
+    )
+    breite = int(breite)
+    if breite < roh_breite / 2:
+        raise ValueError(
+            f"Turm bei x = {turm_x} steht zu nah am Rand: der Ausschnitt wäre nur "
+            f"{breite} px breit. Grundbild neu erzeugen (--nur gedaempft)."
+        )
+    hoehe = round(breite * HOEHE / BREITE)
+    links = round(turm_x - anteil * breite)
+    oben = (roh_hoehe - hoehe) // 2
+    return links, oben, breite, hoehe
+
+
+def turm_finden(png: bytes) -> int:
+    """x des Turms im Rohbild: die Spalte, die sich im oberen Bilddrittel am
+    stärksten dunkel vom Himmel daneben abhebt. Gemessen am Grundbild."""
+    from PIL import Image
+
+    bild = Image.open(io.BytesIO(png)).convert("L")
+    w, h = bild.size
+    zeilen = range(int(h * 0.25), int(h * 0.45))
+    bester = (float("-inf"), w // 2)
+    for x in range(w // 3, w - 20):
+        abstand = sum(bild.getpixel((x - 6, y)) - bild.getpixel((x, y)) for y in zeilen)
+        bester = max(bester, (abstand, x))
+    return bester[1]
+
+
+def zuschneiden(png: bytes, turm_x: int) -> bytes:
+    """Ausschnitt nach fenster() auf 1280 × 800 bringen."""
     from PIL import Image
 
     bild = Image.open(io.BytesIO(png)).convert("RGB")
-    hoehe = round(bild.height * BREITE / bild.width)
-    bild = bild.resize((BREITE, hoehe), Image.LANCZOS)
-    oben = max(0, (hoehe - HOEHE) // 2)
-    bild = bild.crop((0, oben, BREITE, oben + HOEHE))
+    links, oben, breite, hoehe = fenster(bild.width, bild.height, turm_x)
+    bild = bild.crop((links, oben, links + breite, oben + hoehe))
+    bild = bild.resize((BREITE, HOEHE), Image.LANCZOS)
     puffer = io.BytesIO()
     bild.save(puffer, format="PNG", optimize=True)
     return puffer.getvalue()
@@ -163,6 +202,17 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--pruefen", action="store_true", help="nur Prüfbilder aus vorhandenen Bildern"
     )
+    p.add_argument(
+        "--neu-zuschneiden",
+        action="store_true",
+        help="ohne API: alle Lagen aus roh/ neu zuschneiden",
+    )
+    p.add_argument(
+        "--turm-x",
+        type=int,
+        default=None,
+        help="x des Turms im Rohbild (sonst gemessen)",
+    )
     p.add_argument("--modell", default=MODELL)
     p.add_argument("--qualitaet", default="medium", choices=["low", "medium", "high"])
     p.add_argument("--nur", nargs="*", default=None, help="nur diese Lagen")
@@ -198,6 +248,28 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Prüfbilder: {ORDNER / 'pruefung'}")
         return 0
 
+    roh_ordner = ORDNER / "roh"
+    if args.neu_zuschneiden:
+        grund_roh = roh_ordner / "gedaempft.png"
+        if not grund_roh.exists():
+            print(f"Rohbild fehlt: {grund_roh}", file=sys.stderr)
+            return 2
+        turm_x = args.turm_x or turm_finden(grund_roh.read_bytes())
+        print(f"Turm im Rohbild bei x = {turm_x}")
+        for lage in auswahl:
+            roh_datei = roh_ordner / f"{lage.name}.png"
+            if not roh_datei.exists():
+                print(f"- {lage.name}: kein Rohbild, übersprungen", file=sys.stderr)
+                continue
+            (ORDNER / f"{lage.name}.png").write_bytes(
+                zuschneiden(roh_datei.read_bytes(), turm_x)
+            )
+            pruefbild(
+                ORDNER / f"{lage.name}.png", ORDNER / "pruefung" / f"{lage.name}.png"
+            )
+            print(f"- {lage.name}: neu zugeschnitten")
+        return 0
+
     if not os.environ.get("OPENAI_API_KEY"):
         print(
             "OPENAI_API_KEY fehlt, z. B.: "
@@ -212,9 +284,9 @@ def main(argv: list[str] | None = None) -> int:
     ORDNER.mkdir(parents=True, exist_ok=True)
     # Die Lagen werden aus dem unbeschnittenen Grundbild abgeleitet (1536 × 1024),
     # sonst verschiebt das andere Seitenverhältnis die Landschaft samt Turm.
-    roh_ordner = ORDNER / "roh"
     roh_ordner.mkdir(parents=True, exist_ok=True)
     grund = roh_ordner / "gedaempft.png"
+    turm_x = args.turm_x
     for lage in auswahl:
         eingabe = None
         if lage.aus_grundbild:
@@ -228,7 +300,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"erzeuge {lage.name} …", flush=True)
         roh = erzeuge(client, args.modell, args.qualitaet, prompt_fuer(lage), eingabe)
         (roh_ordner / f"{lage.name}.png").write_bytes(roh)
-        (ORDNER / f"{lage.name}.png").write_bytes(zuschneiden(roh))
+        if turm_x is None:
+            turm_x = turm_finden(grund.read_bytes() if grund.exists() else roh)
+            print(f"  Turm im Rohbild bei x = {turm_x}")
+        (ORDNER / f"{lage.name}.png").write_bytes(zuschneiden(roh, turm_x))
         pruefbild(ORDNER / f"{lage.name}.png", ORDNER / "pruefung" / f"{lage.name}.png")
     print(f"fertig: {ORDNER} (Prüfbilder in {ORDNER / 'pruefung'})")
     return 0
