@@ -8,6 +8,8 @@ Wetter, startet Apps und ist Sprachgerät wie Elektra.
 Übersicht und alle Festlegungen: [#1](https://github.com/dragondiver/kuechen-display/issues/1)
 und seine Unterkarten. Die Issues lagen bis zum 19.10.2026 in `rundfunk`.
 
+Wie es dazu kam: [Entwicklungsgeschichte](docs/geschichte.md).
+
 ## Was wo liegt
 
 | Ordner | Inhalt |
