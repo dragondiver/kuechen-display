@@ -4,3 +4,6 @@ gehaeuse/renders/
 .DS_Store
 __pycache__/
 .env
+
+# Fremdmaterial (Maßzeichnungen, Produktfotos): nur lokal, nicht veröffentlichen.
+gehaeuse/referenz/
