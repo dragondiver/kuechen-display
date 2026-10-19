@@ -281,6 +281,8 @@
     .scr[data-zustand="spricht"] .figur2 .fb-sprechen-offen { animation: mundwechsel .36s steps(1) infinite reverse; }
   }
   @keyframes mundwechsel { 0% { opacity:1; } 50% { opacity:0; } }
+  /* ===== Neu: Wetterbilder W4 ===== */
+  .scr .wetterbild { position:absolute; inset:0; width:1280px; height:800px; object-fit:cover; }
 </style>
 
 <main class="blatt">
@@ -504,7 +506,7 @@
   </section>
 
   <section class="gruppe" aria-labelledby="wetter-gruppe-h">
-    <h2 id="wetter-gruppe-h">Wetterbild: drei Stile</h2>
+    <h2 id="wetter-gruppe-h">Wetterbild</h2>
     <p class="gezeigt" style="margin:0 0 .25rem">Dieselbe Lage, leichter Regen am Sonntagnachmittag, mit den Glaskarten von C darüber. Noch nicht entschieden.</p>
 
     <section class="entwurf" data-entwurf="w1" data-name="W1 · Flach" aria-labelledby="w1-h">
@@ -610,6 +612,42 @@
           <div class="temp" style="font-size:150px;">9°</div>
           <div class="zustand">Leichter Regen</div>
           <div class="hoch">H 11°  ·  T 6°</div>
+        </div>
+      </div></div>
+    </section>
+    <section class="entwurf" data-entwurf="w4" data-name="W4 · Wetterbilder aus der Bild-API" aria-labelledby="w4-h">
+      <div class="entwurf-text">
+        <h3 id="w4-h"><span class="buchstabe">W4</span> Aus der Bild-API</h3>
+        <p>Sechs Wetterlagen mit <code>werkzeuge/wetter_bilder.py</code> erzeugt. Landschaft und Fernsehturm bleiben gleich, nur Himmel und Licht wechseln. Der Turm steht im Startbild in der Lücke zwischen den Karten.</p>
+        <ul class="annahmen">
+          <li>Stil eher gemalt als flach illustriert wie W3</li>
+          <li>Ausschnitt nachträglich verschoben, weil das Modell den Turm bei 70 % statt 57 % gezeichnet hat</li>
+        </ul>
+        <div class="knoepfe" role="group" aria-label="Wetterlage">
+          <button class="knopf" type="button" data-wetter-ziel="w4" data-wetter="gedaempft" data-wetter-name="Gedämpft" aria-pressed="true">Gedämpft</button>
+          <button class="knopf" type="button" data-wetter-ziel="w4" data-wetter="sonnig" data-wetter-name="Sonnig" aria-pressed="false">Sonnig</button>
+          <button class="knopf" type="button" data-wetter-ziel="w4" data-wetter="wolkig" data-wetter-name="Wolkig" aria-pressed="false">Wolkig</button>
+          <button class="knopf" type="button" data-wetter-ziel="w4" data-wetter="nacht" data-wetter-name="Nacht" aria-pressed="false">Nacht</button>
+          <button class="knopf" type="button" data-wetter-ziel="w4" data-wetter="schnee" data-wetter-name="Schnee" aria-pressed="false">Schnee</button>
+          <button class="knopf" type="button" data-wetter-ziel="w4" data-wetter="regen" data-wetter-name="Regen" aria-pressed="false">Regen</button>
+        </div>
+        <div class="knoepfe"><button class="knopf" type="button" data-oeffne="w4">Groß ansehen</button></div>
+      </div>
+      <div class="bildschirm" data-oeffne="w4" aria-hidden="true"><div class="scr">
+        <img class="wetterbild" src="wetter/gedaempft.png" alt="" data-wetter-bild>
+        <div class="glas" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px;">
+          <div class="uhr" style="font-size:92px;">17:42</div>
+          <div class="datum">Sonntag, 18. Oktober</div>
+          <div class="kopf" style="margin-top:40px;">Noch heute</div>
+          <div class="termin"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
+          <div class="termin"><div class="zeit">20:15</div><div class="titel">Tatort</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+          <div class="mehr">Morgen 6 Termine ›</div>
+        </div>
+        <div class="glas" style="position:absolute;right:48px;top:48px;width:460px;padding:40px 44px;">
+          <div class="ort">Kornwestheim</div>
+          <div class="temp" style="font-size:150px;" data-wetter-temp>11°</div>
+          <div class="zustand" data-wetter-text>Gedämpft</div>
+          <div class="hoch">Nacht 5°</div>
         </div>
       </div></div>
     </section>
@@ -1091,6 +1129,15 @@
         const id = b.dataset.zustandZiel;
         document.querySelector('.entwurf[data-entwurf="' + id + '"] .scr').dataset.zustand = b.dataset.zustand;
         document.querySelectorAll('[data-zustand-ziel="' + id + '"]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      });
+    });
+    // W4: Wetterlage per Knopf wechseln (Bild und Zustandstext).
+    document.querySelectorAll('[data-wetter-ziel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const scr = document.querySelector('.entwurf[data-entwurf="' + b.dataset.wetterZiel + '"] .scr');
+        scr.querySelector('[data-wetter-bild]').src = 'wetter/' + b.dataset.wetter + '.png';
+        scr.querySelector('[data-wetter-text]').textContent = b.dataset.wetterName;
+        document.querySelectorAll('[data-wetter-ziel="' + b.dataset.wetterZiel + '"]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
       });
     });
     document.getElementById('buehne-zu').addEventListener('click', function () { buehne.close(); });

@@ -66,8 +66,11 @@ Turm muss im Startbild (Heute) in der **Lücke zwischen linker und rechter Glask
 stehen, bei **x = 730 von 1280 px** (57 %). Auf den Seiten Apps und Morgen/Woche
 darf er verdeckt sein.
 
-**Format:** Die API liefert 1536 × 1024. Das Skript skaliert auf 1280 px Breite und
-schneidet mittig auf 800 px Höhe zu. Die unbeschnittenen Originale liegen in
+**Format:** Die API liefert 1536 × 1024. Das Modell hält die Turmposition aus dem
+Prompt nicht zuverlässig ein. Deshalb misst das Skript im Grundbild, wo der Turm
+steht, und schneidet aus jedem Rohbild einen 16:10-Ausschnitt so aus, dass der Turm
+bei x = 730 landet. Danach wird auf 1280 × 800 skaliert, meist leicht vergrößert.
+Steht der Turm zu nah am Rand, bricht das Skript mit einer Meldung ab. Die unbeschnittenen Originale liegen in
 `docs/entwuerfe/wetter/roh/` und werden für die Ableitungen gebraucht. Sie bleiben
 lokal und sind nicht im Git.
 
@@ -83,7 +86,15 @@ lokal und sind nicht im Git.
    ```
 3. **Prüfen, ob der Turm in der Lücke steht.** Der Lauf legt Prüfbilder in
    `docs/entwuerfe/wetter/pruefung/` an: die Glaskarten als dunkle Flächen, die
-   Sollposition des Turms als rote Linie. Steht der Turm nicht auf der Linie,
+   Sollposition des Turms als rote Linie.
+   Steht der Turm daneben, weil die Messung einen falschen Strich erwischt hat,
+   kostenlos neu zuschneiden, bei Bedarf mit der Turmposition im Rohbild von Hand.
+   Die Rohbilder liegen in `wetter/roh/`.
+   ```bash
+   uv run werkzeuge/wetter_bilder.py --neu-zuschneiden
+   uv run werkzeuge/wetter_bilder.py --neu-zuschneiden --turm-x 1078
+   ```
+   Passt das Grundbild selbst nicht, etwa weil der Turm am Rand steht oder fehlt,
    zuerst das Grundbild neu erzeugen, danach die anderen Lagen:
    ```bash
    uv run --env-file ../rundfunk/.env werkzeuge/wetter_bilder.py --nur gedaempft
@@ -91,6 +102,10 @@ lokal und sind nicht im Git.
    ```
    Nur die Prüfbilder neu zeichnen, ohne API: `uv run werkzeuge/wetter_bilder.py --pruefen`
 4. Einzelne Lage nachbessern, z. B. `--nur nacht`.
+
+**Erster Lauf:** 19.10.2026. Der Turm stand im Rohbild bei 70 % statt 57 % und wurde
+per Zuschnitt in die Lücke gesetzt (Turm im Rohbild bei x = 1078). Der Stil ist eher
+gemalt als flach illustriert. Im Ruhebildschirm-Entwurf als W4 zu sehen.
 5. Die sechs Bilder in `docs/entwuerfe/wetter/` per PR ins Repo bringen.
 
 ## Wenn etwas schiefgeht
@@ -98,6 +113,7 @@ lokal und sind nicht im Git.
 | Meldung | Ursache, Abhilfe |
 |---|---|
 | `OPENAI_API_KEY fehlt …` | `--env-file ../rundfunk/.env` vergessen, oder die `.env` ist nicht eingebunden (1Password-App entsperren) |
+| `Turm bei x = … steht zu nah am Rand` | Grundbild mit `--nur gedaempft` neu erzeugen, danach die anderen Lagen |
 | `Grundbild … fehlt` | `--nur` ohne vorhandenes Grundbild: erst einmal ohne `--nur` laufen lassen |
 | `Unbekannte Zustände/Lagen` | Tippfehler bei `--nur`; gültige Namen siehe oben |
 | Figur sieht in einem Zustand anders aus | nur diesen Zustand mit `--nur` neu erzeugen; hilft das nicht, `--qualitaet high` |
