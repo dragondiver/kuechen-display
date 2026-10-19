@@ -7,3 +7,7 @@ __pycache__/
 
 # Fremdmaterial (Maßzeichnungen, Produktfotos): nur lokal, nicht veröffentlichen.
 gehaeuse/referenz/
+
+# Wetterbilder: Originale der Bild-API und Prüfbilder bleiben lokal.
+docs/entwuerfe/wetter/roh/
+docs/entwuerfe/wetter/pruefung/
