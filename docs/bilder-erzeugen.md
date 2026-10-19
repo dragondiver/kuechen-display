@@ -108,6 +108,35 @@ per Zuschnitt in die Lücke gesetzt (Turm im Rohbild bei x = 1078). Der Stil ist
 gemalt als flach illustriert. Im Ruhebildschirm-Entwurf als W4 zu sehen.
 5. Die sechs Bilder in `docs/entwuerfe/wetter/` per PR ins Repo bringen.
 
+## Stilideen für die Wetterbilder
+
+Damit die Landschaft zur Figur F2 passt, gibt es einen Ideen-Lauf: Für **eine** Lage,
+standardmäßig Regen, entstehen drei Bilder in drei Stilrichtungen: `ton` (weiche
+Ton-Welt), `flach` (flache Illustration) und `bilderbuch`. Das Bild der Frau
+(`docs/entwuerfe/figur/zuhoeren.png`) geht als **Stilhinweis** mit. Übernommen werden
+nur Machart und Licht, **nicht ihre Farben**. Die Landschaft bleibt natürlich (grüne
+Hügel, grauer Regenhimmel), die Frau wird nicht ins Bild gesetzt.
+
+1. Probelauf: `uv run werkzeuge/wetter_bilder.py --ideen --probe`
+2. Ideen erzeugen (drei Bilder):
+   ```bash
+   uv run --env-file ../rundfunk/.env werkzeuge/wetter_bilder.py --ideen
+   ```
+   Andere Lage: `--lage nacht`. Andere Stilvorlage: `--stil-vorlage <datei>`.
+3. Ergebnis in `docs/entwuerfe/wetter/ideen/<lage>-<stil>.png`, Prüfbilder daneben in
+   `ideen/pruefung/`. Die bisherigen sechs Wetterbilder bleiben unverändert.
+4. Ist ein Stil gewählt, kommt er als Stil in den normalen Lauf, und alle sechs Lagen
+   werden neu erzeugt. Die alten Bilder werden dabei vorher gesichert.
+
+## Kosten
+
+Beide Skripte schreiben nach jedem Bild die verbrauchten Tokens und die Kosten in
+[`docs/bild-laeufe.md`](bild-laeufe.md) und geben sie aus. Grundlage sind die Tokens aus
+der API-Antwort und die Preise in `werkzeuge/bildkosten.py` (gpt-image-2.5, Stand
+Oktober 2026: Bild ein 8 $, Text ein 5 $, Bild aus 30 $ je Million Tokens). Die
+ersten beiden Läufe am 19.10.2026 sind dort nicht drin, weil das Protokoll erst danach
+kam. Geschätzt kosteten sie zusammen unter einen Euro.
+
 ## Wenn etwas schiefgeht
 
 | Meldung | Ursache, Abhilfe |

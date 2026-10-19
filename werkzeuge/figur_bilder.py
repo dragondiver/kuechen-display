@@ -98,7 +98,11 @@ def vorlage_zuschneiden(
     return puffer.getvalue()
 
 
-def erzeuge(client, modell: str, qualitaet: str, eingabe: bytes, prompt: str) -> bytes:
+def erzeuge(
+    client, modell: str, qualitaet: str, eingabe: bytes, prompt: str, bild: str
+) -> bytes:
+    import bildkosten
+
     antwort = client.images.edit(
         model=modell,
         image=("eingabe.png", eingabe, "image/png"),
@@ -108,6 +112,7 @@ def erzeuge(client, modell: str, qualitaet: str, eingabe: bytes, prompt: str) ->
         size="1024x1024",
         quality=qualitaet,
     )
+    bildkosten.protokollieren(antwort, "figur_bilder", bild, modell, qualitaet)
     return base64.b64decode(antwort.data[0].b64_json)
 
 
@@ -183,7 +188,9 @@ def main(argv: list[str] | None = None) -> int:
             eingabe = vorlage_zuschneiden(args.vorlage, ausschnitt)
         print(f"erzeuge {z.name} …", flush=True)
         speichern(
-            erzeuge(client, args.modell, args.qualitaet, eingabe, prompt_fuer(z)),
+            erzeuge(
+                client, args.modell, args.qualitaet, eingabe, prompt_fuer(z), z.name
+            ),
             z.name,
         )
     print(f"fertig: {ORDNER}")
