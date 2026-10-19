@@ -148,6 +148,10 @@ nur zugeschnitten und kostet nichts. Ziel ist ein eigener Ordner
 4. Wurde die Idee für eine andere Lage erzeugt, z. B. `--ideen --lage nacht`, dann
    `--serie <stil> --lage nacht`.
 
+**Erster Serien-Lauf:** 19.10.2026, `--serie flach`. Fünf Bilder je etwa 3 Cent (zwei
+Bilder als Eingabe: Grundbild und Stilvorlage). Der Turm steht in allen sechs in der
+Lücke. „Gedämpft“ zeigt noch feine Regenstriche aus dem Grundbild. Im Entwurf als W5.
+
 ## Kosten
 
 Beide Skripte schreiben nach jedem Bild die verbrauchten Tokens und die Kosten in
