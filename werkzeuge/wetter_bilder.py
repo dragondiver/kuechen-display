@@ -258,6 +258,12 @@ def main(argv: list[str] | None = None) -> int:
         help="je eine Stilidee pro Stil für eine Lage (Ordner wetter/ideen/)",
     )
     p.add_argument("--lage", default="regen", help="Lage für --ideen (Standard regen)")
+    p.add_argument(
+        "--serie",
+        choices=sorted(STILE),
+        default=None,
+        help="alle Lagen im Stil einer Idee, abgeleitet aus deren Bild (Ordner wetter/<stil>/)",
+    )
     p.add_argument("--stil-vorlage", type=Path, default=STILVORLAGE)
     p.add_argument("--modell", default=MODELL)
     p.add_argument("--qualitaet", default="medium", choices=["low", "medium", "high"])
@@ -273,6 +279,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.ideen:
         return ideen(args)
+    if args.serie:
+        return serie(args)
 
     if args.probe:
         print(f"Modell {args.modell}, Qualität {args.qualitaet}, {len(auswahl)} Bilder")
@@ -418,6 +426,83 @@ def ideen(args) -> int:
         print(f"  Turm im Rohbild bei x = {turm_x}")
     print(f"fertig: {IDEEN_ORDNER} (Prüfbilder in {IDEEN_ORDNER / 'pruefung'})")
     return 0
+
+
+def serie(args) -> int:
+    """Alle Lagen im Stil einer gewählten Idee. Grundbild ist das Rohbild der Idee
+    (z. B. ideen/roh/regen-flach.png); jede andere Lage wird daraus abgeleitet, mit
+    der Figur als Stilhinweis. Die Lage der Idee selbst wird nur zugeschnitten."""
+    stil = args.serie
+    grund_name = f"{args.lage}-{stil}"
+    grund = IDEEN_ORDNER / "roh" / f"{grund_name}.png"
+    ziel = ORDNER / stil
+    if not grund.exists():
+        print(
+            f"Grundbild fehlt: {grund} (zuerst --ideen laufen lassen)", file=sys.stderr
+        )
+        return 2
+    auswahl = [x for x in LAGEN if args.nur is None or x.name in args.nur]
+    if args.probe:
+        print(f"Serie {stil} aus {grund}, Ziel {ziel}, Modell {args.modell}")
+        for lage in auswahl:
+            if lage.name == args.lage:
+                print(f"- {lage.name}: nur zuschneiden (ist die Idee selbst)")
+            else:
+                print(f"- {lage.name}: {prompt_serie(stil, lage)}")
+        return 0
+    if not os.environ.get("OPENAI_API_KEY") and any(
+        x.name != args.lage for x in auswahl
+    ):
+        print(
+            "OPENAI_API_KEY fehlt, z. B.: uv run --env-file ../rundfunk/.env "
+            f"werkzeuge/wetter_bilder.py --serie {stil}",
+            file=sys.stderr,
+        )
+        return 2
+    if not args.stil_vorlage.exists():
+        print(f"Stilvorlage fehlt: {args.stil_vorlage}", file=sys.stderr)
+        return 2
+
+    grund_png = grund.read_bytes()
+    turm_x = args.turm_x or turm_finden(grund_png)
+    print(f"Turm im Grundbild bei x = {turm_x}")
+    roh_ordner = ziel / "roh"
+    roh_ordner.mkdir(parents=True, exist_ok=True)
+    client = None
+    for lage in auswahl:
+        if lage.name == args.lage:
+            roh = grund_png
+            print(f"{lage.name}: aus der Idee übernommen")
+        else:
+            if client is None:
+                from openai import OpenAI
+
+                client = OpenAI()
+            print(f"erzeuge {lage.name} …", flush=True)
+            roh = erzeuge(
+                client,
+                args.modell,
+                args.qualitaet,
+                prompt_serie(stil, lage),
+                grund_png,
+                f"{stil}/{lage.name}",
+                args.stil_vorlage.read_bytes(),
+            )
+        (roh_ordner / f"{lage.name}.png").write_bytes(roh)
+        (ziel / f"{lage.name}.png").write_bytes(zuschneiden(roh, turm_x))
+        pruefbild(ziel / f"{lage.name}.png", ziel / "pruefung" / f"{lage.name}.png")
+    print(f"fertig: {ziel} (Prüfbilder in {ziel / 'pruefung'})")
+    return 0
+
+
+def prompt_serie(stil: str, lage: Lage) -> str:
+    return (
+        "The first image is the landscape. Keep it exactly: same composition, hills, "
+        "houses, trees and the TV tower in the same place, same illustration style. "
+        f"Change only weather, sky and light. {lage.beschreibung} "
+        f"Style stays: {STILE[stil]} The second image is only a style reference; do not "
+        "draw the woman or any person."
+    )
 
 
 def roh_breite_mitte(png: bytes) -> int:

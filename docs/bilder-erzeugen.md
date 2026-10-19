@@ -125,8 +125,28 @@ Hügel, grauer Regenhimmel), die Frau wird nicht ins Bild gesetzt.
    Andere Lage: `--lage nacht`. Andere Stilvorlage: `--stil-vorlage <datei>`.
 3. Ergebnis in `docs/entwuerfe/wetter/ideen/<lage>-<stil>.png`, Prüfbilder daneben in
    `ideen/pruefung/`. Die bisherigen sechs Wetterbilder bleiben unverändert.
-4. Ist ein Stil gewählt, kommt er als Stil in den normalen Lauf, und alle sechs Lagen
-   werden neu erzeugt. Die alten Bilder werden dabei vorher gesichert.
+4. Ist ein Stil gewählt, entsteht daraus die ganze Serie (nächster Abschnitt).
+
+**Erster Ideen-Lauf:** 19.10.2026, Regen in allen drei Stilen, je 2 Cent. Florian
+wählte `flach`.
+
+## Serie in einem gewählten Stil
+
+Die Serie nimmt das Rohbild der gewählten Idee als Grundbild, z. B.
+`ideen/roh/regen-flach.png`, und leitet jede andere Lage daraus ab. Landschaft,
+Turm und Stil bleiben damit genau wie in der Idee. Die Lage der Idee selbst wird
+nur zugeschnitten und kostet nichts. Ziel ist ein eigener Ordner
+`docs/entwuerfe/wetter/<stil>/`, die älteren Bilder bleiben unberührt.
+
+1. Probelauf: `uv run werkzeuge/wetter_bilder.py --serie flach --probe`
+2. Serie erzeugen (fünf Bilder, Regen ist schon da):
+   ```bash
+   uv run --env-file ../rundfunk/.env werkzeuge/wetter_bilder.py --serie flach
+   ```
+3. Prüfbilder in `docs/entwuerfe/wetter/flach/pruefung/` ansehen; einzelne Lage
+   nachbessern mit `--nur nacht`.
+4. Wurde die Idee für eine andere Lage erzeugt, z. B. `--ideen --lage nacht`, dann
+   `--serie <stil> --lage nacht`.
 
 ## Kosten
 
