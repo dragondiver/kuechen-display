@@ -17,7 +17,7 @@ und seine Unterkarten. Die Issues lagen bis zum 19.10.2026 in `rundfunk`.
 | `docs/entwuerfe/` | Entwurfsseiten: Galerie, Entwurfsgeschichte, Hardware-Auswahl, Ruhebildschirm |
 | `oberflaeche/` | *kommt:* Browser-App für den Chromium-Kiosk (1280 × 800), #10, #15 |
 | `geraet/` | *kommt:* Einrichtung des Pi 5 (Kiosk, Dienste, Deploy) |
-| `werkzeuge/` | Hilfsskripte, z. B. `figur_bilder.py`: Elektras Figur in vier Zuständen per OpenAI-Bild-API aus einer Vorlage erzeugen (#15) |
+| `werkzeuge/` | Hilfsskripte, z. B. `figur_bilder.py`: Elektras Figur in vier Zuständen per OpenAI-Bild-API aus einer Vorlage erzeugen (#15); `wetter_bilder.py`: Hintergrundbilder für sechs Wetterlagen mit dem Fernsehturm in der Kartenlücke (#15) |
 
 Gehäuse rendern (Blender im Hintergrund, Bilder landen in `gehaeuse/renders/`, nicht im Git):
 
