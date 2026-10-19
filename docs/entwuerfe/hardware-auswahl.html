@@ -1,0 +1,434 @@
+<title>Hardware Küchen-Display</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: schmale Spalte wie ein Braun-Datenblatt, oben Phasen mit Summen, dann die Stückliste je Phase, unten die Kandidaten je Bauteil */
+:root {
+  --bg: #f4f3f0;
+  --panel: #ffffff;
+  --fg: #23221f;
+  --muted: #6b6862;
+  --line: #dddad3;
+  --accent: #d9581c;
+  --accent-soft: #fbe9df;
+  --good: #2f6b45;
+  --bad: #9a3b2a;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1b1a18; --panel: #24231f; --fg: #ecebe6; --muted: #a29f97; --line: #3a3833;
+    --accent: #f0743a; --accent-soft: #3a2519; --good: #7cc495; --bad: #f09a86; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1b1a18; --panel: #24231f; --fg: #ecebe6; --muted: #a29f97; --line: #3a3833;
+  --accent: #f0743a; --accent-soft: #3a2519; --good: #7cc495; --bad: #f09a86; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.55; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 36px 64px; display: grid; gap: 40px; }
+header { display: grid; gap: 12px; max-width: 72ch; }
+.eyebrow { font-family: var(--font-data); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 4vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: 22px; margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.lede { color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex: none; display: inline-block; }
+section { display: grid; gap: 14px; }
+.sechead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; border-bottom: 2px solid var(--fg); padding-bottom: 8px; }
+.sechead p { font-size: 14px; color: var(--muted); }
+.scroll { overflow-x: auto; min-width: 0; }
+table { width: 100%; min-width: 760px; border-collapse: collapse; background: var(--panel); }
+table.liste { min-width: 600px; }
+th, td { text-align: left; vertical-align: top; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--font-data); font-weight: 500; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--bg); }
+td { font-size: 15px; }
+tr.rec td { background: var(--accent-soft); }
+tr.summe td { font-weight: 600; border-top: 2px solid var(--fg); }
+.name { font-family: var(--font-display); font-weight: 500; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.badge { font-family: var(--font-data); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.src { font-size: 13px; color: var(--muted); }
+.src a { color: inherit; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.pro li::marker { color: var(--good); }
+.con li::marker { color: var(--bad); }
+.data { font-family: var(--font-data); font-size: 13px; font-variant-numeric: tabular-nums; display: grid; gap: 3px; }
+.price, .num { font-family: var(--font-data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.num { text-align: right; }
+.note { font-size: 14px; color: var(--muted); max-width: 80ch; }
+tr.flag td:first-child { box-shadow: inset 4px 0 0 var(--accent); }
+.bar { width: 4px; height: 16px; background: var(--accent); display: inline-block; flex: none; }
+code { font-family: var(--font-data); font-size: 13px; }
+.phasen { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.phase { background: var(--panel); border-top: 3px solid var(--fg); padding: 14px; display: grid; gap: 4px; align-content: start; }
+.pnum { font-family: var(--font-data); font-size: 12px; color: var(--accent); }
+.ptitel { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+.pzeit { font-size: 13px; color: var(--muted); }
+.pbetrag { font-family: var(--font-data); font-size: 18px; font-variant-numeric: tabular-nums; }
+.ptext { font-size: 14px; color: var(--muted); }
+td.kauf { min-width: 120px; font-size: 13px; }
+td.kauf .haken { font-weight: 600; color: var(--good); }
+td.kauf .kaufdaten { font-family: var(--font-data); font-variant-numeric: tabular-nums; color: var(--muted); }
+td.kauf .kaufnotiz { color: var(--bad); }
+tr.done td:not(.kauf) { color: var(--muted); }
+tr.done td:not(.kauf) a { color: var(--muted); }
+.kaufstand { font-family: var(--font-data); font-size: 14px; font-variant-numeric: tabular-nums; }
+footer { font-size: 14px; color: var(--muted); display: grid; gap: 8px; max-width: 80ch; border-top: 1px solid var(--line); padding-top: 16px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Küchen-Display · rundfunk#108, #119 · Stand 15.10.2026</div>
+    <h1>Was alles nötig ist, in welcher Reihenfolge</h1>
+    <p class="lede">Die komplette Stückliste vom Werkzeug bis zum Holzöl, sortiert danach, wann du etwas kaufst. Nichts ist bewusst weggelassen; was absichtlich fehlt, steht am Ende mit Grund. Preise mit Quelle „Geizhals“ habe ich am 15.10.2026 abgelesen, alles mit „ca.“ ist geschätzt.</p>
+    <div class="legend"><span><i class="bar" aria-hidden="true"></i>Prüfpunkt, an dem das Projekt kippen kann</span><span>Gehäuse: Entwurf O, 8″, 75°, ca. 235 × 105 × 143 mm</span></div>
+  </header>
+
+  <section aria-labelledby="ueberblick">
+    <div class="sechead"><h2 id="ueberblick">Überblick</h2><p>Summe ohne Versand und ohne Werkzeug: gut 800 €</p></div>
+    <div class="phasen">
+      <div class="phase"><div class="pnum">0</div><div class="ptitel">Werkzeug prüfen</div><div class="pzeit">vor allem anderen</div><div class="pbetrag">0–60 €</div><div class="ptext">Nur kaufen, was fehlt.</div></div>
+      <div class="phase"><div class="pnum">1</div><div class="ptitel">Kernteile + Tischtest</div><div class="pzeit">zuerst bestellen</div><div class="pbetrag">ca. 570 €</div><div class="ptext">Alles, was Maße festlegt oder das Projekt kippen kann.</div></div>
+      <div class="phase"><div class="pnum">2</div><div class="ptitel">Bedienung + Licht</div><div class="pzeit">mit Phase 1 oder kurz danach</div><div class="pbetrag">ca. 35 €</div><div class="ptext">Knöpfe, LED, Leuchtleiste; billig, aber sie prägen die Front.</div></div>
+      <div class="phase"><div class="pnum">3</div><div class="ptitel">Kabel + Kleinteile</div><div class="pzeit">wenn Phase 1 auf dem Tisch läuft</div><div class="pbetrag">ca. 105 €</div><div class="ptext">Erst jetzt weißt du, welche Stecker und Längen nötig sind.</div></div>
+      <div class="phase"><div class="pnum">4</div><div class="ptitel">Filament + Probedrucke</div><div class="pzeit">nach dem Messen</div><div class="pbetrag">ca. 85 €</div><div class="ptext">Grau zuerst für Proben, dann die Gehäusefarben.</div></div>
+      <div class="phase"><div class="pnum">5</div><div class="ptitel">Endmontage + Finish</div><div class="pzeit">zuletzt</div><div class="pbetrag">ca. 20 €</div><div class="ptext">Schleifen, ölen, zusammenbauen.</div></div>
+    </div>
+    <p class="kaufstand" id="kaufstand">Gekaufte Teile werden geladen …</p>
+    <div class="note" hidden><strong>Außerhalb der Liste gekauft:</strong><ul id="extras"></ul></div>
+  </section>
+
+  <section aria-labelledby="p0">
+    <div class="sechead"><h2 id="p0">Phase 0 · Werkzeug</h2><p>Vermutlich hast du das meiste schon</p></div>
+    <div class="scroll"><table class="liste kauf">
+      <thead><tr><th scope="col">Teil</th><th scope="col" class="num">Preis</th><th scope="col">Kommentar</th></tr></thead>
+      <tbody>
+        <tr data-k="w1"><td>Messschieber, digital</td><td class="num">ca. 15 €</td><td>Unverzichtbar: Phase 1 endet mit Messen.</td></tr>
+        <tr data-k="w2"><td>Lötkolben mit Einschmelzspitze für M3</td><td class="num">ca. 15 €</td><td>Erst kaufen, wenn die Einschmelzmuttern drankommen (Phase 4/5). Die Spitze muss zum vorhandenen Lötkolben passen (z. B. 900M, T18, Weller ST), vorher Typ nachsehen.</td></tr>
+        <tr data-k="w3"><td>Crimpzange für JST-Stecker</td><td class="num">entfällt</td><td>Am 17.10. gestrichen: fertig gecrimpte Kabel (Nr. 19) und Lötkolben reichen für die paar Verbindungen.</td></tr>
+        <tr data-k="w4"><td>Multimeter, Abisolierzange, Inbusschlüssel</td><td class="num">–</td><td>Vorhanden angenommen. Falls eine Abisolierzange fehlt: Sie muss bis 0,1 mm² herunter gehen (26-AWG-Litze hat ca. 0,13 mm²), Automatikzangen ab 0,2 mm² taugen dafür nicht.</td></tr>
+        <tr data-k="w5" class="flag"><td>Düse für Holzfilament</td><td class="num">?</td><td>Nicht geprüft, ob Bambu für PLA Wood auf dem A1 eine gehärtete Düse empfiehlt. Vor dem Holzdruck im Bambu-Wiki nachsehen.</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="p1">
+    <div class="sechead"><h2 id="p1">Phase 1 · Kernteile und Tischtest</h2><p>Zuerst bestellen, offen zusammenstecken, messen</p></div>
+    <div class="scroll"><table class="liste kauf">
+      <thead><tr><th scope="col">#</th><th scope="col">Teil</th><th scope="col">Menge</th><th scope="col" class="num">Preis</th><th scope="col">Kommentar</th></tr></thead>
+      <tbody>
+        <tr data-k="n1"><td>1</td><td>Waveshare 8inch DSI LCD (C), Art.-Nr. 23448 · <strong>festgelegt 16.10.</strong></td><td>1</td><td class="num">85,95 €</td><td>Maße aus der Waveshare-Zeichnung: Glas 194 × 119 mm, Bild 172,82 × 108,24 mm, 7,4 mm dick. 22-poliges Pi-5-Kabel liegt bei, Treiber im Pi-Kernel. Angebote 16.10.: <a href="https://eckstein-shop.de/WaveShare-8inch-Capacitive-Touch-Display-for-Raspberry-Pi-1280x800-IPS-DSI-Interface-EN">Eckstein</a> 85,95 € (ca. 3 Wochen), <a href="https://eu.robotshop.com/products/8inch-capacitive-touch-display-for-raspberry-pi-1280800-ips-dsi-interface">RobotShop EU</a> 86,89 € (ca. 10 Tage), Amazon 113 €, Waveshare 78,99 $ plus Versand und Einfuhrsteuer. Achtung: Der Geizhals-Eintrag für 78,99 € ist vermutlich das 8-DSI-TOUCH-A, und das BerryBase-Angebot „HDMI, USB-C“ ist das 8DP-CAPLCD, beides nicht das (C).</td></tr>
+        <tr data-k="n2" class="flag"><td>2</td><td>reSpeaker Flex XVF3800 Linear-4</td><td>1</td><td class="num">99,99 €</td><td>Bei Seeed direkt 57,99 $ plus Versand und Zoll, meist günstiger. Im Tischtest prüfen: Echounterdrückung mit den FRS 7 bei voller Lautstärke.</td></tr>
+        <tr data-k="n3"><td>3</td><td>Raspberry Pi 5, 8 GB</td><td>1</td><td class="num">184,90 €</td><td>4 GB ginge rund 26 € günstiger, ob es reicht, ist nicht gemessen. <a href="https://geizhals.de/?fs=raspberry+pi+5+8gb&amp;hloc=de">Geizhals</a></td></tr>
+        <tr data-k="n4"><td>4</td><td>Active Cooler</td><td>1</td><td class="num">4,90 €</td><td>Pflicht im geschlossenen Gehäuse.</td></tr>
+        <tr data-k="n5"><td>5</td><td>microSD SanDisk Extreme 64 GB, A2</td><td>1</td><td class="num">24,29 €</td><td>Reicht für System und Apps. <a href="https://geizhals.de/?fs=sandisk+extreme+microsd+64gb&amp;hloc=de">Geizhals</a></td></tr>
+        <tr data-k="n6" class="flag"><td>6</td><td>Waveshare UPS HAT (E)</td><td>1</td><td class="num">46,99 €</td><td>Prüfen: Liefert er genug Strom für Pi, Display und den Verstärker im XVF3800? Der Verstärker hängt per USB am Pi, und der Pi 5 begrenzt USB auf 600 mA, wenn die Stromquelle sich nicht als 5 A meldet. Abhilfe vermutlich <code>usb_max_current_enable=1</code>, im Tischtest messen.</td></tr>
+        <tr data-k="n7"><td>7</td><td>Samsung 21700 Flat-Top, 5000 mAh</td><td>4</td><td class="num">59,44 €</td><td>Vor dem Kauf im Waveshare-Wiki prüfen, welche Zellen (ungeschützt, flacher Pluspol) passen. Könnten auch später kommen, Maße sind genormt. <a href="https://geizhals.de/?fs=21700+5000mah&amp;hloc=de">Geizhals</a></td></tr>
+        <tr data-k="n8"><td>8</td><td>USB-C-Netzteil mit PD, ab 30 W, besser 45 W</td><td>1</td><td class="num">vorhanden</td><td>Ein vorhandenes Ladegerät wird genutzt, zu prüfen: USB-C mit PD (Aufdruck „PD“ oder 9 V/15 V/20 V), mindestens 30 W. Der UPS HAT lädt mit bis zu 40 W; ein 20-W-Ladegerät reicht nur für den Tischtest. Neu ab 14,90 €. <a href="https://geizhals.de/?fs=usb-c+netzteil+45w+pd&amp;hloc=de">Geizhals</a></td></tr>
+        <tr data-k="n9"><td>9</td><td>Visaton FRS 7, 4 Ω</td><td>2</td><td class="num">23,30 €</td><td>4-Ω-Version, beide in Reihe (8 Ω) am XVF3800: halbe Leistung, weniger USB-Strom, sauberere Echounterdrückung; reicht für Sprache. Einbautiefe messen, sie bestimmt die Seitenkammer. <a href="https://geizhals.de/?fs=visaton+frs+7&amp;hloc=de">Geizhals</a></td></tr>
+        <tr data-k="n10"><td>10</td><td>Camera Module 3 Wide (102°)</td><td>1</td><td class="num">35,90 €</td><td>Wide gewählt, nicht NoIR (ohne Infrarotfilter verfälscht sie bei Tageslicht die Farben). Gehört in Phase 1, weil ihr Halter im weißen Rahmen sitzt. <a href="https://geizhals.de/?fs=raspberry+pi+camera+module+3&amp;hloc=de">Geizhals</a></td></tr>
+        <tr data-k="n11"><td>11</td><td>Kamerakabel Standard–Mini, 200 mm</td><td>1</td><td class="num">1,20 €</td><td>Der Pi 5 braucht das schmale 22-polige Ende.</td></tr>
+        <tr class="summe"><td></td><td>Summe Phase 1</td><td></td><td class="num">ca. 570 €</td><td>mit normaler Kamera; mit XVF3800 von Seeed rund 40 € weniger</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">Tischtest danach: Display unter Pi OS, Touch, Kamera, Mikrofon und Lautsprecher offen verkabelt; Akkulaufzeit grob messen; Sprachweg (#128) ausprobieren. Dann alles mit dem Messschieber vermessen und die Schätzwerte in <code>entwurf_o.py</code> ersetzen.</p>
+  </section>
+
+  <section aria-labelledby="p2">
+    <div class="sechead"><h2 id="p2">Phase 2 · Bedienung und Licht</h2><p>Billig, aber sie bestimmen Mulden, Löcher und den Diffusor</p></div>
+    <div class="scroll"><table class="liste kauf">
+      <thead><tr><th scope="col">#</th><th scope="col">Teil</th><th scope="col">Menge</th><th scope="col" class="num">Preis</th><th scope="col">Kommentar</th></tr></thead>
+      <tbody>
+        <tr data-k="n12"><td>12</td><td>Taster für Ein/Aus</td><td>2–3 Sorten</td><td class="num">ca. 5 €</td><td>Ein Sortiment, um Hub und Klickgefühl unter dem grauen Knopf zu testen. Der Pi 5 hat Lötpunkte für einen externen Einschalter (J2); ob der UPS HAT einen eigenen Schalter braucht, prüfen.</td></tr>
+        <tr data-k="n13" class="flag"><td>13</td><td>Drehgeber EC11 mit Drucktaster</td><td>2</td><td class="num">ca. 2,50 €/Stück</td><td>Für den oberen Knopf (Lautstärke), Drücken könnte stumm schalten. Offen: drehen oder drücken? Davon hängt ab, ob die beiden Knöpfe wirklich gleich aussehen können. Zwei kaufen, einer als Ersatz. <a href="https://keycapsss.com/Rotary-Encoder-with-switch-EC11/KC10028-FS">Beispiel</a></td></tr>
+        <tr data-k="n14"><td>14</td><td>LED orange, 3 mm, mit Vorwiderstand</td><td>2</td><td class="num">ca. 1 €</td><td>Betriebsleuchte neben Ein/Aus.</td></tr>
+        <tr data-k="n15" class="flag"><td>15</td><td>LED-Streifen SK6812 oder WS2812B, eng bestückt</td><td>1 m</td><td class="num">ca. 23,50 €</td><td>Für die Leuchtleiste (#174), gebraucht werden nur 8–12 LEDs. Achtung: Die übliche Pi-Bibliothek läuft auf dem Pi 5 nicht; Weg über SPI (z. B. <code>pi5neo</code>), nicht getestet. Warmweiß wirkt nur über die Farbe des Diffusors. <a href="https://geizhals.de/?fs=sk6812+led+strip&amp;hloc=de">Geizhals</a></td></tr>
+        <tr data-k="n16"><td>16</td><td>Pegelwandler 74AHCT125</td><td>1</td><td class="num">ca. 1 €</td><td>Der Pi liefert 3,3 V, die LEDs wollen 5-V-Signale. Oft geht es ohne, sicher ist es mit.</td></tr>
+        <tr class="summe"><td></td><td>Summe Phase 2</td><td></td><td class="num">ca. 35 €</td><td></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="p3">
+    <div class="sechead"><h2 id="p3">Phase 3 · Kabel, Stecker, Kleinteile</h2><p>Erst kaufen, wenn klar ist, was wo hinkommt</p></div>
+    <div class="scroll"><table class="liste kauf">
+      <thead><tr><th scope="col">#</th><th scope="col">Teil</th><th scope="col">Menge</th><th scope="col" class="num">Preis</th><th scope="col">Kommentar</th></tr></thead>
+      <tbody>
+        <tr data-k="n17" class="flag"><td>17</td><td>USB-C-Einbaubuchse auf USB-C, PD-fähig</td><td>1</td><td class="num">ca. 10 €</td><td>Holt die Ladebuchse vom UPS HAT an die Rückwand. Muss Power Delivery durchreichen, sonst lädt der Akku nur langsam. Bei Geizhals nicht gefunden.</td></tr>
+        <tr data-k="n18"><td>18</td><td>USB-A auf USB-C, 15–30 cm, gewinkelt</td><td>1</td><td class="num">ca. 6 €</td><td>XVF3800-Kernboard zum Pi. Kurz und gewinkelt spart Platz.</td></tr>
+        <tr data-k="n19"><td>19</td><td>JST-Stecker-Sortiment (PH 2.0 und XH)</td><td>1</td><td class="num">ca. 15 €</td><td>Lautsprecher, Taster, Leuchtleiste steckbar statt verlötet, damit das Chassis zur Wartung herausgleitet. Welche Stecker das XVF3800 hat, am Board nachsehen.</td></tr>
+        <tr data-k="n20"><td>20</td><td>Dupont-Kabel buchse–buchse</td><td>1 Set</td><td class="num">ca. 5 €</td><td>Für den Tischtest an der GPIO-Leiste.</td></tr>
+        <tr data-k="n21"><td>21</td><td>Silikonlitze 26 AWG, mehrere Farben</td><td>1 Set</td><td class="num">ca. 10 €</td><td>Flexibel, verträgt die Wärme am Pi.</td></tr>
+        <tr data-k="n22"><td>22</td><td>Schrumpfschlauch-Sortiment</td><td>1</td><td class="num">ca. 5 €</td><td></td></tr>
+        <tr data-k="n23"><td>23</td><td>ruthex-Gewindeeinsätze M3, 100 Stück</td><td>1</td><td class="num">8,99 €</td><td>Für Hülle, Rückdeckel und Boden. Das Mischset M2–M5 (29,99 €) nur, wenn du ohnehin mehr druckst. <a href="https://geizhals.de/?fs=ruthex+gewindeeinsatz+m3&amp;hloc=de">Geizhals</a></td></tr>
+        <tr data-k="n24"><td>24</td><td>Schrauben M3, Innensechskant, schwarz, Set</td><td>1</td><td class="num">ca. 12 €</td><td>Längen 6–16 mm. Sichtbar sind nur die vier am Rückdeckel und am Boden.</td></tr>
+        <tr data-k="n25"><td>25</td><td>Abstandsbolzen M2.5, Set</td><td>1</td><td class="num">ca. 10 €</td><td>Für Pi, UPS HAT und Kernboard im Chassis.</td></tr>
+        <tr data-k="n26"><td>26</td><td>Gummifüße, selbstklebend</td><td>4</td><td class="num">ca. 5 €</td><td>Gegen Rutschen auf der Arbeitsplatte und gegen Dröhnen.</td></tr>
+        <tr data-k="n27"><td>27</td><td>Polyesterwatte</td><td>1</td><td class="num">ca. 5 €</td><td>In die Lautsprecherkammern, nimmt das Dröhnen.</td></tr>
+        <tr data-k="n28"><td>28</td><td>Moosgummi-Dichtband</td><td>1</td><td class="num">ca. 5 €</td><td>Dichtet die Kammern ab, damit der Schall nicht ins Gehäuse und zum Mikrofon läuft.</td></tr>
+        <tr data-k="n29" class="flag"><td>29</td><td>Akustikvlies oder feiner Lautsprecherstoff</td><td>1</td><td class="num">ca. 8 €</td><td>Hinter die Langlöcher und vor die Zuluft. Unter der Inselhaube zieht Fettdunst mit dem Kamineffekt ins Gehäuse; das Vlies fängt ihn ab und ist austauschbar.</td></tr>
+        <tr class="summe"><td></td><td>Summe Phase 3</td><td></td><td class="num">ca. 105 €</td><td></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="p4">
+    <div class="sechead"><h2 id="p4">Phase 4 · Filament und Probedrucke</h2><p>Eine Farbe pro Teil, kein AMS</p></div>
+    <div class="scroll"><table class="liste kauf">
+      <thead><tr><th scope="col">#</th><th scope="col">Teil</th><th scope="col">Menge</th><th scope="col" class="num">Preis</th><th scope="col">Kommentar</th></tr></thead>
+      <tbody>
+        <tr data-k="n30"><td>30</td><td>Bambu PLA Basic, grau</td><td>1 kg</td><td class="num">19,99 €</td><td>Zuerst kaufen: für alle Probedrucke und das innere Chassis. Ob das Grau zu den Knöpfen passt, siehst du am Probedruck. <a href="https://geizhals.de/?fs=bambu+lab+pla+basic&amp;hloc=de">Geizhals</a></td></tr>
+        <tr data-k="n31"><td>31</td><td>Weißes PLA, besser matt</td><td>1 kg</td><td class="num">ca. 17–20 €</td><td>Front mit dem weißen Rahmen. Mattes Weiß versteckt die Schichtlinien und kommt dem Braun-Weiß näher; PLA Basic weiß kostet 16,89 €.</td></tr>
+        <tr data-k="n32"><td>32</td><td>Bambu PETG Translucent, Clear</td><td>1 kg</td><td class="num">19,99 €</td><td>Diffusor der Leuchtleiste und Lichtleiter der Betriebs-LED. Eine Rolle reicht für Jahre; vorher eine Probe mit verschiedenen Wandstärken drucken. <a href="https://geizhals.de/?fs=bambu+lab+petg+translucent&amp;hloc=de">Geizhals</a></td></tr>
+        <tr data-k="n33"><td>33</td><td>Bambu PLA Wood, z. B. White Oak</td><td>1 kg</td><td class="num">27,90 €</td><td>Holzmantel. Zuerst eine Probe mit Langlöchern drucken. <a href="https://geizhals.de/?fs=bambu+lab+pla+wood&amp;hloc=de">Geizhals</a></td></tr>
+        <tr class="summe"><td></td><td>Summe Phase 4</td><td></td><td class="num">ca. 85 €</td><td></td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">Probedrucke in Grau, alle klein: Ecke des Bildfensters mit dem Displayrand, Stück Seitenwand mit Langlöchern und Lautsprecheraufnahme, Bedienspalte mit Knopfmulden und LED-Loch, Block mit Einschmelzmuttern, Diffusor-Streifen in 0,6 / 1,0 / 1,5 mm, Holzprobe mit Langlöchern.</p>
+  </section>
+
+  <section aria-labelledby="p5">
+    <div class="sechead"><h2 id="p5">Phase 5 · Endmontage und Finish</h2><p>Zuletzt</p></div>
+    <div class="scroll"><table class="liste kauf">
+      <thead><tr><th scope="col">#</th><th scope="col">Teil</th><th scope="col">Menge</th><th scope="col" class="num">Preis</th><th scope="col">Kommentar</th></tr></thead>
+      <tbody>
+        <tr data-k="n34"><td>34</td><td>Schleifpapier 240–600</td><td>1 Set</td><td class="num">ca. 8 €</td><td>Holzfilament lässt sich schleifen wie Holz.</td></tr>
+        <tr data-k="n35"><td>35</td><td>Hartwachsöl oder Möbelwachs</td><td>1</td><td class="num">ca. 10 €</td><td>Gibt dem Holzmantel Tiefe und macht ihn abwischbar. Küchentauglich wegen Fett und Spritzern. Vorher an einer Probe testen.</td></tr>
+        <tr class="summe"><td></td><td>Summe Phase 5</td><td></td><td class="num">ca. 20 €</td><td></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="ohne">
+    <div class="sechead"><h2 id="ohne">Bewusst nicht drin</h2><p>Damit klar ist, dass es nicht vergessen wurde</p></div>
+    <div class="scroll"><table class="liste">
+      <thead><tr><th scope="col">Teil</th><th scope="col">Warum nicht</th></tr></thead>
+      <tbody>
+        <tr><td>NVMe-SSD</td><td>Die M.2-Erweiterung kollidiert mit UPS HAT und Kühler, und die microSD reicht für einen Kiosk.</td></tr>
+        <tr><td>Zusätzlicher Lüfter</td><td>Active Cooler plus Kamineffekt durch Zu- und Abluft. Erst nachrüsten, wenn der Pi im Gehäuse drosselt.</td></tr>
+        <tr><td>Zweites Mikrofon-Array</td><td>Am 13.10. verworfen.</td></tr>
+        <tr><td>Furnier</td><td>Später als eigene Stufe (#129); zuerst Holzfilament.</td></tr>
+        <tr><td>Externer Verstärker</td><td>Der XVF3800 treibt bis 10 W; für Sprache genug.</td></tr>
+        <tr><td>Software, Sprachdienst</td><td>Kein Kaufteil. Laufende API-Kosten hängen am Sprachweg (#128).</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section aria-labelledby="kandidaten">
+    <div class="sechead"><h2 id="kandidaten">Kandidaten je Bauteil</h2><p>Die Alternativen hinter den Tendenzen oben</p></div>
+  </section>
+  <section aria-labelledby="pi">
+    <div class="sechead"><h2 id="pi">Pi</h2><p>Kiosk-Browser mit YouTube, mise-en-place, eigene Apps, Sprachassistent</p></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th scope="col">Modell</th><th scope="col">Daten</th><th scope="col">Pro</th><th scope="col">Contra</th><th scope="col">Preis</th></tr></thead>
+        <tbody>
+          <tr class="rec">
+            <td><div class="name"><i class="dot" aria-hidden="true"></i>Raspberry Pi 5, 8 GB</div><div class="badge">Tendenz</div></td>
+            <td><div class="data"><span>8 GB LPDDR4X</span><span>DSI, 2 × micro-HDMI</span><span>85 × 56 mm</span></div></td>
+            <td><ul class="pro"><li>Genug Speicher für Browser und Sprachassistent nebeneinander</li><li>UPS-Boards mit Federkontakten passen</li></ul></td>
+            <td><ul class="con"><li>Braucht aktive Kühlung</li><li>Durch Speicherpreise teuer geworden</li></ul></td>
+            <td class="price">184,90 €</td>
+          </tr>
+          <tr>
+            <td><div class="name">Raspberry Pi 5, 4 GB</div></td>
+            <td><div class="data"><span>4 GB</span></div></td>
+            <td><ul class="pro"><li>Rund 26 € günstiger</li></ul></td>
+            <td><ul class="con"><li>Knapp für Browser, YouTube und Sprachassistent zugleich (nicht gemessen)</li></ul></td>
+            <td class="price">159,00 €</td>
+          </tr>
+          <tr>
+            <td><div class="name">Compute Module 5, 8 GB</div></td>
+            <td><div class="data"><span>Modul ohne Anschlüsse</span></div></td>
+            <td><ul class="pro"><li>Kompakt</li></ul></td>
+            <td><ul class="con"><li>Braucht Trägerplatine, UPS-Boards passen nicht</li></ul></td>
+            <td class="price">ab 175,60 €</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="display">
+    <div class="sechead"><h2 id="display">Display</h2><p>Bestimmt Gehäusebreite; 10″ mit Bedienspalte passt nicht aufs A1-Bett</p></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th scope="col">Modell</th><th scope="col">Daten</th><th scope="col">Pro</th><th scope="col">Contra</th><th scope="col">Preis</th></tr></thead>
+        <tbody>
+          <tr class="rec">
+            <td><div class="name"><i class="dot" aria-hidden="true"></i>Waveshare 8inch DSI LCD (C)</div><div class="badge">Festgelegt 16.10.</div><div class="src"><a href="https://www.waveshare.com/8inch-dsi-lcd-c.htm">waveshare.com</a></div></td>
+            <td><div class="data"><span>1280 × 800 IPS, 178°</span><span>Glas 194 × 119 mm, Bild 172,82 × 108,24 mm</span><span>7,4 mm dick, 0,5 A</span><span>DSI, 10-Punkt-Touch</span></div></td>
+            <td><ul class="pro"><li>Quer ab Werk, Treiber im Pi-Kernel</li><li>Maßzeichnung vorhanden, flach</li><li>50 % mehr Fläche als 7″, passt aufs Druckbett</li></ul></td>
+            <td><ul class="con"><li>Helligkeit nicht angegeben</li><li>Lochbild hinten trotzdem am echten Teil nachmessen</li></ul></td>
+            <td class="price">85,95 €<br><span class="src">Waveshare: 78,99 $</span></td>
+          </tr>
+          <tr>
+            <td><div class="name">Waveshare 8-DSI-TOUCH-A</div><div class="src"><a href="https://www.waveshare.com/8-dsi-touch-a.htm">waveshare.com</a></div></td>
+            <td><div class="data"><span>800 × 1280, hochkant</span><span>gleiches Glas und Bild wie (C)</span><span>11,6 mm, 0,8 A, 400 cd/m²</span></div></td>
+            <td><ul class="pro"><li>Günstiger, Helligkeit angegeben</li></ul></td>
+            <td><ul class="con"><li>Muss gedreht werden</li><li>Dicker, mehr Strom</li></ul></td>
+            <td class="price">54,99 $ (Liste)</td>
+          </tr>
+          <tr>
+            <td><div class="name">Waveshare 8DP-CAPLCD (HDMI)</div></td>
+            <td><div class="data"><span>1280 × 800, HDMI + USB-Touch</span></div></td>
+            <td><ul class="pro"><li>Läuft ohne Treiber an jedem Rechner</li></ul></td>
+            <td><ul class="con"><li>Steife Stecker im engen Gehäuse</li><li>Ton daran umginge die Echounterdrückung</li></ul></td>
+            <td class="price">74,90 € (BerryBase)</td>
+          </tr>
+          <tr>
+            <td><div class="name">Raspberry Pi Touch Display 2, 7″</div><div class="src"><a href="https://www.raspberrypi.com/documentation/accessories/touch-display-2.html">raspberrypi.com</a></div></td>
+            <td><div class="data"><span>720 × 1280, hochkant</span><span>sichtbar 154,5 × 87 mm</span><span>Maße belegt</span></div></td>
+            <td><ul class="pro"><li>Offiziell, Maße dokumentiert</li><li>Pi lässt sich hinten anschrauben</li></ul></td>
+            <td><ul class="con"><li>Kleiner, etwa ein Drittel eines 11″-iPads</li><li>Ausgabe muss gedreht werden</li></ul></td>
+            <td class="price">60 $ (Liste)</td>
+          </tr>
+          <tr>
+            <td><div class="name">Raspberry Pi Touch Display 2, 10,1″</div></td>
+            <td><div class="data"><span>1200 × 1920</span><span>Glas 248,1 mm breit</span></div></td>
+            <td><ul class="pro"><li>Größtes Bild, schärfste Darstellung</li></ul></td>
+            <td><ul class="con"><li>Mit Bedienspalte zu breit für den A1 (Korpus ca. 270 mm)</li></ul></td>
+            <td class="price">80 $ (Liste)</td>
+          </tr>
+          <tr>
+            <td><div class="name">Waveshare 9-DSI-TOUCH-B</div></td>
+            <td><div class="data"><span>720 × 1280, 160°</span></div></td>
+            <td><ul class="pro"><li>Günstig</li></ul></td>
+            <td><ul class="con"><li>Gröber, kein Optical Bonding</li></ul></td>
+            <td class="price">59,99 $ (Liste)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="mikro">
+    <div class="sechead"><h2 id="mikro">Mikrofon</h2><p>Leiste flach auf der Oberseite</p></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th scope="col">Modell</th><th scope="col">Daten</th><th scope="col">Pro</th><th scope="col">Contra</th><th scope="col">Preis</th></tr></thead>
+        <tbody>
+          <tr class="rec">
+            <td><div class="name"><i class="dot" aria-hidden="true"></i>reSpeaker Flex XVF3800 Linear-4</div><div class="badge">Tendenz</div><div class="src"><a href="https://wiki.seeedstudio.com/respeaker_flex_introduction/">Seeed-Wiki</a></div></td>
+            <td><div class="data"><span>4 Mikros, 33 mm Abstand</span><span>AEC, Beamforming</span><span>Lautsprecher bis 10 W, USB</span></div></td>
+            <td><ul class="pro"><li>Kernboard und Leiste getrennt, Leiste passt in die Oberseite</li><li>Echounterdrückung im Chip</li></ul></td>
+            <td><ul class="con"><li>Bei Geizhals nur über einen Marktplatzhändler deutlich teurer als bei Seeed</li></ul></td>
+            <td class="price">99,99 €<br><span class="src">Seeed: 57,99 $</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="treiber">
+    <div class="sechead"><h2 id="treiber">Lautsprecher-Treiber</h2><p>Zwei Stück seitlich, nur Sprache, keine Musik</p></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th scope="col">Modell</th><th scope="col">Daten</th><th scope="col">Pro</th><th scope="col">Contra</th><th scope="col">Preis</th></tr></thead>
+        <tbody>
+          <tr class="rec">
+            <td><div class="name"><i class="dot" aria-hidden="true"></i>Visaton FRS 7, 4 Ω</div><div class="badge">Tendenz</div><div class="src"><a href="https://www.visaton.de/sites/default/files/dd_product/frs7_4.pdf">Datenblatt</a></div></td>
+            <td><div class="data"><span>6,5 cm, 8 W, 88 dB</span><span>200–20 000 Hz</span></div></td>
+            <td><ul class="pro"><li>Laut, passt in die Seitenwand</li><li>Günstig</li></ul></td>
+            <td><ul class="con"><li>Einbautiefe nicht gefunden</li></ul></td>
+            <td class="price">11,65 €/Stück</td>
+          </tr>
+          <tr>
+            <td><div class="name">Visaton FR 7, 4 Ω</div></td>
+            <td><div class="data"><span>6,5 cm, 5 W, 86 dB</span><span>ab 130 Hz</span></div></td>
+            <td><ul class="pro"><li>Etwas mehr Tiefe</li></ul></td>
+            <td><ul class="con"><li>Leiser</li></ul></td>
+            <td class="price">nicht gefunden</td>
+          </tr>
+          <tr>
+            <td><div class="name">Visaton FRWS 5, 4 Ω</div></td>
+            <td><div class="data"><span>5 cm, 10 W, 83 dB</span></div></td>
+            <td><ul class="pro"><li>Klein, reicht für Sprache</li></ul></td>
+            <td><ul class="con"><li>Leiseste Option</li></ul></td>
+            <td class="price">nicht gefunden</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="akku">
+    <div class="sechead"><h2 id="akku">Akku (UPS-Board)</h2><p>Zellen separat</p></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th scope="col">Modell</th><th scope="col">Daten</th><th scope="col">Pro</th><th scope="col">Contra</th><th scope="col">Preis</th></tr></thead>
+        <tbody>
+          <tr class="rec">
+            <td><div class="name"><i class="dot" aria-hidden="true"></i>Waveshare UPS HAT (E)</div><div class="badge">Tendenz</div><div class="src"><a href="https://www.waveshare.com/ups-hat-e.htm">waveshare.com</a></div></td>
+            <td><div class="data"><span>4 × 21700, 5 V 6 A</span><span>USB-C PD bis 40 W</span><span>56 × 88 mm</span></div></td>
+            <td><ul class="pro"><li>Größte Kapazität, schnelles Laden</li></ul></td>
+            <td><ul class="con"><li>Laufzeit nicht gemessen (grob 5 h geschätzt)</li></ul></td>
+            <td class="price">46,99 €<br><span class="src">+ 4 Zellen 59,44 €</span></td>
+          </tr>
+          <tr>
+            <td><div class="name">Geekworm X1202</div><div class="src"><a href="https://geekworm.com/products/x1202">geekworm.com</a></div></td>
+            <td><div class="data"><span>4 × 18650, 5,1 V 5 A</span></div></td>
+            <td><ul class="pro"><li>Ausgereiftes Power-Management</li></ul></td>
+            <td><ul class="con"><li>Bei Geizhals nicht gelistet; weniger Kapazität</li></ul></td>
+            <td class="price">51 $ (Hersteller)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <p>Preise am 15.10.2026 auf Geizhals Deutschland abgelesen; „$“-Preise sind Listen- oder Herstellerpreise ohne Versand und Zoll. Nichts davon ist gekauft oder an echter Hardware gemessen.</p>
+  </footer>
+</div>
+<script>
+// Gekaufte Teile: Claude pflegt je Zeile ein Dokument kauf/<data-k> = {lieferant, preis, datum, notiz}; Extras ohne Zeile tragen zusätzlich {name}
+(async () => {
+  const stand = document.getElementById('kaufstand');
+  const extra = document.getElementById('extras');
+  document.querySelectorAll('table.kauf thead tr').forEach(tr => {
+    const th = document.createElement('th'); th.scope = 'col'; th.textContent = 'Gekauft'; tr.prepend(th);
+  });
+  document.querySelectorAll('table.kauf tbody tr:not([data-k])').forEach(tr => tr.prepend(document.createElement('td')));
+  const ui = {};
+  for (const tr of document.querySelectorAll('tr[data-k]')) {
+    const td = document.createElement('td'); td.className = 'kauf'; td.textContent = '–';
+    tr.prepend(td); ui[tr.dataset.k] = { tr, td };
+  }
+  const euro = n => Number(n).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  const zelle = (td, d) => {
+    td.replaceChildren();
+    const h = document.createElement('div'); h.className = 'haken'; h.textContent = '✓ ' + (d.lieferant || 'gekauft');
+    td.append(h);
+    const z = document.createElement('div'); z.className = 'kaufdaten';
+    z.textContent = [typeof d.preis === 'number' ? euro(d.preis) : '', d.datum || ''].filter(Boolean).join(' · ');
+    td.append(z);
+    if (d.notiz) { const n = document.createElement('div'); n.className = 'kaufnotiz'; n.textContent = d.notiz; td.append(n); }
+  };
+  const claudeRt = window.claude;
+  const db = claudeRt && claudeRt.use ? await claudeRt.use('db') : null;
+  if (!db) { stand.textContent = 'Gekaufte Teile werden nur angezeigt, wenn die Seite in claude.ai geöffnet ist.'; return; }
+  db.collection('kauf').onSnapshot(snap => {
+    let n = 0, sum = 0;
+    for (const u of Object.values(ui)) { u.td.textContent = '–'; u.tr.classList.remove('done'); }
+    extra.replaceChildren();
+    snap.docs.forEach(doc => {
+      const d = doc.data() || {};
+      if (typeof d.preis === 'number') sum += d.preis;
+      const u = ui[doc.id];
+      if (u) { n++; zelle(u.td, d); u.tr.classList.add('done'); }
+      else {
+        const li = document.createElement('li');
+        li.textContent = (d.name || doc.id) + ' · ' + [d.lieferant, typeof d.preis === 'number' ? euro(d.preis) : '', d.datum, d.notiz].filter(Boolean).join(' · ');
+        extra.append(li);
+      }
+    });
+    extra.parentElement.hidden = !extra.children.length;
+    stand.textContent = 'Gekauft: ' + n + ' von ' + Object.keys(ui).length + ' Positionen · ausgegeben ' + euro(sum) + ' (inkl. Teile außerhalb der Liste)';
+  }, () => { stand.textContent = 'Gekaufte Teile konnten nicht geladen werden.'; });
+})();
+</script>

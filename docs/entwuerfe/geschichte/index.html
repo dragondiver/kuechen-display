@@ -1,0 +1,192 @@
+<title>Küchen-Display Entwürfe</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: chronologische Leiste wie ein Braun-Prospekt, je Entwurf Kopfzeile mit Buchstabe, Datum und Status, darunter Bilder */
+:root {
+  --bg: #f2f1ee;
+  --panel: #ffffff;
+  --fg: #22211e;
+  --muted: #6b6862;
+  --line: #dcd9d2;
+  --accent: #d9581c;
+  --done: #8a867e;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #181715; --panel: #22211e; --fg: #ecebe6; --muted: #a29f97; --line: #393731;
+    --accent: #f0743a; --done: #77746d; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #181715; --panel: #22211e; --fg: #ecebe6; --muted: #a29f97; --line: #393731;
+  --accent: #f0743a; --done: #77746d; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 17px; line-height: 1.55; }
+.wrap { max-width: 860px; margin: 0 auto; padding-inline: 16px; padding-block: 32px 64px; display: grid; gap: 40px; }
+header { display: grid; gap: 10px; }
+.eyebrow { font-family: var(--font-data); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 6vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 65ch; }
+.lede { color: var(--muted); }
+nav { display: flex; flex-wrap: wrap; gap: 8px; }
+nav a { font-family: var(--font-data); font-size: 14px; color: var(--fg); text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; background: var(--panel); }
+nav a.cur { border-color: var(--accent); color: var(--accent); }
+nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+section { display: grid; gap: 12px; border-top: 2px solid var(--fg); padding-top: 14px; scroll-margin-top: 12px; }
+section.verworfen { border-top-color: var(--done); }
+.kopf { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.buchstabe { font-family: var(--font-display); font-weight: 700; font-size: 32px; line-height: 1; }
+h2 { font-family: var(--font-display); font-weight: 500; font-size: 20px; margin: 0; text-wrap: balance; }
+.meta { font-family: var(--font-data); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.status { font-family: var(--font-data); font-size: 12px; letter-spacing: .05em; text-transform: uppercase; border-radius: 4px; padding: 2px 7px; border: 1px solid var(--line); color: var(--muted); }
+.status.aktuell { border-color: var(--accent); color: var(--accent); }
+.bilder { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.bilder > * { min-width: 0; }
+figure { margin: 0; display: grid; gap: 4px; }
+figure img { width: 100%; height: auto; display: block; border-radius: 6px; background: var(--panel); }
+figcaption { font-size: 13px; color: var(--muted); }
+footer { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 6px; }
+footer a { color: inherit; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Küchen-Display · rundfunk#108 · 04.–14.10.2026</div>
+    <h1>Vom Puck zum Keil: alle Entwürfe</h1>
+    <p class="lede">Elf Blender-Entwürfe in der Reihenfolge, in der sie entstanden sind, mit dem Grund für jeden Schritt. Maße aus dem Modell, nichts gemessen.</p>
+    <nav aria-label="Entwürfe">
+      <a href="#c">C</a><a href="#d">D</a><a href="#e">E</a><a href="#f">F</a><a href="#g">G</a><a href="#h">H</a><a href="#i">I</a><a href="#k">K</a><a href="#l">L</a><a class="cur" href="#m">M</a><a href="#n">N</a><a class="cur" href="#o">O</a>
+    </nav>
+  </header>
+
+  <section id="c" class="verworfen">
+    <div class="kopf"><span class="buchstabe">C</span><h2>Mini-Monitor mit Mikrofon-Puck</h2><span class="status">verworfen</span></div>
+    <p class="meta">04.10. · 125 × 100 × 100 mm · 4,3″ angenommen</p>
+    <p>Der erste Versuch: kleiner Monitor, der runde ReSpeaker XVF3800 liegt oben drauf. Der Puck ist 99 mm groß; mit einem 10-Zoll-Display schräg gestellt hätte das Gehäuse rund 180 mm tief werden müssen. Deshalb kam später der Flex mit getrennter Mikrofonleiste.</p>
+    <div class="bilder">
+      <figure><img src="img/entwurf_c_iso.jpg" alt="Entwurf C schräg" loading="lazy"></figure>
+      <figure><img src="img/entwurf_c_side.jpg" alt="Entwurf C Seite" loading="lazy"></figure>
+    </div>
+  </section>
+
+  <section id="d" class="verworfen">
+    <div class="kopf"><span class="buchstabe">D</span><h2>Keil mit 10 Zoll bei 60°</h2><span class="status">Grundform</span></div>
+    <p class="meta">04.10. · 252 × 124 × 170 mm</p>
+    <p>Die Keilform entsteht: Display um 60° geneigt, Mikrofonleiste (Flex Linear-4) in der oberen Blende, Lautsprecher vorn. Diese Grundform trägt bis heute.</p>
+    <div class="bilder">
+      <figure><img src="img/entwurf_d_iso.jpg" alt="Entwurf D schräg" loading="lazy"></figure>
+      <figure><img src="img/entwurf_d_side.jpg" alt="Entwurf D Seite" loading="lazy"></figure>
+      <figure><img src="img/entwurf_d_detail.jpg" alt="Entwurf D obere Blende" loading="lazy"></figure>
+    </div>
+  </section>
+
+  <section id="e" class="verworfen">
+    <div class="kopf"><span class="buchstabe">E</span><h2>Grundig-Stil</h2><span class="status">verworfen</span></div>
+    <p class="meta">04.10.</p>
+    <p>Nussbaum, Messingrahmen, goldener Lautsprecherstoff, Elfenbeinknopf, Holzbeine. Du hast dich für Braun entschieden; Holz ginge im Filamentdruck ohnehin nur als Furnier.</p>
+    <div class="bilder">
+      <figure><img src="img/entwurf_e_iso.jpg" alt="Entwurf E schräg" loading="lazy"></figure>
+      <figure><img src="img/entwurf_e_detail.jpg" alt="Entwurf E Detail" loading="lazy"></figure>
+    </div>
+  </section>
+
+  <section id="f" class="verworfen">
+    <div class="kopf"><span class="buchstabe">F</span><h2>Braun-Stil, Lippe 24 mm</h2><span class="status">Stil gesetzt</span></div>
+    <p class="meta">04.10. · 252 × 124 × 170 mm</p>
+    <p>Mattes Hellgrau, scharfe Kanten, Lochraster vorn, ein oranger Knopf. Ab hier ist der Braun-Stil gesetzt.</p>
+    <div class="bilder">
+      <figure><img src="img/entwurf_f_iso.jpg" alt="Entwurf F schräg" loading="lazy"></figure>
+      <figure><img src="img/entwurf_f_side.jpg" alt="Entwurf F Seite" loading="lazy"></figure>
+    </div>
+  </section>
+
+  <section id="g" class="verworfen">
+    <div class="kopf"><span class="buchstabe">G</span><h2>Lippe 50 mm</h2><span class="status">verworfen</span></div>
+    <p class="meta">04.10. · 252 × 124 × 195 mm</p>
+    <p>Höhere Lippe für mehr Lautsprecherplatz, angeregt vom ChatGPT-Bild. Erst gefiel G besser, dann doch F: die Proportion von F blieb.</p>
+    <div class="bilder">
+      <figure><img src="img/entwurf_g_iso.jpg" alt="Entwurf G schräg" loading="lazy"></figure>
+      <figure><img src="img/entwurf_g_side.jpg" alt="Entwurf G Seite" loading="lazy"></figure>
+    </div>
+  </section>
+
+  <section id="h" class="verworfen">
+    <div class="kopf"><span class="buchstabe">H</span><h2>Lautsprecher seitlich</h2><span class="status">Idee übernommen</span></div>
+    <p class="meta">04.10.</p>
+    <p>Die Treiber wandern in die Seitenwände: mehr Volumen, Platz für 65-mm-Treiber, die Front wird ruhig. Mit Akku-Tray und Pi im Keil.</p>
+    <div class="bilder">
+      <figure><img src="img/entwurf_h_iso.jpg" alt="Entwurf H schräg" loading="lazy"></figure>
+      <figure><img src="img/entwurf_h_side.jpg" alt="Entwurf H Seite mit Lautsprecher-Lochraster" loading="lazy"></figure>
+    </div>
+  </section>
+
+  <section id="i" class="verworfen">
+    <div class="kopf"><span class="buchstabe">I</span><h2>F-Lippe mit Seitenlautsprechern</h2><span class="status">Zwischenstand</span></div>
+    <p class="meta">04.10. · 252 × 124 × 170 mm</p>
+    <p>Das Beste aus F und H zusammen.</p>
+    <div class="bilder">
+      <figure><img src="img/entwurf_i_iso.jpg" alt="Entwurf I schräg" loading="lazy"></figure>
+      <figure><img src="img/entwurf_i_side.jpg" alt="Entwurf I Seite" loading="lazy"></figure>
+    </div>
+  </section>
+
+  <section id="k" class="verworfen">
+    <div class="kopf"><span class="buchstabe">K</span><h2>Weiche Kanten wie beim RT 20</h2><span class="status">10″-Stand</span></div>
+    <p class="meta">05.10. · 252 × 124 × 170 mm</p>
+    <p>Die Frontplatte bekommt oben und unten eine sanfte Abkantung nach dem Braun RT 20, die Seiten bleiben scharf. Druckteilung für den A1: Korpus, zwei Seitenplatten, Rückdeckel, Boden.</p>
+    <div class="bilder">
+      <figure><img src="img/entwurf_k_iso.jpg" alt="Entwurf K schräg" loading="lazy"></figure>
+      <figure><img src="img/entwurf_k_lippe.jpg" alt="Entwurf K Lippe mit gerundeter Kante" loading="lazy"></figure>
+    </div>
+  </section>
+
+  <section id="l" class="verworfen">
+    <div class="kopf"><span class="buchstabe">L</span><h2>7 Zoll</h2><span class="status">Größe gewählt</span></div>
+    <p class="meta">13.10. · 194 × 103 × 133 mm</p>
+    <p>K auf das offizielle 7-Zoll-Display verkleinert. Akku, Pi, Kernboard und zwei Treiber passen im Modell noch hinein. Passt besser auf die Arbeitsplatte, das Breitenproblem fällt weg.</p>
+    <div class="bilder">
+      <figure><img src="img/entwurf_l_iso.jpg" alt="Entwurf L schräg" loading="lazy"></figure>
+      <figure><img src="img/entwurf_l_side.jpg" alt="Entwurf L Seite" loading="lazy"></figure>
+    </div>
+  </section>
+
+  <section id="m">
+    <div class="kopf"><span class="buchstabe">M</span><h2>Bedienspalte rechts</h2><span class="status aktuell">aktuell</span></div>
+    <p class="meta">13.10. · 230 × 103 × 133 mm</p>
+    <p>Rechts eine Spalte mit zwei gleichen grauen Knöpfen (Ø 12 mm, Mulde), unten senkrecht übereinander, orange LED neben Ein/Aus. Die Mikrofonleiste liegt flach oben und hört Küche und Esstisch.</p>
+    <div class="bilder">
+      <figure><img src="img/entwurf_m_iso.jpg" alt="Entwurf M schräg" loading="lazy"></figure>
+      <figure><img src="img/entwurf_m_bedien.jpg" alt="Entwurf M Bedienspalte" loading="lazy"><figcaption>Bedienspalte</figcaption></figure>
+      <figure><img src="img/entwurf_m_oben.jpg" alt="Entwurf M Mikrofonleiste oben" loading="lazy"><figcaption>Mikrofonleiste oben (Knöpfe hier noch orange)</figcaption></figure>
+    </div>
+  </section>
+
+  <section id="n">
+    <div class="kopf"><span class="buchstabe">N</span><h2>Kameraleiste über dem Glas</h2><span class="status aktuell">zur Wahl</span></div>
+    <p class="meta">13.10. · 230 × 109 × 145 mm</p>
+    <p>Das Display hat keine Kamera, sein Glasrand ist nicht bohrbar. Hier sitzt sie in einer schwarzen Leiste darüber. Drei weitere Kamera-Varianten stehen in der eigenen Galerie.</p>
+    <div class="bilder">
+      <figure><img src="img/entwurf_n_iso.jpg" alt="Entwurf N schräg" loading="lazy"></figure>
+      <figure><img src="img/entwurf_n_detail.jpg" alt="Entwurf N Kameraleiste" loading="lazy"></figure>
+    </div>
+  </section>
+
+  <section id="o">
+    <div class="kopf"><span class="buchstabe">O</span><h2>Weißer Rahmen, ohne Lippe</h2><span class="status aktuell">neu</span></div>
+    <p class="meta">15.10. · 230 × 113 × 126 mm</p>
+    <p>Voll RT 20: Die Frontplatte läuft ohne senkrechte Lippe vom Tisch schräg nach oben. Ein weißer Rahmen verdeckt den schwarzen Displayrand, nur die Bildfläche bleibt als dunkles Fenster, die Kamera sitzt im Rahmen darüber.</p>
+    <div class="bilder">
+      <figure><img src="img/entwurf_o_iso.jpg" alt="Entwurf O schräg" loading="lazy"></figure>
+      <figure><img src="img/entwurf_o_side.jpg" alt="Entwurf O Seite" loading="lazy"></figure>
+      <figure><img src="img/entwurf_o_detail.jpg" alt="Entwurf O Kamera im Rahmen" loading="lazy"></figure>
+    </div>
+  </section>
+
+  <footer>
+    <p>Kamera-Varianten im Vergleich: <a href="https://claude.ai/artifact/DbbJjetLpcvmz4TGVtzLzN">Kamera-Galerie</a> · Bauteile: <a href="https://claude.ai/artifact/WfDmShYXLrQZPaZpWcGvhL">Hardware-Tabelle</a></p>
+    <p>Dateien: ~/Development/xvf-display-geraet/ (renders/, blender/entwurf_c.py bis entwurf_n.py).</p>
+  </footer>
+</div>

@@ -1,0 +1,241 @@
+<title>Küchen-Display Kameravarianten</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700&family=Source+Sans+3:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: eine Spalte wie ein Braun-Prospekt, je Variante Text und Bilder untereinander, fürs Handy gedacht */
+:root {
+  --bg: #f2f1ee;
+  --panel: #ffffff;
+  --fg: #22211e;
+  --muted: #6b6862;
+  --line: #dcd9d2;
+  --accent: #d9581c;
+  --good: #2f6b45;
+  --bad: #9a3b2a;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #181715; --panel: #22211e; --fg: #ecebe6; --muted: #a29f97; --line: #393731;
+    --accent: #f0743a; --good: #7cc495; --bad: #f09a86; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #181715; --panel: #22211e; --fg: #ecebe6; --muted: #a29f97; --line: #393731;
+  --accent: #f0743a; --good: #7cc495; --bad: #f09a86; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 17px; line-height: 1.55; }
+.wrap { max-width: 860px; margin: 0 auto; padding-inline: 16px; padding-block: 32px 64px; display: grid; gap: 44px; }
+header { display: grid; gap: 10px; }
+.eyebrow { font-family: var(--font-data); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(28px, 6vw, 40px); line-height: 1.1; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.2; margin: 0; text-wrap: balance; display: flex; gap: 10px; align-items: baseline; }
+h2 .nr { font-family: var(--font-data); font-weight: 500; font-size: 14px; color: var(--accent); }
+p { margin: 0; max-width: 65ch; }
+.lede { color: var(--muted); }
+section { display: grid; gap: 14px; border-top: 2px solid var(--fg); padding-top: 16px; }
+.meta { font-family: var(--font-data); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pc { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+@media (max-width: 560px) { .pc { grid-template-columns: 1fr; } }
+.pc h3 { font-family: var(--font-data); font-weight: 500; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 4px; }
+ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.pro li::marker { color: var(--good); }
+.con li::marker { color: var(--bad); }
+figure { margin: 0; display: grid; gap: 6px; }
+figure img { width: 100%; height: auto; display: block; border-radius: 6px; background: var(--panel); }
+figcaption { font-size: 14px; color: var(--muted); }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 560px) { .pair { grid-template-columns: 1fr; } }
+.pair > * { min-width: 0; }
+.note { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 8px; }
+.note h3 { font-family: var(--font-display); font-weight: 500; font-size: 17px; margin: 0; }
+footer { font-size: 14px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; display: grid; gap: 6px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Küchen-Display · rundfunk#108 · 13.10.2026</div>
+    <h1>Wohin mit der Kamera?</h1>
+    <p class="lede">Das offizielle 7-Zoll-Display hat keine Kamera, und in seinen schwarzen Glasrand lässt sich kein Loch machen. Fünf Wege, alle mit grauer Bedienspalte rechts, Mikrofonleiste flach oben und 60° Neigung. Blender-Renderings, Maße angenommen, nichts gemessen.</p>
+  </header>
+
+  <section>
+    <h2><span class="nr">1</span>Schwarze Kameraleiste über dem Glas</h2>
+    <p class="meta">230 × 109 × 145 mm · eigenes Druckteil in Schwarz</p>
+    <p>Eine 12 mm hohe schwarze Leiste setzt den Glasrand nach oben fort. Darin sitzen Kamera und Kamera-LED. Von vorn wirkt es wie ein etwas höherer Displayrand.</p>
+    <div class="pc">
+      <div><h3>Dafür</h3><ul class="pro"><li>Kamera mittig über dem Bild, guter Blick auf die Köchin</li><li>Kommt dem Look aus dem ersten Rendering am nächsten</li></ul></div>
+      <div><h3>Dagegen</h3><ul class="con"><li>Gerät wird etwa 12 mm höher und 6 mm tiefer</li><li>Gedrucktes Schwarz ist matt, das Glas glänzt: die Kante bleibt sichtbar</li></ul></div>
+    </div>
+    <figure><img src="img/entwurf_n_iso.jpg" alt="Küchen-Display schräg von vorn mit schwarzer Kameraleiste über dem Display" loading="lazy"></figure>
+    <div class="pair">
+      <figure><img src="img/entwurf_n_front.jpg" alt="Ansicht von vorn" loading="lazy"><figcaption>Von vorn</figcaption></figure>
+      <figure><img src="img/entwurf_n_detail.jpg" alt="Nahansicht der schwarzen Leiste mit Kamera" loading="lazy"><figcaption>Leiste mit Kamera, darüber die Mikrofonleiste</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="nr">2</span>Helle Kameraleiste in Gehäusefarbe</h2>
+    <p class="meta">230 × 109 × 145 mm · Teil des Korpus, kein Extradruck</p>
+    <p>Wie 1, aber die Leiste ist Teil des hellen Gehäuses. Das Display bleibt ein klares schwarzes Rechteck, die Kamera sitzt im Gehäuse darüber.</p>
+    <div class="pc">
+      <div><h3>Dafür</h3><ul class="pro"><li>Kein Schwarz-auf-Schwarz-Vergleich zwischen Druck und Glas</li><li>Ein Teil weniger, alles in einer Farbe</li></ul></div>
+      <div><h3>Dagegen</h3><ul class="con"><li>Die Kamera fällt als Punkt im Hellen stärker auf</li><li>Gleiche Höhe wie 1</li></ul></div>
+    </div>
+    <div class="pair">
+      <figure><img src="img/entwurf_n_iso_weiss.jpg" alt="Küchen-Display mit heller Kameraleiste" loading="lazy"><figcaption>Gesamt</figcaption></figure>
+      <figure><img src="img/entwurf_n_detail_weiss.jpg" alt="Nahansicht der hellen Leiste mit Kamera" loading="lazy"><figcaption>Nah</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="nr">3</span>Schwarze Front: Leiste und Bedienspalte in einem</h2>
+    <p class="meta">230 × 109 × 145 mm · schwarze Leiste plus schwarze Spaltenfläche</p>
+    <p>Leiste und Bedienspalte bekommen dasselbe Schwarz. Display, Leiste und Spalte lesen sich als eine schwarze Frontplatte im hellen Rahmen, wie bei vielen Braun-Geräten mit dunkler Bedienfläche.</p>
+    <div class="pc">
+      <div><h3>Dafür</h3><ul class="pro"><li>Wirkt am geschlossensten, Kamera verschwindet fast</li><li>Graue Knöpfe stehen gut auf Schwarz</li></ul></div>
+      <div><h3>Dagegen</h3><ul class="con"><li>Zwei schwarze Druckteile mehr, sauberer Anschluss nötig</li><li>Weniger hell und luftig als 1 und 2</li></ul></div>
+    </div>
+    <div class="pair">
+      <figure><img src="img/entwurf_n_iso_schwarzfront.jpg" alt="Küchen-Display mit schwarzer Front aus Leiste und Bedienspalte" loading="lazy"><figcaption>Gesamt</figcaption></figure>
+      <figure><img src="img/entwurf_n_detail_schwarzfront.jpg" alt="Nahansicht der schwarzen Front oben" loading="lazy"><figcaption>Nah</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="nr">4</span>Kamera oben in der Bedienspalte</h2>
+    <p class="meta">230 × 103 × 133 mm · keine Leiste, Höhe wie Entwurf M</p>
+    <p>Die Kamera wandert in die rechte Spalte, über die beiden Knöpfe. Keine Leiste, das Gerät bleibt am niedrigsten.</p>
+    <div class="pc">
+      <div><h3>Dafür</h3><ul class="pro"><li>Niedrigste und kompakteste Variante</li><li>Kein zusätzliches Teil</li></ul></div>
+      <div><h3>Dagegen</h3><ul class="con"><li>Kamera sieht leicht von der Seite, rund 10 cm neben der Bildmitte</li><li>Spalte wird voller: Kamera, zwei Knöpfe, LED</li></ul></div>
+    </div>
+    <div class="pair">
+      <figure><img src="img/entwurf_m_iso_kamspalte.jpg" alt="Küchen-Display mit Kamera in der Bedienspalte" loading="lazy"><figcaption>Gesamt</figcaption></figure>
+      <figure><img src="img/entwurf_m_kamera_kamspalte.jpg" alt="Nahansicht der Bedienspalte mit Kamera oben" loading="lazy"><figcaption>Spalte nah</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="nr">5</span>Weißer Rahmen, ohne Lippe (Entwurf O)</h2>
+    <p class="meta">230 × 113 × 126 mm · neu am 15.10.</p>
+    <p>Das Gehäuse verdeckt den schwarzen Glasrand, man sieht nur die Bildfläche als dunkles Fenster in der hellen Front. Die Kamera sitzt im weißen Rahmen darüber. Die senkrechte Lippe unten ist weg: die Frontplatte läuft wie beim Braun RT 20 vom Tisch schräg nach oben.</p>
+    <div class="pc">
+      <div><h3>Dafür</h3><ul class="pro"><li>Ruhigste, geschlossenste Front, ganz im RT-20-Geist</li><li>Keine Leiste, kein schwarzes Druckteil; Gerät 19 mm niedriger als 1–3</li><li>Kamera mittig über dem Bild</li></ul></div>
+      <div><h3>Dagegen</h3><ul class="con"><li>Der Rahmen steht 2–3 mm vor dem Bild: am äußersten Rand tippt man an eine Kante</li><li>Fenster muss genau auf die Bildfläche passen, vor dem Druck am echten Display messen</li></ul></div>
+    </div>
+    <figure><img src="img/entwurf_o_iso.jpg" alt="Entwurf O schräg: weiße Front mit dunklem Bildfenster, ohne Lippe" loading="lazy"></figure>
+    <div class="pair">
+      <figure><img src="img/entwurf_o_front.jpg" alt="Entwurf O von vorn" loading="lazy"><figcaption>Von vorn</figcaption></figure>
+      <figure><img src="img/entwurf_o_detail.jpg" alt="Entwurf O Kamera im weißen Rahmen" loading="lazy"><figcaption>Kamera im Rahmen</figcaption></figure>
+    </div>
+    <figure><img src="img/entwurf_o_side.jpg" alt="Entwurf O Seitenansicht ohne Lippe" loading="lazy"><figcaption>Seite: Front ab Tischplatte, Lautsprecher in der Seitenwand</figcaption></figure>
+  </section>
+
+  <section>
+    <h2><span class="nr">∠</span>Entwurf O mit 60°, 75° und 80°</h2>
+    <p class="meta">60°: 126 hoch, 113 tief · 75°: 141 hoch, 105 tief · 80°: 144 hoch, 105 tief (mm)</p>
+    <p>Das RT 20 steht fast senkrecht. Steiler heißt: vom Esstisch aus besser sichtbar, weniger Spiegelung von Lampen und Haube, schmaler auf der Arbeitsplatte, näher am Vorbild. Dafür beim Tippen kippeliger und von oben am Herd schräger. Der Blickwinkel des Displays (85° je Richtung) reicht für alle drei. Akku, Pi und Lautsprecher passen im Modell bei allen.</p>
+    <div class="pair">
+      <figure><img src="img/entwurf_o_iso_w75.jpg" alt="Entwurf O mit 75 Grad schräg" loading="lazy"><figcaption>75° schräg</figcaption></figure>
+      <figure><img src="img/entwurf_o_iso_w80.jpg" alt="Entwurf O mit 80 Grad schräg" loading="lazy"><figcaption>80° schräg</figcaption></figure>
+    </div>
+    <div class="pair">
+      <figure><img src="img/entwurf_o_side.jpg" alt="Entwurf O mit 60 Grad Seite" loading="lazy"><figcaption>60° Seite</figcaption></figure>
+      <figure><img src="img/entwurf_o_side_w75.jpg" alt="Entwurf O mit 75 Grad Seite" loading="lazy"><figcaption>75° Seite</figcaption></figure>
+    </div>
+    <figure><img src="img/entwurf_o_side_w80.jpg" alt="Entwurf O mit 80 Grad Seite" loading="lazy"><figcaption>80° Seite</figcaption></figure>
+  </section>
+
+  <section>
+    <h2><span class="nr">◐</span>Seiten bei 75°: Holz oder Weiß, mit Langlöchern</h2>
+    <p class="meta">75° festgelegt am 15.10. · Lautsprechergitter wie beim RT 20</p>
+    <p>Die Lautsprecher bekommen statt des Lochrasters waagerechte Langlöcher mit runden Enden, im Kreis angeordnet und in der Mitte geteilt. Links mit Echtholzfurnier auf den gedruckten Seitenplatten, rechts ganz in Weiß.</p>
+    <div class="pair">
+      <figure><img src="img/entwurf_o_iso_w75_holz.jpg" alt="Entwurf O mit 75 Grad und Holzseiten" loading="lazy"><figcaption>Holzseiten</figcaption></figure>
+      <figure><img src="img/entwurf_o_iso_w75_schlitze.jpg" alt="Entwurf O mit 75 Grad, weiße Seiten mit Langlöchern" loading="lazy"><figcaption>Weiße Seiten</figcaption></figure>
+    </div>
+    <div class="pair">
+      <figure><img src="img/entwurf_o_gitter_w75_holz.jpg" alt="Langlöcher im Holzfurnier" loading="lazy"><figcaption>Langlöcher im Furnier</figcaption></figure>
+      <figure><img src="img/entwurf_o_gitter_w75_schlitze.jpg" alt="Langlöcher in weißer Seite" loading="lazy"><figcaption>Langlöcher in Weiß</figcaption></figure>
+    </div>
+    <figure><img src="img/entwurf_o_side_w75_holz.jpg" alt="Seitenansicht mit Holz" loading="lazy"><figcaption>Seite mit Holz</figcaption></figure>
+    <div class="pair">
+      <figure><img src="img/entwurf_o_hinten_w75_holz.jpg" alt="Rückseite mit Holzseiten und Lüftungsschlitzen" loading="lazy"><figcaption>Rückseite, Holzseiten</figcaption></figure>
+      <figure><img src="img/entwurf_o_hinten_w75_schlitze.jpg" alt="Rückseite ganz weiß mit Lüftungsschlitzen" loading="lazy"><figcaption>Rückseite, weiß</figcaption></figure>
+    </div>
+    <div class="note">
+      <h3>Rückseite und Lüftung</h3>
+      <p>Der Rückdeckel bleibt weiß, auch bei Holzseiten. Lüftung in derselben Langloch-Sprache: zwei Reihen unten als Zuluft, fünf Reihen oben als Abluft, damit die Wärme von Pi und Akku nach oben abzieht. Dazu nur eine USB-C-Buchse zum Laden; Netzwerk über WLAN. Ob die Fläche für den Pi 5 mit Lüfter reicht, ist nicht gemessen.</p>
+    </div>
+    <div class="note">
+      <h3>So entsteht die Holzseite</h3>
+      <p>Seitenplatte flach drucken, Außenseite nach unten. Echtholzfurnier (0,5–0,6 mm, Kirsche oder Esche) selbstklebend oder mit Kontaktkleber aufbringen, bündig beschneiden, die Langlöcher von hinten mit dem Skalpell freischneiden (die gedruckten Schlitze sind die Schablone). Neben dem Herd lackieren oder mit Hartwachsöl behandeln.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="nr">▣</span>Holzmantel wie beim RT 20</h2>
+    <p class="meta">75° · Holzfilament an Seiten, Oberseite und Rückseite · weiße Front</p>
+    <p>Wie beim Original umschließt das Holz Oberseite, Seiten und Rückseite, die weiße Front sitzt darin. Gedruckt aus PLA mit Holzfasern: matt, ruhig, ohne Furnierarbeit; Langlöcher und Lüftungsschlitze werden mitgedruckt. Neben dem Induktionsfeld bleibt es kühl genug.</p>
+    <figure><img src="img/entwurf_o_iso_w75_mantel.jpg" alt="Küchen-Display mit Holzmantel und weißer Front" loading="lazy"></figure>
+    <div class="pair">
+      <figure><img src="img/entwurf_o_front_w75_mantel.jpg" alt="Holzmantel von vorn" loading="lazy"><figcaption>Von vorn</figcaption></figure>
+      <figure><img src="img/entwurf_o_side_w75_mantel.jpg" alt="Holzmantel von der Seite" loading="lazy"><figcaption>Seite</figcaption></figure>
+    </div>
+    <figure><img src="img/entwurf_o_hinten_w75_mantel.jpg" alt="Holzmantel von hinten mit Lüftungsschlitzen" loading="lazy"><figcaption>Hinten: Zuluft unten, Abluft oben, USB-C</figcaption></figure>
+    <div class="pair">
+      <figure><img src="img/entwurf_o_iso_w75_skala_mantel.jpg" alt="Holzmantel mit Leuchtleiste in der Bedienspalte" loading="lazy"><figcaption>Mit Leuchtleiste</figcaption></figure>
+      <figure><img src="img/entwurf_o_spalte_w75_skala_mantel.jpg" alt="Leuchtleiste nah: warmes Licht, Striche, oranger Zeiger" loading="lazy"><figcaption>Leuchtleiste nach der RT-20-Skala</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="nr">8″</span>Mit dem Waveshare 8inch DSI LCD (C)</h2>
+    <p class="meta">Tendenz 15.10. · ca. 235 × 105 × 143 mm · Bildfläche geschätzt 172 × 108 mm</p>
+    <p>Rund 50 % mehr Bildfläche als 7 Zoll, quer ab Werk. Das Gerät wird nur 5 mm breiter und passt mit Bedienspalte weiter auf den A1. Die Außenmaße des Displays sind noch geschätzt.</p>
+    <figure><img src="img/entwurf_o_iso_8zoll.jpg" alt="Küchen-Display mit 8-Zoll-Bildfenster, Holzmantel" loading="lazy"></figure>
+    <div class="pair">
+      <figure><img src="img/entwurf_o_front_8zoll.jpg" alt="8 Zoll von vorn" loading="lazy"><figcaption>Von vorn</figcaption></figure>
+      <figure><img src="img/entwurf_o_spalte_8zoll.jpg" alt="8 Zoll Bedienspalte mit Leuchtleiste" loading="lazy"><figcaption>Bedienspalte</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="nr">·</span>Zum Vergleich und Erinnern</h2>
+    <div class="pair">
+      <figure><img src="img/entwurf_l_iso.jpg" alt="7-Zoll-Entwurf L" loading="lazy"><figcaption>7 Zoll (L), 194 mm breit</figcaption></figure>
+      <figure><img src="img/entwurf_k_iso.jpg" alt="10-Zoll-Entwurf K" loading="lazy"><figcaption>10 Zoll (K), 252 mm breit, gleiche Kamera</figcaption></figure>
+    </div>
+    <div class="pair">
+      <figure><img src="img/entwurf_m_bedien.jpg" alt="Bedienspalte mit zwei grauen Knöpfen und oranger LED" loading="lazy"><figcaption>Bedienspalte: Ø 12 mm, Mulde, LED neben Ein/Aus</figcaption></figure>
+      <figure><img src="img/entwurf_m_oben.jpg" alt="Mikrofonleiste flach auf der Oberseite" loading="lazy"><figcaption>Mikrofonleiste oben, hört Küche und Esstisch</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="nr">+</span>Weitere Ideen zum Drüberschlafen</h2>
+    <div class="note">
+      <h3>Pi hinten am Display</h3>
+      <p>Das offizielle Display hat hinten einen Blechträger, auf den der Pi 5 direkt geschraubt wird. Das spart Platz unten im Keil. Haken: Die UPS-Boards (Waveshare, Geekworm) stecken mit Federkontakten unter dem Pi, der Akku müsste dann mit nach oben oder getrennt verkabelt werden.</p>
+    </div>
+    <div class="note">
+      <h3>Evoke leiser beim Wake Word</h3>
+      <p>Der Evoke steht links an der Wand. Seine Musik kann die Echounterdrückung nicht herausrechnen. Wenn er sich beim Ansprechen kurz leiser stellen ließe, hört das Display deutlich besser (hängt an #44).</p>
+    </div>
+    <div class="note">
+      <h3>Holzseiten wie beim RT 20</h3>
+      <p>Furnier auf die gedruckten Seitenplatten, helle Front bleibt. Geht ohne Konstruktionsänderung, weil die Seitenplatten eigene Teile sind (#129).</p>
+    </div>
+    <div class="note">
+      <h3>Schutz für die Mikrofone</h3>
+      <p>Neben dem Kochfeld gibt es Dampf und Fett. Unter die Löcher der Mikrofonleiste gehört eine dünne Schutzmembran, sonst verkleben die Öffnungen.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Maße aus dem Blender-Modell, nicht am Gerät gemessen. Display-Glas 189,5 × 120 mm laut Raspberry-Pi-Doku.</p>
+    <p>Dateien: ~/Development/xvf-display-geraet/ (Skripte entwurf_m.py, entwurf_n.py).</p>
+  </footer>
+</div>
