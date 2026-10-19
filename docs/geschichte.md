@@ -75,16 +75,19 @@ gemalt und fast fotografisch, und der Turm stand an der falschen Stelle. Er wird
 per Zuschnitt in die Lücke gesetzt. Drei Stilideen für Regen passend zur Figur folgten,
 gewählt wurde **flach**.
 
+Aus der Regen-Idee entstand noch am selben Abend die ganze Serie im Stil „flach“:
+gedämpft, sonnig, wolkig, Nacht, Schnee und Regen, zusammen für 16 Cent.
+
 | Figur F2 (zuhören) | Regen, Stil „flach“ |
 |---|---|
-| ![Figur](entwuerfe/figur/zuhoeren-klein.png) | ![Regen flach](entwuerfe/wetter/ideen/regen-flach.png) |
+| ![Figur](entwuerfe/figur/zuhoeren-klein.png) | ![Regen flach](entwuerfe/wetter/flach/regen.png) |
 
 Wie die Bilder entstehen und was sie kosten: [bilder-erzeugen.md](bilder-erzeugen.md),
 [bild-laeufe.md](bild-laeufe.md).
 
 ## Wie es weitergeht
 
-- Wetterbilder im Stil „flach“ für alle sechs Lagen.
+- Wetterbilder: „gedämpft“ ohne Regenstriche neu erzeugen, dann die Serie für den Bau festlegen.
 - Tischtest der Elektronik ([#18](https://github.com/dragondiver/kuechen-display/issues/18)),
   sobald die Hardware da ist.
 - Die Bridge lernt das zweite Gerät (Plan in rundfunk), danach folgt das Programm auf dem Pi.

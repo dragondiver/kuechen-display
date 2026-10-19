@@ -651,6 +651,41 @@
         </div>
       </div></div>
     </section>
+<section class="entwurf" data-entwurf="w5" data-name="W5 · Wetterbilder flach" aria-labelledby="w5-h">
+      <div class="entwurf-text">
+        <h3 id="w5-h"><span class="buchstabe">W5</span> Flach, passend zur Figur</h3>
+        <p>Die gewählte Serie: Regen-Idee „flach“ als Grundbild, die anderen fünf Lagen daraus abgeleitet, mit der Figur F2 als Stilhinweis. Landschaft und Turm bleiben gleich, der Turm steht in der Kartenlücke.</p>
+        <ul class="annahmen">
+          <li>„Gedämpft“ hat noch feine Regenstriche aus dem Grundbild</li>
+        </ul>
+        <div class="knoepfe" role="group" aria-label="Wetterlage W5">
+          <button class="knopf" type="button" data-wetter-ziel="w5" data-wetter="gedaempft" data-wetter-name="Gedämpft" aria-pressed="true">Gedämpft</button>
+          <button class="knopf" type="button" data-wetter-ziel="w5" data-wetter="sonnig" data-wetter-name="Sonnig" aria-pressed="false">Sonnig</button>
+          <button class="knopf" type="button" data-wetter-ziel="w5" data-wetter="wolkig" data-wetter-name="Wolkig" aria-pressed="false">Wolkig</button>
+          <button class="knopf" type="button" data-wetter-ziel="w5" data-wetter="nacht" data-wetter-name="Nacht" aria-pressed="false">Nacht</button>
+          <button class="knopf" type="button" data-wetter-ziel="w5" data-wetter="schnee" data-wetter-name="Schnee" aria-pressed="false">Schnee</button>
+          <button class="knopf" type="button" data-wetter-ziel="w5" data-wetter="regen" data-wetter-name="Regen" aria-pressed="false">Regen</button>
+        </div>
+        <div class="knoepfe"><button class="knopf" type="button" data-oeffne="w5">Groß ansehen</button></div>
+      </div>
+      <div class="bildschirm" data-oeffne="w5" aria-hidden="true"><div class="scr" data-wetter-ordner="wetter/flach/">
+        <img class="wetterbild" src="wetter/flach/gedaempft.png" alt="" data-wetter-bild>
+        <div class="glas" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px;">
+          <div class="uhr" style="font-size:92px;">17:42</div>
+          <div class="datum">Sonntag, 18. Oktober</div>
+          <div class="kopf" style="margin-top:40px;">Noch heute</div>
+          <div class="termin"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
+          <div class="termin"><div class="zeit">20:15</div><div class="titel">Tatort</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+          <div class="mehr">Morgen 6 Termine ›</div>
+        </div>
+        <div class="glas" style="position:absolute;right:48px;top:48px;width:460px;padding:40px 44px;">
+          <div class="ort">Kornwestheim</div>
+          <div class="temp" style="font-size:150px;" data-wetter-temp>11°</div>
+          <div class="zustand" data-wetter-text>Gedämpft</div>
+          <div class="hoch">Nacht 5°</div>
+        </div>
+      </div></div>
+    </section>
   </section>
 
   <section class="gruppe" aria-labelledby="gesicht-gruppe-h">
@@ -1135,7 +1170,7 @@
     document.querySelectorAll('[data-wetter-ziel]').forEach(function (b) {
       b.addEventListener('click', function () {
         const scr = document.querySelector('.entwurf[data-entwurf="' + b.dataset.wetterZiel + '"] .scr');
-        scr.querySelector('[data-wetter-bild]').src = 'wetter/' + b.dataset.wetter + '.png';
+        scr.querySelector('[data-wetter-bild]').src = (scr.dataset.wetterOrdner || 'wetter/') + b.dataset.wetter + '.png';
         scr.querySelector('[data-wetter-text]').textContent = b.dataset.wetterName;
         document.querySelectorAll('[data-wetter-ziel="' + b.dataset.wetterZiel + '"]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
       });
