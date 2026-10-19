@@ -105,6 +105,32 @@ LAGEN = [
 ]
 
 
+# Stilideen (19.10.2026): Die Landschaft soll zur Figur F2 passen (gleicher weicher
+# Stil), aber ihre natürlichen Farben behalten. Die Figur geht nur als Stilhinweis mit.
+STILVORLAGE = Path("docs/entwuerfe/figur/zuhoeren.png")
+STIL_HINWEIS = (
+    "The attached image of a woman is ONLY a style reference. The landscape must look "
+    "as if it belongs to the same illustrated world, so that this character could later "
+    "be placed in front of it: same soft 3D illustration look, smooth rounded shapes, "
+    "gentle soft lighting, same level of detail. Do NOT take over her colors: the "
+    "landscape keeps natural colors (green hills, grey rainy sky), no orange landscape. "
+    "Do NOT draw this woman or any other person anywhere in the picture."
+)
+STILE = {
+    "ton": "A soft 3D clay-like world with rounded hills, houses and trees, like a "
+    "friendly toy diorama. Cool blue-grey rain, a few warmly lit windows.",
+    "flach": "Flat illustration with soft gradients and very few details, calm simple "
+    "shapes. Rain as fine light strokes.",
+    "bilderbuch": "Gentle storybook illustration with soft painterly texture but "
+    "simplified forms. A few softly glowing windows against a cool rainy sky.",
+}
+IDEEN_ORDNER = ORDNER / "ideen"
+
+
+def prompt_idee(stil: str, lage: Lage) -> str:
+    return f"{STIL_HINWEIS} {GRUNDREGELN} {lage.beschreibung} Style: {STILE[stil]}"
+
+
 def prompt_fuer(lage: Lage) -> str:
     return f"{GRUNDREGELN} {lage.beschreibung}"
 
@@ -176,8 +202,17 @@ def pruefbild(pfad: Path, ziel: Path) -> None:
 
 
 def erzeuge(
-    client, modell: str, qualitaet: str, prompt: str, eingabe: bytes | None
+    client,
+    modell: str,
+    qualitaet: str,
+    prompt: str,
+    eingabe: bytes | None,
+    bild: str,
+    stil: bytes | None = None,
 ) -> bytes:
+    """Grundbild aus Text (generate), sonst edit mit Grundbild und/oder Stilvorlage."""
+    import bildkosten
+
     gemeinsam = {
         "model": modell,
         "prompt": prompt,
@@ -185,12 +220,16 @@ def erzeuge(
         "quality": qualitaet,
         "output_format": "png",
     }
-    if eingabe is None:
+    bilder = []
+    if eingabe is not None:
+        bilder.append(("grundbild.png", eingabe, "image/png"))
+    if stil is not None:
+        bilder.append(("stilvorlage.png", stil, "image/png"))
+    if not bilder:
         antwort = client.images.generate(**gemeinsam)
     else:
-        antwort = client.images.edit(
-            image=("grundbild.png", eingabe, "image/png"), **gemeinsam
-        )
+        antwort = client.images.edit(image=bilder, **gemeinsam)
+    bildkosten.protokollieren(antwort, "wetter_bilder", bild, modell, qualitaet)
     return base64.b64decode(antwort.data[0].b64_json)
 
 
@@ -213,6 +252,13 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="x des Turms im Rohbild (sonst gemessen)",
     )
+    p.add_argument(
+        "--ideen",
+        action="store_true",
+        help="je eine Stilidee pro Stil für eine Lage (Ordner wetter/ideen/)",
+    )
+    p.add_argument("--lage", default="regen", help="Lage für --ideen (Standard regen)")
+    p.add_argument("--stil-vorlage", type=Path, default=STILVORLAGE)
     p.add_argument("--modell", default=MODELL)
     p.add_argument("--qualitaet", default="medium", choices=["low", "medium", "high"])
     p.add_argument("--nur", nargs="*", default=None, help="nur diese Lagen")
@@ -224,6 +270,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Unbekannte Lagen: {', '.join(sorted(unbekannt))}", file=sys.stderr)
         return 2
     auswahl = [lage for lage in LAGEN if args.nur is None or lage.name in args.nur]
+
+    if args.ideen:
+        return ideen(args)
 
     if args.probe:
         print(f"Modell {args.modell}, Qualität {args.qualitaet}, {len(auswahl)} Bilder")
@@ -298,7 +347,9 @@ def main(argv: list[str] | None = None) -> int:
                 return 2
             eingabe = grund.read_bytes()
         print(f"erzeuge {lage.name} …", flush=True)
-        roh = erzeuge(client, args.modell, args.qualitaet, prompt_fuer(lage), eingabe)
+        roh = erzeuge(
+            client, args.modell, args.qualitaet, prompt_fuer(lage), eingabe, lage.name
+        )
         (roh_ordner / f"{lage.name}.png").write_bytes(roh)
         if turm_x is None:
             turm_x = turm_finden(grund.read_bytes() if grund.exists() else roh)
@@ -307,6 +358,74 @@ def main(argv: list[str] | None = None) -> int:
         pruefbild(ORDNER / f"{lage.name}.png", ORDNER / "pruefung" / f"{lage.name}.png")
     print(f"fertig: {ORDNER} (Prüfbilder in {ORDNER / 'pruefung'})")
     return 0
+
+
+def ideen(args) -> int:
+    """Drei Stilideen für eine Lage, jede mit der Stilvorlage, ohne Grundbild."""
+    lage = next((x for x in LAGEN if x.name == args.lage), None)
+    if lage is None:
+        print(f"Unbekannte Lage: {args.lage}", file=sys.stderr)
+        return 2
+    if not args.stil_vorlage.exists():
+        print(f"Stilvorlage fehlt: {args.stil_vorlage}", file=sys.stderr)
+        return 2
+    if args.probe:
+        print(
+            f"Ideen für {lage.name}, Stilvorlage {args.stil_vorlage}, Modell {args.modell}"
+        )
+        for stil in STILE:
+            print(f"- {IDEEN_ORDNER / f'{lage.name}-{stil}.png'}")
+            print(f"  {prompt_idee(stil, lage)}")
+        return 0
+    if not os.environ.get("OPENAI_API_KEY"):
+        print(
+            "OPENAI_API_KEY fehlt, z. B.: "
+            "uv run --env-file ../rundfunk/.env werkzeuge/wetter_bilder.py --ideen",
+            file=sys.stderr,
+        )
+        return 2
+
+    from openai import OpenAI
+
+    client = OpenAI()
+    roh_ordner = IDEEN_ORDNER / "roh"
+    roh_ordner.mkdir(parents=True, exist_ok=True)
+    stil_png = args.stil_vorlage.read_bytes()
+    for stil in STILE:
+        name = f"{lage.name}-{stil}"
+        print(f"erzeuge Idee {name} …", flush=True)
+        roh = erzeuge(
+            client,
+            args.modell,
+            args.qualitaet,
+            prompt_idee(stil, lage),
+            None,
+            name,
+            stil_png,
+        )
+        (roh_ordner / f"{name}.png").write_bytes(roh)
+        turm_x = turm_finden(roh)
+        try:
+            fertig = zuschneiden(roh, turm_x)
+        except ValueError as e:
+            # Turm am Rand oder nicht gefunden: Bild trotzdem zeigen, mittig geschnitten.
+            print(f"  {e} Mittiger Ausschnitt statt Turmausschnitt.", file=sys.stderr)
+            fertig = zuschneiden(roh, roh_breite_mitte(roh))
+        (IDEEN_ORDNER / f"{name}.png").write_bytes(fertig)
+        pruefbild(
+            IDEEN_ORDNER / f"{name}.png", IDEEN_ORDNER / "pruefung" / f"{name}.png"
+        )
+        print(f"  Turm im Rohbild bei x = {turm_x}")
+    print(f"fertig: {IDEEN_ORDNER} (Prüfbilder in {IDEEN_ORDNER / 'pruefung'})")
+    return 0
+
+
+def roh_breite_mitte(png: bytes) -> int:
+    """x, bei dem fenster() den größtmöglichen, mittigen Ausschnitt liefert."""
+    from PIL import Image
+
+    breite = Image.open(io.BytesIO(png)).width
+    return round(breite * TURM_X / BREITE)
 
 
 if __name__ == "__main__":
