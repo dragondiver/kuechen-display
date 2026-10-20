@@ -52,3 +52,7 @@ Beim Umzug aus rundfunk haben die Issues neue Nummern bekommen; alte Links leite
 | #125 | #8 | | #175 | #18 Tischtest |
 | #126 | #9 | | #182 | #19 |
 | #127 | #10 Apps-Seiten | | | |
+
+## Lizenz
+
+MIT, siehe `LICENSE`.
