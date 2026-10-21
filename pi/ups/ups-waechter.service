@@ -1,0 +1,12 @@
+[Unit]
+Description=Akku-Wächter UPS HAT (E): sauber herunterfahren bei leerem Akku (kuechen-display#9)
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /usr/local/lib/ups-waechter/ups_waechter.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
