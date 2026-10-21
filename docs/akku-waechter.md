@@ -77,3 +77,7 @@ das stört nicht, beide tun dasselbe. Entfernen: die Datei `~/.config/autostart/
 - Die Abschaltung ist mit einer I2C-Attrappe durchgespielt (leer → Entwarnung durch Laden → leer →
   Abschalten nach 60 s), aber noch nicht mit echt leeren Zellen ausgelöst.
 - Die Prozentanzeige des HAT stimmt laut Waveshare erst nach einigen vollen Lade- und Entladezyklen.
+- Fällt I2C dauerhaft aus (HAT ab, Bus gestört), kann der Wächter nichts messen und fährt auch nicht herunter;
+  im Journal stehen dann `I2C-Lesefehler`. `status.json` wird in der Zeit nicht aktualisiert, eine Anzeige
+  muss das Feld `zeit` (Unix-Sekunden) auf Alter prüfen.
+- Den Strom rechnet der Wächter als echtes Zweierkomplement; Waveshares Beispiel liegt um 1 mA daneben (ohne Folgen).
