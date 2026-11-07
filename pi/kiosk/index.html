@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, height=800, initial-scale=1">
+<title>Küchen-Display</title>
+<!--
+  Ruhebildschirm für den Chromium-Kiosk auf dem Pi (Durchstich zu #15 und #2).
+  Aufbau und Aussehen aus docs/entwuerfe/ruhebildschirm.html, Entwurf C4 (Seiten) mit
+  Wetterbild W5 (flach). Inhalte sind noch Platzhalter; echte Termine und Wetter folgen.
+
+  Seiten: Apps 2 ← Apps 1 ← Heute → Morgen/Woche. Blättern per Wischen auf dem Bildschirm,
+  per Tippen auf „Morgen … ›“ oder per Handgeste vor der Kamera (Ereignisse vom Gestendienst
+  über /ereignisse). Morgen/Woche springt nach 5 Minuten ohne Bedienung zurück auf Heute.
+
+  ?messen=1  blättert 60 s lang selbst hin und her und schickt die Bildraten an /messung.
+  ?debug=1   zeigt erkannte Gesten unten links an.
+-->
+<style>
+  html, body { margin: 0; width: 1280px; height: 800px; overflow: hidden; background: #000; cursor: none; }
+  .scr { position: absolute; top: 0; left: 0; width: 1280px; height: 800px; overflow: hidden;
+         font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Helvetica, "Nimbus Sans", Arial, sans-serif; color: #fff; line-height: normal;
+         user-select: none; -webkit-user-select: none; }
+  .scr * { box-sizing: border-box; }
+  .wetterbild { position: absolute; inset: 0; width: 1280px; height: 800px; object-fit: cover; }
+  .uhr { font-size: 92px; font-weight: 200; letter-spacing: -2px; line-height: 1; }
+  .datum { font-size: 30px; font-weight: 400; opacity: .8; margin-top: 10px; }
+  .kopf { font-size: 20px; letter-spacing: 3px; text-transform: uppercase; opacity: .55; margin: 40px 0 20px; }
+  .termin { display: flex; align-items: baseline; gap: 26px; padding: 16px 0; border-top: 1px solid rgba(255,255,255,.14); }
+  .termin .zeit { font-size: 30px; font-weight: 300; width: 96px; font-variant-numeric: tabular-nums; opacity: .85; }
+  .termin .zeit.spanne { width: 190px; }
+  .termin .titel { font-size: 34px; font-weight: 500; flex: 1; }
+  .termin .wer { font-size: 22px; opacity: .65; display: flex; align-items: center; gap: 10px; }
+  .punkt { width: 14px; height: 14px; border-radius: 50%; display: inline-block; flex: none; }
+  .p1 { background: #7fb3ff; } .p2 { background: #ffb36b; } .pa { background: #d9d9d9; }
+  .mehr { font-size: 22px; opacity: .55; margin-top: 22px; }
+  .temp { font-size: 150px; font-weight: 200; line-height: .9; letter-spacing: -6px; }
+  .zustand { font-size: 34px; font-weight: 400; margin-top: 8px; }
+  .hoch { font-size: 26px; opacity: .75; margin-top: 8px; }
+  .ort { font-size: 20px; letter-spacing: 3px; text-transform: uppercase; opacity: .55; margin-bottom: 18px; }
+  .glas { background: rgba(20,24,32,.38); backdrop-filter: blur(28px) saturate(1.3);
+          border-radius: 36px; border: 1px solid rgba(255,255,255,.12); }
+  .glas.spalte { display: flex; flex-direction: column; }
+  .rolle { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; padding-bottom: 60px;
+           mask-image: linear-gradient(180deg, #000 82%, transparent); }
+  .tag { font-size: 18px; letter-spacing: 3px; text-transform: uppercase; opacity: .55; margin: 22px 0 4px; display: flex; justify-content: space-between; }
+  .tag:first-child { margin-top: 0; }
+  .eintrag { display: flex; align-items: baseline; gap: 18px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,.14); }
+  .eintrag .zeit { font-size: 24px; font-weight: 300; width: 70px; font-variant-numeric: tabular-nums; opacity: .85; flex: none; }
+  .eintrag .titel { font-size: 26px; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .eintrag .punkt { width: 12px; height: 12px; }
+  .eintrag.leer .titel { font-weight: 400; opacity: .45; }
+  /* Nur die Glaskarten gleiten, das Wetterbild steht still (#15). */
+  .bahn { position: absolute; top: 0; left: 0; width: 5120px; height: 800px; display: flex;
+          transform: translateX(calc(var(--seite, 2) * -1280px)); transition: transform .55s cubic-bezier(.22,.8,.24,1); touch-action: pan-y; }
+  .seite { position: relative; width: 1280px; height: 800px; flex: none; }
+  .raster { position: absolute; left: 0; right: 0; top: 120px; display: grid; grid-template-columns: repeat(3, 168px); justify-content: center; column-gap: 150px; row-gap: 64px; }
+  .app { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .symbol { width: 168px; height: 168px; border-radius: 40px; display: grid; place-items: center; background: rgba(20,24,32,.38);
+            backdrop-filter: blur(28px) saturate(1.3); border: 1px solid rgba(255,255,255,.12); }
+  .symbol.orange { background: #e8762b; border-color: transparent; }
+  .symbol svg { width: 84px; height: 84px; }
+  .appname { font-size: 26px; font-weight: 500; text-shadow: 0 1px 12px rgba(0,0,0,.35); }
+  .punkte { position: absolute; left: 0; right: 0; bottom: 22px; display: flex; justify-content: center; gap: 14px; }
+  .punkte i { width: 11px; height: 11px; border-radius: 50%; background: rgba(255,255,255,.35); }
+  .punkte i.an { background: #fff; }
+  .mehr[data-weiter] { cursor: pointer; }
+  /* Rückmeldung für die flache Hand: kurz ein ruhiges Zeichen, keine dauernde Bewegung. */
+  .stopp { position: absolute; left: 50%; top: 50%; width: 180px; height: 180px; margin: -90px 0 0 -90px; border-radius: 50%;
+           display: grid; place-items: center; background: rgba(20,24,32,.45); backdrop-filter: blur(28px);
+           border: 1px solid rgba(255,255,255,.18); opacity: 0; transition: opacity .25s; pointer-events: none; }
+  .stopp.an { opacity: 1; }
+  .stopp svg { width: 88px; height: 88px; }
+  .debug { position: absolute; left: 16px; bottom: 16px; font: 16px/1.3 "DejaVu Sans Mono", monospace; background: rgba(0,0,0,.55); padding: 6px 10px; border-radius: 8px; display: none; }
+  .debug.an { display: block; }
+  .debug .hand { opacity: .75; }
+</style>
+</head>
+<body>
+<div class="scr" id="scr" style="--seite:2">
+  <img class="wetterbild" src="wetter/gedaempft.png" alt="">
+  <div class="bahn" id="bahn">
+    <div class="seite"><div class="raster">
+      <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 20h24M24 32h24M24 44h24"/><circle cx="16" cy="20" r="2"/><circle cx="16" cy="32" r="2"/><circle cx="16" cy="44" r="2"/></svg></div><div class="appname">Einkauf</div></div>
+      <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="22" width="44" height="28" rx="5"/><circle cx="40" cy="36" r="7"/><path d="M18 32h10M18 40h10M20 22l24-10"/></svg></div><div class="appname">Radio</div></div>
+      <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 40a14 14 0 1 1 16 0v6H24z"/><path d="M26 52h12"/></svg></div><div class="appname">Licht</div></div>
+      <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="20" width="44" height="30" rx="6"/><circle cx="32" cy="35" r="9"/><path d="M24 20l4-6h8l4 6"/></svg></div><div class="appname">Kamera</div></div>
+      <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 30L32 14l20 16"/><path d="M18 26v24h28V26"/><path d="M28 50V38h8v12"/></svg></div><div class="appname">Zuhause</div></div>
+      <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="8"/><path d="M32 12v8M32 44v8M12 32h8M44 32h8M18 18l6 6M40 40l6 6M46 18l-6 6M18 46l6-6"/></svg></div><div class="appname">Einstellungen</div></div>
+    </div></div>
+    <div class="seite"><div class="raster">
+      <div class="app"><div class="symbol orange"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 26h36v14a10 10 0 0 1-10 10H24a10 10 0 0 1-10-10z"/><path d="M10 26h44M24 20c0-4 4-4 4-8M36 20c0-4 4-4 4-8"/></svg></div><div class="appname">Rezepte</div></div>
+      <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="12" y="14" width="40" height="36" rx="4"/><path d="M20 24h24M20 32h24M20 40h14"/></svg></div><div class="appname">News</div></div>
+      <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M26 44V18l22-5v26"/><circle cx="20" cy="44" r="6"/><circle cx="42" cy="39" r="6"/></svg></div><div class="appname">Spotify</div></div>
+      <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="16" width="44" height="32" rx="8"/><path d="M28 25v14l12-7z"/></svg></div><div class="appname">YouTube</div></div>
+      <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="20"/><path d="M12 32h40M32 12c-8 8-8 32 0 40M32 12c8 8 8 32 0 40"/></svg></div><div class="appname">Browser</div></div>
+      <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="34" r="18"/><path d="M32 24v10l7 5M26 12h12"/></svg></div><div class="appname">Timer</div></div>
+    </div></div>
+    <div class="seite">
+      <div class="glas" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px;">
+        <div class="uhr" id="uhr">--:--</div>
+        <div class="datum" id="datum"></div>
+        <div class="kopf">Noch heute</div>
+        <div class="termin"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
+        <div class="termin"><div class="zeit">20:15</div><div class="titel">Tatort</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+        <div class="mehr" data-weiter>Morgen 6 Termine ›</div>
+      </div>
+      <div class="glas" style="position:absolute;right:48px;top:48px;width:460px;padding:40px 44px;">
+        <div class="ort">Kornwestheim</div>
+        <div class="temp">11°</div>
+        <div class="zustand">Gedämpft</div>
+        <div class="hoch">Nacht 5°</div>
+      </div>
+    </div>
+    <div class="seite">
+      <div class="glas spalte" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px 0;">
+        <div class="uhr">Morgen</div>
+        <div class="datum" id="datum-morgen"></div>
+        <div class="kopf">6 Termine</div>
+        <div class="rolle">
+          <div class="termin"><div class="zeit spanne">08:00–09:00</div><div class="titel">Zahnarzt</div><div class="wer"><i class="punkt p1"></i>Florian</div></div>
+          <div class="termin"><div class="zeit spanne">10:00–10:30</div><div class="titel">Handwerker Heizung</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+          <div class="termin"><div class="zeit spanne">12:30–13:30</div><div class="titel">Mittagessen</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+          <div class="termin"><div class="zeit spanne">16:00–17:00</div><div class="titel">Physiotherapie</div><div class="wer"><i class="punkt p1"></i>Florian</div></div>
+          <div class="termin"><div class="zeit spanne">19:00–20:30</div><div class="titel">Elternabend</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
+          <div class="termin"><div class="zeit spanne">20:45–22:30</div><div class="titel">Länderspiel</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
+        </div>
+      </div>
+      <div class="glas spalte" style="position:absolute;right:48px;top:48px;bottom:48px;width:460px;padding:40px 44px 0;">
+        <div class="ort">Die Woche</div>
+        <div class="rolle">
+          <div class="tag"><span>Heute</span></div>
+          <div class="eintrag"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><i class="punkt p2"></i></div>
+          <div class="eintrag"><div class="zeit">20:15</div><div class="titel">Tatort</div><i class="punkt pa"></i></div>
+          <div class="tag"><span>Morgen</span></div>
+          <div class="eintrag"><div class="zeit">08:00</div><div class="titel">Zahnarzt</div><i class="punkt p1"></i></div>
+          <div class="eintrag"><div class="zeit">10:00</div><div class="titel">Handwerker Heizung</div><i class="punkt pa"></i></div>
+          <div class="eintrag"><div class="zeit">12:30</div><div class="titel">Mittagessen</div><i class="punkt pa"></i></div>
+          <div class="eintrag"><div class="zeit">16:00</div><div class="titel">Physiotherapie</div><i class="punkt p1"></i></div>
+          <div class="eintrag"><div class="zeit">19:00</div><div class="titel">Elternabend</div><i class="punkt p2"></i></div>
+          <div class="eintrag"><div class="zeit">20:45</div><div class="titel">Länderspiel</div><i class="punkt pa"></i></div>
+          <div class="tag"><span>Übermorgen</span></div>
+          <div class="eintrag leer"><div class="zeit"></div><div class="titel">keine Termine</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="punkte" id="punkte"><i></i><i></i><i class="an"></i><i></i></div>
+  <div class="stopp" id="stopp" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 34V16a3 3 0 0 1 6 0v14M28 30V12a3 3 0 0 1 6 0v18M34 30V14a3 3 0 0 1 6 0v18M40 32v-10a3 3 0 0 1 6 0v18c0 9-6 16-15 16-6 0-10-3-13-8l-6-10a3 3 0 0 1 5-3l3 4"/></svg></div>
+  <div class="debug" id="debug"></div>
+</div>
+<script>
+(function () {
+  const HEUTE = 2, LETZTE = 3, ZURUECK_MS = 5 * 60 * 1000;
+  const scr = document.getElementById('scr');
+  const param = new URLSearchParams(location.search);
+  const debug = document.getElementById('debug');
+  if (param.has('debug')) debug.classList.add('an');
+  debug.innerHTML = '<div class="hand">Hand: –</div><div class="letzte">noch keine Geste</div>';
+  function zeigeDebug(text) { debug.querySelector('.letzte').textContent = new Date().toLocaleTimeString('de-DE') + '  ' + text; }
+
+  // Uhr und Datum sind echt, alles andere ist noch Platzhalter.
+  function uhrzeit() {
+    const jetzt = new Date();
+    document.getElementById('uhr').textContent = jetzt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('datum').textContent = jetzt.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+    const morgen = new Date(jetzt.getTime() + 864e5);
+    document.getElementById('datum-morgen').textContent = morgen.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  uhrzeit();
+  setInterval(uhrzeit, 1000);
+
+  // Blättern
+  let seite = HEUTE, ruecksprung = null;
+  function setzeSeite(i) {
+    seite = Math.max(0, Math.min(LETZTE, i));
+    scr.style.setProperty('--seite', seite);
+    document.querySelectorAll('#punkte i').forEach(function (p, n) { p.classList.toggle('an', n === seite); });
+    clearTimeout(ruecksprung);
+    if (seite !== HEUTE) ruecksprung = setTimeout(function () { setzeSeite(HEUTE); }, ZURUECK_MS);
+  }
+  // Richtung wie auf dem Touchscreen: nach links wischen holt die rechte Seite herein.
+  function wischen(richtung) { setzeSeite(seite + (richtung === 'links' ? 1 : -1)); }
+
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.mehr[data-weiter]')) setzeSeite(LETZTE);
+  });
+  let start = null;
+  document.addEventListener('pointerdown', function (e) { start = { x: e.clientX, y: e.clientY }; });
+  document.addEventListener('pointerup', function (e) {
+    if (!start) return;
+    const dx = e.clientX - start.x, dy = e.clientY - start.y;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) wischen(dx < 0 ? 'links' : 'rechts');
+    start = null;
+  });
+
+  // Flache Hand: Stopp. Noch gibt es nichts anzuhalten, also nur die Rückmeldung.
+  const stoppZeichen = document.getElementById('stopp');
+  let stoppAus = null;
+  function stopp() {
+    stoppZeichen.classList.add('an');
+    clearTimeout(stoppAus);
+    stoppAus = setTimeout(function () { stoppZeichen.classList.remove('an'); }, 900);
+  }
+
+  // Gesten vom Gestendienst (pi/gesten/gesten.py)
+  const quelle = new EventSource('/ereignisse');
+  quelle.addEventListener('hand', function (e) {
+    const h = JSON.parse(e.data);
+    debug.querySelector('.hand').textContent = h.x === undefined ? 'Hand: –'
+      : 'Hand: x ' + h.x.toFixed(2) + '  y ' + h.y.toFixed(2) + '  ' + (h.form || '?') + ' ' + h.sicher;
+  });
+  quelle.addEventListener('geste', function (e) {
+    const g = JSON.parse(e.data);
+    zeigeDebug(g.art + (g.richtung ? ' ' + g.richtung : ''));
+    if (g.art === 'wischen') wischen(g.richtung);
+    else if (g.art === 'stopp') stopp();
+  });
+
+  // Messung der Bildrate: Abstände zwischen Frames während des Gleitens und in Ruhe.
+  if (param.has('messen')) {
+    const abstaende = { gleiten: [], ruhe: [] };
+    let modus = 'ruhe', letzter = performance.now();
+    function frame(t) {
+      abstaende[modus].push(t - letzter); letzter = t;
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+    scr.querySelector('.bahn').addEventListener('transitionstart', function () { modus = 'gleiten'; });
+    scr.querySelector('.bahn').addEventListener('transitionend', function () { modus = 'ruhe'; });
+    const folge = [3, 2, 1, 0, 1, 2];
+    let n = 0;
+    const takt = setInterval(function () { setzeSeite(folge[n++ % folge.length]); }, 2500);
+    setTimeout(function () {
+      clearInterval(takt);
+      setzeSeite(HEUTE);
+      function auswerten(liste) {
+        const s = liste.slice(5).sort(function (a, b) { return a - b; });
+        if (!s.length) return null;
+        const summe = s.reduce(function (a, b) { return a + b; }, 0);
+        return { frames: s.length, fps: Math.round(1000 * s.length / summe * 10) / 10,
+                 median_ms: Math.round(s[s.length >> 1] * 10) / 10, p95_ms: Math.round(s[Math.floor(s.length * .95)] * 10) / 10,
+                 ueber_33ms: s.filter(function (x) { return x > 33.4; }).length };
+      }
+      const ergebnis = { gleiten: auswerten(abstaende.gleiten), ruhe: auswerten(abstaende.ruhe) };
+      zeigeDebug(JSON.stringify(ergebnis));
+      fetch('/messung', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ergebnis) });
+    }, 60000);
+  }
+})();
+</script>
+</body>
+</html>

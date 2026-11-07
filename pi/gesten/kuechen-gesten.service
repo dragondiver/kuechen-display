@@ -1,0 +1,14 @@
+[Unit]
+Description=Küchen-Display: Gestendienst und Kiosk-Seite (kuechen-display#2, #15)
+After=network.target
+
+[Service]
+Type=simple
+User=florian
+WorkingDirectory=/home/florian/kuechen-display/gesten
+ExecStart=/home/florian/gesten-venv/bin/python /home/florian/kuechen-display/gesten/gesten.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
