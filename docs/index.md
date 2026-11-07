@@ -17,4 +17,5 @@ Braun-Stil, für die offene Küche. Es spricht als Elektra (Repo
 
 - [Wie das Küchen-Display entstand](geschichte.html)
 - [Bilder erzeugen](bilder-erzeugen.html): Figur und Wetterbilder über die OpenAI-Bild-API
+- [Tischtest XVF3800](tischtest-xvf3800.html): Aufbau, Fotos und Messwerte
 - [Läufe der Bild-API](bild-laeufe.html) mit Kosten
