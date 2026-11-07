@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="de" data-titel-de="Tischtest · Küchen-Display" data-titel-en="Bench test · Kitchen Display">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Tischtest · Küchen-Display</title>
+<meta name="description" content="Messprotokoll des Tischtests zum Küchen-Display / Bench test log of the kitchen display.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:ital,wght@0,400..800;1,400..600&family=Martian+Mono:wdth,wght@75..100,300..600&display=swap">
+<link rel="stylesheet" href="stil.css">
+<script src="sprache.js"></script>
+<script>
+/* Wetterlage der Hauptseite übernehmen, sonst nach Tageszeit */
+(function () {
+  var w = null;
+  try { w = localStorage.getItem("kd-wetter"); } catch (e) { /* ohne Speicher nach Tageszeit */ }
+  if (!/^(sonnig|wolkig|gedaempft|regen|schnee|nacht)$/.test(w || "")) {
+    var h = new Date().getHours();
+    w = matchMedia("(prefers-color-scheme: dark)").matches || h >= 20 || h < 7 ? "nacht" : h < 10 || h > 16 ? "wolkig" : "sonnig";
+  }
+  document.documentElement.setAttribute("data-wetter", w);
+})();
+</script>
+</head>
+<body>
+<div id="aura" aria-hidden="true"></div>
+<div id="schleier" aria-hidden="true"></div>
+<button class="sprachwahl" type="button"><span data-s="de">DE</span><span data-s="en">EN</span></button>
+
+<main class="unterseite">
+  <div class="kopf">
+    <a class="zurueck" href="index.html#labor">‹ <span lang="de">Zurück zur Projektseite</span><span lang="en">Back to the project page</span></a>
+    <p class="etikett"><span lang="de">Tischtest · Stand 7. November 2026</span><span lang="en">Bench test · as of 7 November 2026</span></p>
+    <h1><span lang="de">Messprotokoll</span><span lang="en">Measurement log</span></h1>
+    <p class="satz"><span lang="de">Mein Aufbau: Raspberry Pi 5 auf dem Akku-Board UPS HAT (E), 8-Zoll-Display, Audio-Platine reSpeaker Flex XVF3800 mit der linearen Mikrofonleiste (vier Mikrofone). Die Lautsprecher sind noch nicht angeschlossen, die Kabel kommen am 9. November. Das laufende Protokoll führe ich in Issue #18 des Repositorys.</span><span lang="en">My setup: Raspberry Pi 5 on the UPS HAT (E) battery board, 8-inch display, reSpeaker Flex XVF3800 audio board with the linear microphone bar (four microphones). The speakers are not connected yet; the cables arrive on 9 November. I keep the running log in issue #18 of the repository.</span></p>
+  </div>
+
+  <figure class="foto"><img src="bilder/tisch-04-aufbau-schraeg.jpg" data-alt-de="Offener Aufbau auf dem Schreibtisch: Pi auf dem Akku-Board, Display von hinten, Audio-Board, Kabel dazwischen" data-alt-en="Open bench setup: Pi on the battery board, display from behind, audio board, cables in between" alt=""><figcaption><span><i lang="de">Offener Aufbau: Pi auf dem Akku-Board, Display von hinten, vorn die Audio-Platine.</i><i lang="en">Open setup: Pi on the battery board, display from behind, audio board in front.</i></span></figcaption></figure>
+
+  <section>
+    <h2><span lang="de">Audio-Platine am Pi, ohne Lautsprecher</span><span lang="en">Audio board on the Pi, without speakers</span></h2>
+    <ul class="fakten">
+      <li><b><span lang="de">Anschluss</span><span lang="en">Connection</span></b><span><span lang="de">USB-A am Pi. An der USB-C-Buchse leuchtet zwar die LED, der Pi erkennt aber kein Gerät.</span><span lang="en">USB-A on the Pi. On the USB-C socket the LED lights up, but the Pi does not detect a device.</span></span></li>
+      <li><b><span lang="de">Erkennung</span><span lang="en">Detection</span></b><span><code>2886:0022 reSpeaker Flex XVF3800 L16K6Ch</code>, USB 2.0 High Speed, <span lang="de">angemeldeter Strombedarf 400 mA</span><span lang="en">declared current 400 mA</span></span></li>
+      <li><b><span lang="de">Audioformate</span><span lang="en">Audio formats</span></b><span><span lang="de">Aufnahme 6 Kanäle, 16 kHz, nur <code>S16_LE</code>. Wiedergabe 2 Kanäle, 16 kHz.</span><span lang="en">Capture 6 channels, 16 kHz, <code>S16_LE</code> only. Playback 2 channels, 16 kHz.</span></span></li>
+      <li><b><span lang="de">Versorgung</span><span lang="en">Power</span></b><span><code>throttled=0x0</code>, <code>EXT5V_V</code> 5,2 V, <span lang="de">ohne</span><span lang="en">without</span> <code>usb_max_current_enable=1</code></span></li>
+      <li><b><span lang="de">Ruhepegel (RMS)</span><span lang="en">Idle level (RMS)</span></b><span><span lang="de">Kanal 0: −52 dBFS, Kanäle 1 bis 5: −72 bis −76 dBFS</span><span lang="en">Channel 0: −52 dBFS, channels 1 to 5: −72 to −76 dBFS</span></span></li>
+    </ul>
+  </section>
+
+  <section class="messung" style="margin-top:0">
+    <div>
+      <h2><span lang="de">Klopftest an der Mikrofonleiste</span><span lang="en">Tap test on the microphone bar</span></h2>
+      <p class="satz" style="margin-block:.3rem .9rem"><span lang="de">Ich habe mit dem Fingernagel der Reihe nach an jedes der vier Mikrofone geklopft, 25 Sekunden Aufnahme. Dargestellt ist der Spitzenpegel je 100 ms, Skala je Spur −75 bis −8 dBFS. Der Punkt markiert die lauteste Stelle jedes Kanals.</span><span lang="en">I tapped each of the four microphones in turn with a fingernail, 25 seconds of recording. Shown is the peak level per 100 ms, scale per track −75 to −8 dBFS. The dot marks the loudest point of each channel.</span></p>
+      <canvas id="klopf" role="img" data-aria-de="Pegelverlauf der vier Mikrofonkanäle über 25 Sekunden mit vier deutlichen Spitzen" data-aria-en="Level of the four microphone channels over 25 seconds with four distinct peaks"></canvas>
+    </div>
+    <div>
+      <h3 style="margin-bottom:.8rem"><span lang="de">Spitzenwert je Klopfer, dBFS</span><span lang="en">Peak per tap, dBFS</span></h3>
+      <div class="tabelle"><table>
+        <thead><tr><th></th><th>K2</th><th>K3</th><th>K4</th><th>K5</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>−22</td><td>−21</td><td>−18</td><td><b>−12</b></td></tr>
+          <tr><td>2</td><td>−18</td><td>−21</td><td><b>−15</b></td><td>−18</td></tr>
+          <tr><td>3</td><td>−19</td><td><b>−11</b></td><td>−21</td><td>−18</td></tr>
+          <tr><td>4</td><td><b>−14</b></td><td>−20</td><td>−17</td><td>−23</td></tr>
+        </tbody>
+      </table></div>
+      <p class="gedacht" style="margin-top:.8rem"><span lang="de">Jedes Mikrofon ist auf einem eigenen Kanal am lautesten, alle vier funktionieren also, trotz Knick im Flachbandkabel. Welcher Kanal zu welchem Aufdruck auf der Leiste gehört, weiß ich noch nicht. Kanal 0 und 1 reagieren ebenfalls; ihre Bedeutung ist in den Herstellerunterlagen nicht beschrieben.</span><span lang="en">Each microphone is loudest on its own channel, so all four work despite the kink in the ribbon cable. I do not yet know which channel matches which label on the bar. Channels 0 and 1 respond as well; their purpose is not described in the manufacturer's documentation.</span></p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span lang="de">Befunde</span><span lang="en">Findings</span></h2>
+    <div class="pannen" style="margin-top:0">
+      <div><h3><span lang="de">USB-Anschluss</span><span lang="en">USB connection</span></h3><p><span lang="de">Der Pi hat die Audio-Platine erst erkannt, als ich sie von der USB-C-Buchse an einen USB-A-Port umgesteckt habe. Die USB-C-Buchse liefert hier nur Strom.</span><span lang="en">The Pi only detected the audio board after I moved it from the USB-C socket to a USB-A port. The USB-C socket only supplies power here.</span></p></div>
+      <div><h3><span lang="de">Lautsprecherstecker</span><span lang="en">Speaker connector</span></h3><p><span lang="de">Die Buchse SPEAKER hat 2,0 mm Stiftabstand, vermutlich JST PH; der Typ steht nicht in den Unterlagen. Dupont-Stecker passen nicht nebeneinander hinein. Passende Kabel habe ich bestellt.</span><span lang="en">The SPEAKER socket has a 2.0 mm pitch, probably JST PH; the type is not documented. Dupont connectors do not fit side by side. I have ordered matching cables.</span></p></div>
+      <div><h3><span lang="de">12-V-Eingang</span><span lang="en">12 V input</span></h3><p><span lang="de">Die Platine hat eine Schraubklemme für 12 V, die ich nicht eingeplant hatte. Der Verstärker (TPA3139D2) ist für 3,5 bis 14,4 V spezifiziert; ob er an USB allein laut genug ist, steht nicht in den Unterlagen. Das messe ich ab 9. November.</span><span lang="en">The board has a 12 V screw terminal I had not planned for. The amplifier (TPA3139D2) is specified for 3.5 to 14.4 V; whether it is loud enough on USB power alone is not documented. I will measure that from 9 November.</span></p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span lang="de">Was ich als Nächstes messe</span><span lang="en">What I measure next</span></h2>
+    <ul class="fakten">
+      <li><b><span lang="de">Lautsprecher</span><span lang="en">Speakers</span></b><span><span lang="de">Betrieb an USB, mit USB-Messgerät; danach Vergleich an 12 V</span><span lang="en">Operation on USB with a USB power meter; then comparison on 12 V</span></span></li>
+      <li><b><span lang="de">Echounterdrückung</span><span lang="en">Echo cancellation</span></b><span><span lang="de">Aufnahme bei voller Lautstärke</span><span lang="en">Recording at full volume</span></span></li>
+      <li><b><span lang="de">Gesamtstrom und Akku</span><span lang="en">Total current and battery</span></b><span><span lang="de">Unter Volllast mit Gestenerkennung, grobe Laufzeit</span><span lang="en">Under full load with gesture recognition, rough runtime</span></span></li>
+      <li><b><span lang="de">Kamera und Sprachweg</span><span lang="en">Camera and voice path</span></b><span><span lang="de">Küchenlicht, Anbindung an Elektra</span><span lang="en">Kitchen lighting, connection to Elektra</span></span></li>
+      <li><b><span lang="de">Maße</span><span lang="en">Dimensions</span></b><span><span lang="de">Alle Teile vermessen, Werte ins Gehäuse-Skript</span><span lang="en">Measure all parts, values into the enclosure script</span></span></li>
+    </ul>
+  </section>
+
+  <p class="gedacht"><a class="zurueck" href="index.html#labor">‹ <span lang="de">Zurück zur Projektseite</span><span lang="en">Back to the project page</span></a> · <a class="zurueck" href="https://github.com/dragondiver/kuechen-display/issues/18">Issue #18 ›</a></p>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var root = document.documentElement, $ = function (s) { return document.querySelector(s); };
+  var clamp = function (v, a, b) { return Math.min(b, Math.max(a, v)); };
+  var ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  $("#aura").style.backgroundImage = "url(bilder/wetter-" + root.getAttribute("data-wetter") + ".jpg)";
+  /* Echte Klopf-Messung vom 7.11.2026: Spitzenpegel in dBFS je 100 ms, nur Hüllkurve */
+  var KLOPF = {"2":[-65.7,-68.7,-68.0,-66.8,-65.7,-64.7,-65.7,-66.2,-68.7,-68.7,-70.3,-68.7,-69.5,-69.5,-68.0,-68.0,-66.8,-66.2,-66.8,-65.7,-66.8,-62.7,-65.7,-68.7,-70.3,-65.2,-65.7,-68.0,-70.3,-69.5,-56.2,-56.2,-60.8,-65.2,-69.5,-69.5,-69.5,-68.7,-68.7,-68.7,-68.7,-26.6,-55.8,-63.5,-30.9,-56.9,-63.9,-22.2,-37.1,-56.9,-60.2,-54.7,-54.1,-54.1,-56.2,-56.7,-58.7,-61.1,-63.1,-63.9,-65.2,-64.3,-65.2,-65.2,-65.7,-64.3,-65.2,-66.8,-66.8,-65.7,-65.2,-66.8,-68.0,-68.7,-67.4,-69.5,-67.4,-67.4,-67.4,-68.0,-68.7,-69.5,-70.3,-68.0,-68.0,-69.5,-66.2,-68.7,-68.7,-69.5,-68.7,-69.5,-69.5,-68.7,-24.8,-59.4,-60.8,-19.7,-33.8,-58.9,-18.4,-30.5,-53.8,-59.7,-61.1,-61.4,-63.5,-64.3,-64.3,-67.4,-66.8,-66.2,-65.2,-66.8,-65.7,-65.2,-67.4,-69.5,-70.3,-66.8,-68.7,-66.2,-65.2,-67.4,-68.0,-70.3,-68.0,-68.7,-70.3,-70.3,-68.7,-68.7,-68.0,-66.8,-66.8,-68.0,-68.0,-68.0,-71.2,-70.3,-71.2,-70.3,-71.2,-68.0,-17.3,-32.7,-59.9,-63.1,-16.3,-49.7,-59.9,-19.4,-35.9,-62.4,-59.9,-62.4,-64.7,-65.7,-59.9,-64.3,-58.1,-68.0,-66.8,-68.7,-64.7,-64.3,-63.5,-65.7,-62.4,-58.7,-62.0,-62.0,-63.1,-66.2,-60.5,-56.9,-62.0,-64.7,-62.7,-63.9,-63.5,-63.5,-64.3,-68.0,-66.8,-68.0,-69.5,-68.7,-69.5,-70.3,-15.5,-39.4,-62.0,-23.9,-42.2,-61.4,-14.2,-34.1,-60.5,-64.3,-64.7,-63.9,-66.2,-67.4,-66.8,-64.7,-66.8,-69.5,-65.2,-68.0,-65.2,-64.7,-65.7,-68.7,-70.3,-67.4,-67.4,-68.7,-69.5,-68.7,-68.0,-68.0,-67.4,-59.9,-61.1,-63.9,-64.7,-59.9,-63.5,-63.5,-58.3,-57.2,-61.7,-66.2,-67.4,-69.5,-66.8,-68.7,-64.3,-57.6,-57.6,-60.8,-61.1,-60.2,-55.3,-56.9,-57.1,-58.1,-60.5],"3":[-64.7,-68.0,-68.0,-65.7,-66.2,-64.7,-66.2,-66.2,-68.7,-68.7,-70.3,-68.0,-68.7,-68.7,-66.8,-68.0,-64.7,-66.8,-66.2,-66.2,-67.4,-62.4,-65.2,-68.0,-69.5,-65.2,-65.7,-68.7,-68.0,-68.7,-56.3,-56.3,-59.9,-64.7,-68.7,-68.7,-70.3,-68.7,-67.4,-69.5,-67.4,-29.0,-56.3,-61.4,-31.8,-56.5,-61.1,-21.2,-39.1,-56.2,-56.7,-53.0,-53.3,-54.1,-54.9,-54.9,-57.6,-59.7,-60.5,-60.5,-62.4,-63.1,-62.7,-62.4,-64.3,-64.7,-63.9,-63.9,-65.2,-65.2,-64.7,-67.4,-66.2,-66.2,-65.7,-66.8,-66.2,-65.7,-65.7,-68.7,-67.4,-66.8,-68.0,-66.8,-68.7,-68.0,-65.7,-68.0,-66.8,-68.7,-68.7,-68.0,-69.5,-68.0,-28.2,-57.4,-57.6,-22.1,-33.7,-57.8,-21.1,-29.6,-54.1,-57.6,-57.6,-58.1,-62.7,-61.4,-60.5,-62.7,-66.2,-62.4,-62.0,-65.2,-64.7,-63.9,-64.3,-67.4,-68.7,-64.3,-66.2,-66.2,-64.3,-65.7,-65.2,-68.7,-67.4,-67.4,-66.8,-69.5,-68.0,-68.0,-68.7,-68.0,-66.8,-67.4,-66.8,-66.2,-70.3,-68.7,-70.3,-69.5,-70.3,-68.0,-14.5,-30.9,-57.4,-60.5,-10.8,-51.9,-57.6,-15.6,-37.0,-60.5,-58.5,-60.5,-62.7,-65.2,-58.7,-61.7,-57.6,-68.7,-65.2,-65.7,-65.2,-62.4,-62.0,-64.3,-61.1,-58.5,-61.7,-61.4,-62.0,-65.2,-60.2,-56.5,-62.7,-65.2,-63.1,-63.9,-63.5,-63.9,-64.3,-66.8,-66.8,-68.7,-69.5,-68.7,-69.5,-70.3,-20.5,-43.7,-61.4,-31.2,-45.1,-59.7,-22.0,-36.6,-58.1,-62.7,-61.7,-63.9,-64.3,-65.7,-64.7,-63.9,-63.9,-68.0,-65.2,-65.2,-64.3,-65.7,-65.7,-68.0,-69.5,-66.8,-66.2,-68.7,-68.7,-68.7,-68.0,-68.7,-66.2,-59.9,-60.5,-64.7,-63.9,-60.2,-63.5,-63.9,-58.1,-56.5,-61.7,-64.7,-68.0,-68.0,-65.7,-68.0,-64.7,-57.6,-57.4,-60.2,-60.8,-57.8,-55.5,-57.1,-55.8,-58.3,-61.1],"4":[-64.7,-68.7,-67.4,-66.8,-65.2,-64.3,-65.7,-67.4,-67.4,-69.5,-69.5,-68.0,-68.7,-68.7,-67.4,-68.7,-66.2,-65.2,-65.2,-65.2,-67.4,-62.4,-66.2,-67.4,-70.3,-66.2,-65.7,-68.0,-69.5,-70.3,-56.5,-57.2,-61.1,-64.7,-67.4,-68.7,-70.3,-68.0,-67.4,-68.7,-67.4,-28.2,-57.8,-60.5,-31.0,-56.9,-59.2,-17.5,-40.3,-55.8,-53.4,-50.9,-51.8,-53.2,-53.0,-52.9,-56.5,-57.6,-57.2,-58.1,-61.4,-61.4,-59.7,-59.7,-62.4,-61.7,-61.1,-61.7,-63.9,-62.7,-62.7,-64.3,-64.3,-63.5,-63.9,-65.7,-64.3,-64.7,-63.9,-66.2,-66.2,-65.2,-66.8,-65.7,-66.8,-66.2,-65.2,-68.0,-66.2,-67.4,-67.4,-66.8,-68.0,-68.0,-23.2,-56.5,-55.2,-17.9,-30.3,-56.3,-15.3,-26.2,-57.2,-57.6,-55.8,-56.3,-63.9,-59.2,-58.1,-59.9,-65.7,-59.9,-59.9,-62.0,-62.4,-60.8,-62.0,-66.8,-65.7,-62.0,-63.9,-66.2,-63.5,-63.9,-64.3,-68.7,-65.7,-66.2,-67.4,-68.7,-66.8,-66.8,-68.7,-66.8,-65.7,-66.8,-68.0,-66.8,-70.3,-68.7,-71.2,-68.7,-68.7,-69.5,-21.8,-37.5,-55.5,-58.1,-20.7,-50.1,-61.7,-23.7,-39.9,-60.5,-58.5,-59.4,-62.0,-62.7,-58.1,-60.2,-58.1,-65.2,-63.1,-64.3,-65.7,-61.1,-61.4,-63.9,-61.1,-58.9,-61.1,-62.0,-62.4,-63.5,-60.2,-56.3,-63.5,-65.2,-63.5,-64.7,-62.4,-63.1,-64.7,-66.2,-66.2,-67.4,-68.0,-69.5,-69.5,-68.7,-17.5,-42.3,-59.7,-29.4,-44.2,-59.4,-18.3,-33.9,-56.2,-61.4,-59.7,-60.8,-62.0,-63.9,-62.0,-62.0,-63.5,-65.7,-63.1,-63.5,-64.7,-64.3,-63.1,-66.2,-68.7,-64.7,-65.2,-68.7,-69.5,-68.0,-66.8,-68.0,-66.2,-59.9,-59.4,-63.9,-63.5,-59.2,-64.3,-63.9,-58.9,-57.4,-62.0,-66.2,-68.0,-68.7,-65.7,-66.8,-64.7,-56.5,-57.8,-59.2,-61.1,-59.4,-55.8,-55.8,-56.9,-57.6,-61.4],"5":[-64.3,-66.8,-66.2,-68.0,-64.7,-64.7,-66.8,-66.2,-68.7,-69.5,-70.3,-67.4,-68.7,-69.5,-69.5,-66.2,-66.8,-66.8,-66.8,-65.2,-68.0,-62.4,-65.7,-67.4,-68.7,-66.8,-64.3,-68.0,-69.5,-69.5,-57.1,-58.1,-61.7,-64.7,-68.7,-69.5,-71.2,-68.0,-69.5,-68.7,-67.4,-18.1,-54.9,-65.7,-21.5,-58.3,-65.2,-12.3,-37.9,-60.2,-61.4,-55.5,-54.9,-55.7,-56.9,-58.1,-61.4,-61.7,-65.7,-65.7,-66.2,-65.2,-66.8,-66.8,-66.8,-66.2,-67.4,-68.7,-68.0,-67.4,-67.4,-69.5,-68.0,-68.7,-68.0,-69.5,-68.7,-68.7,-68.0,-69.5,-69.5,-68.7,-70.3,-67.4,-69.5,-69.5,-66.8,-70.3,-68.7,-69.5,-69.5,-68.0,-69.5,-69.5,-25.0,-57.6,-63.5,-19.2,-34.7,-63.9,-17.8,-22.0,-59.2,-63.5,-63.9,-67.4,-64.7,-68.0,-67.4,-69.5,-65.7,-66.8,-66.2,-68.0,-65.2,-68.0,-68.0,-70.3,-70.3,-66.8,-67.4,-65.7,-66.8,-67.4,-67.4,-68.7,-68.0,-68.7,-69.5,-69.5,-71.2,-69.5,-70.3,-70.3,-67.4,-66.8,-68.7,-68.0,-70.3,-69.5,-71.2,-70.3,-71.2,-68.7,-19.4,-34.3,-62.0,-65.2,-18.3,-46.5,-66.8,-21.3,-35.9,-66.8,-64.7,-68.7,-69.5,-69.5,-61.1,-64.3,-58.9,-68.0,-67.4,-66.8,-65.2,-63.1,-64.3,-64.7,-61.7,-59.4,-61.7,-62.4,-64.3,-64.3,-60.8,-56.7,-64.3,-64.7,-63.9,-64.7,-64.3,-64.3,-64.7,-67.4,-67.4,-68.7,-68.7,-70.3,-69.5,-69.5,-23.2,-42.8,-63.1,-28.3,-43.2,-62.4,-22.8,-36.8,-62.7,-66.8,-66.8,-67.4,-67.4,-68.0,-66.8,-66.8,-68.0,-68.0,-66.8,-66.8,-64.7,-66.2,-67.4,-67.4,-68.7,-66.8,-66.2,-68.7,-68.7,-67.4,-69.5,-67.4,-66.2,-59.4,-58.9,-64.7,-62.0,-58.3,-63.1,-63.5,-59.4,-58.3,-61.4,-66.2,-68.0,-68.7,-66.2,-67.4,-63.5,-57.2,-58.5,-59.9,-60.2,-60.8,-55.3,-56.7,-55.8,-59.4,-62.4]};
+  var cv = $("#klopf"), x = cv.getContext("2d"), reihen = ["5", "4", "3", "2"], fort = 1, farbe = function (n) { return getComputedStyle(root).getPropertyValue(n).trim(); };
+  function mal() {
+    var de = window.kdSprache.get() === "de";
+    var r = cv.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+    if (!r.width) return;
+    cv.width = r.width * dpr; cv.height = r.height * dpr; x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, r.width, r.height);
+    var w = r.width, h = r.height, links_ = 66, unten = 24, oben = 4, spur = (h - unten - oben) / 4, dB0 = -75, dB1 = -8;
+    var tinte = farbe("--tinte"), leise = farbe("--leise"), linie = farbe("--linie"), akz = farbe("--akzent");
+    x.font = '400 10px "Martian Mono", ui-monospace, monospace'; x.textBaseline = "alphabetic";
+    x.strokeStyle = linie; x.fillStyle = leise; x.textAlign = "center";
+    for (var s = 0; s <= 25; s += 5) { var px = links_ + (w - links_) * s / 25; x.beginPath(); x.moveTo(px, oben); x.lineTo(px, h - unten); x.stroke(); x.fillText(s + " s", clamp(px, links_ + 8, w - 12), h - 7); }
+    reihen.forEach(function (k, j) {
+      var y0 = oben + spur * j, y1 = y0 + spur - 3, d = KLOPF[k] || [];
+      x.textAlign = "left"; x.fillStyle = leise; x.fillText((de ? "Kanal " : "Channel ") + k, 0, y0 + spur * .55);
+      x.beginPath(); x.moveTo(links_, y1);
+      var bis = Math.floor(d.length * fort), spitze = 0;
+      for (var i = 0; i < bis; i++) { var yy = y1 - (y1 - y0) * clamp((d[i] - dB0) / (dB1 - dB0), 0, 1); x.lineTo(links_ + (w - links_) * i / (d.length - 1), yy); if (d[i] > d[spitze]) spitze = i; }
+      if (bis) { x.lineTo(links_ + (w - links_) * (bis - 1) / (d.length - 1), y1); x.closePath(); x.fillStyle = tinte; x.globalAlpha = .82; x.fill(); x.globalAlpha = 1; }
+      x.strokeStyle = linie; x.beginPath(); x.moveTo(links_, y1 + .5); x.lineTo(w, y1 + .5); x.stroke();
+      if (bis > spitze) {
+        x.fillStyle = akz; x.globalAlpha = .12; x.fillRect(links_ + (w - links_) * (spitze - 6) / (d.length - 1), y0, (w - links_) * 14 / (d.length - 1), y1 - y0); x.globalAlpha = 1;
+        var sx = links_ + (w - links_) * spitze / (d.length - 1), sy = y1 - (y1 - y0) * clamp((d[spitze] - dB0) / (dB1 - dB0), 0, 1);
+        x.fillStyle = akz; x.beginPath(); x.arc(sx, sy, 3.5, 0, 7); x.fill();
+        var kt = (de ? j + 1 + ". Klopfer · " : "Tap " + (j + 1) + " · ") + d[spitze].toFixed(0) + " dB", kr = sx + 7 + x.measureText(kt).width > w;
+        x.textAlign = kr ? "right" : "left"; x.fillText(kt, sx + (kr ? -7 : 7), Math.max(sy + 3, y0 + 10));
+      }
+    });
+  }
+  mal(); addEventListener("resize", mal); window.kdSprache.bei(mal);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(mal);
+  if (!ruhig && "IntersectionObserver" in window) {
+    var gesehen = false; fort = .001; mal();
+    new IntersectionObserver(function (es) {
+      if (es[0].isIntersecting && !gesehen) {
+        gesehen = true; var a = performance.now();
+        (function s(now) { fort = clamp((now - a) / 1700, 0.001, 1); mal(); if (fort < 1) requestAnimationFrame(s); })(a); setTimeout(function () { if (fort < 1) { fort = 1; mal(); } }, 2200);
+      }
+    }, { threshold: .45 }).observe(cv);
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,5 +1,7 @@
 # kuechen-display
 
+**Projektseite / project page:** <https://dragondiver.github.io/kuechen-display/projekt/>, mit 3D-Modell, Entwürfen, Elektra und Kosten, auf Deutsch und Englisch.
+
 Das Küchen-Display: ein 8-Zoll-Touch (Waveshare 8inch DSI LCD (C)) mit Raspberry Pi 5,
 reSpeaker XVF3800 Flex und Kamera in einem Gehäuse im Braun-Stil (nach dem RT 20).
 Es steht auf der Halbinsel in der offenen Küche, zeigt im Ruhebildschirm Termine und
@@ -21,7 +23,7 @@ Die Entwürfe als Website (GitHub Pages, Ordner `docs/`): <https://dragondiver.g
 | `docs/entwuerfe/` | Entwurfsseiten: Galerie, Entwurfsgeschichte, Hardware-Auswahl, Ruhebildschirm |
 | `oberflaeche/` | *kommt:* Browser-App für den Chromium-Kiosk (1280 × 800), #10, #15 |
 | `geraet/` | *kommt:* Einrichtung des Pi 5 (Kiosk, Dienste, Deploy) |
-| `werkzeuge/` | Hilfsskripte, z. B. `figur_bilder.py`: Elektras Figur in vier Zuständen per OpenAI-Bild-API aus einer Vorlage erzeugen (#15); `wetter_bilder.py`: Hintergrundbilder für sechs Wetterlagen mit dem Fernsehturm in der Kartenlücke (#15). Anleitung: [docs/bilder-erzeugen.md](docs/bilder-erzeugen.md) |
+| `werkzeuge/` | Hilfsskripte, z. B. `figur_bilder.py`: Elektras Figur in vier Zuständen per OpenAI-Bild-API aus einer Vorlage erzeugen (#15); `wetter_bilder.py`: Hintergrundbilder für sechs Wetterlagen mit dem Fernsehturm in der Kartenlücke (#15). Anleitung: [docs/bilder-erzeugen.md](docs/bilder-erzeugen.md); `stimme_proben.py`: Sprachproben mit Elektras Stimme Marin für die Projektseite, Anleitung: [docs/stimme-erzeugen.md](docs/stimme-erzeugen.md); `modell_exportieren.py`: 3D-Modell als `docs/projekt/modell.js` ([docs/projektseite.md](docs/projektseite.md)) |
 
 Gehäuse rendern (Blender im Hintergrund, Bilder landen in `gehaeuse/renders/`, nicht im Git):
 

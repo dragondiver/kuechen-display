@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="de" data-titel-de="Küchen-Display" data-titel-en="Kitchen Display">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Küchen-Display</title>
+<meta name="description" content="Küchen-Display: selbst entworfenes Küchengerät mit Sprachassistent, 3D-Modell, Entwürfen und Tischtest. Kitchen Display: a self-designed kitchen device with voice assistant, 3D model, design history and bench test.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:ital,wght@0,400..800;1,400..600&family=Martian+Mono:wdth,wght@75..100,300..600&display=swap">
+<link rel="stylesheet" href="stil.css">
+<script src="sprache.js"></script>
+</head>
+<body>
+<div id="aura" aria-hidden="true"></div>
+<div id="schleier" aria-hidden="true"></div>
+
+<button class="sprachwahl" type="button"><span data-s="de">DE</span><span data-s="en">EN</span></button>
+
+<nav class="skala" data-aria-de="Abschnitte der Seite" data-aria-en="Page sections">
+  <div class="feinstriche" aria-hidden="true"></div>
+  <a href="#start"><span>Start</span></a>
+  <a href="#bildschirm"><span><i lang="de">Bildschirm</i><i lang="en">Screen</i></span></a>
+  <a href="#innen"><span><i lang="de">Bauteile</i><i lang="en">Components</i></span></a>
+  <a href="#entwuerfe"><span><i lang="de">Entwürfe</i><i lang="en">Designs</i></span></a>
+  <a href="#ki"><span>Elektra</span></a>
+  <a href="#labor"><span><i lang="de">Tischtest</i><i lang="en">Bench test</i></span></a>
+  <a href="#arbeitsweise"><span><i lang="de">Arbeitsweise</i><i lang="en">Method</i></span></a>
+  <div id="zeiger" aria-hidden="true"></div>
+</nav>
+
+<main>
+<div class="lauf">
+  <div class="text">
+    <section class="block auftakt" id="start" data-az="-34" data-el="17" data-dist="0.74" data-e="0">
+      <p class="etikett"><span lang="de">Bauprojekt · Stand 7. November 2026</span><span lang="en">Build log · as of 7 November 2026</span></p>
+      <h1><span lang="de">Küchen-Display</span><span lang="en">Kitchen Display</span></h1>
+      <p class="satz"><span lang="de">Ich baue einen Bildschirm für unsere Küche: Uhr, Wetter, Termine und ein Sprachassistent, bedient per Touch, Stimme und Handgeste. Das Gehäuse ist eine Verbeugung vor dem Braun RT 20, einem Radio, das ich sehr bewundere. Ich beschreibe es als Python-Skript für Blender und drucke es in Teilen. <strong>Das Modell <span class="nur-breit">rechts</span><span class="nur-schmal">oben</span> ist direkt aus diesem Skript exportiert und lässt sich durch Ziehen drehen.</strong></span><span lang="en">I am building a display for our kitchen: clock, weather, calendar and a voice assistant, operated by touch, voice and hand gestures. The enclosure is a tribute to the Braun RT 20, a radio I greatly admire. I describe it as a Python script for Blender and print it in parts. <strong>The model <span class="nur-breit">on the right</span><span class="nur-schmal">above</span> is exported directly from that script; drag to rotate it.</strong></span></p>
+      <div class="massreihe" data-aria-de="Maße" data-aria-en="Dimensions">
+        <span><b>235 × 105 × 143</b> mm</span><span><b>75°</b> <i lang="de">Neigung</i><i lang="en">tilt</i></span><span><b>8″</b> · 1280 × 800</span><span><b>4</b> <i lang="de">Mikrofone</i><i lang="en">microphones</i></span>
+      </div>
+      <p class="stand"><i class="lampe" aria-hidden="true"></i> <span lang="de">Stand: Elektronik im Tischtest, Gehäuse noch nicht gedruckt.</span><span lang="en">Status: electronics on the bench, enclosure not yet printed.</span></p>
+    </section>
+
+    <section class="block" id="bildschirm" data-az="0" data-el="15" data-dist="0.66" data-e="0" data-tx="0">
+      <p class="etikett"><span lang="de">Ruhebildschirm</span><span lang="en">Idle screen</span></p>
+      <h2><span lang="de">Wetter als Bild, Termine auf Glaskarten.</span><span lang="en">Weather as an image, appointments on glass cards.</span></h2>
+      <p class="satz"><span lang="de">Im Ruhezustand zeigt das Gerät die Uhrzeit, unsere nächsten Termine und das Wetter. Für jede der sechs Wetterlagen habe ich ein gezeichnetes Hintergrundbild erzeugen lassen; die ganze Serie hat bei einer Bild-API 16 Cent gekostet. Auf dieser Seite übernimmt die Farbgebung die gewählte Wetterlage.</span><span lang="en">When idle, the device shows the time, our upcoming appointments and the weather. For each of the six weather conditions I had an illustrated background generated; the whole series cost 16 cents with an image API. On this page, the colour scheme follows the selected weather.</span></p>
+      <div class="tasten" id="wetter-tasten" role="group" data-aria-de="Wetterlage wählen" data-aria-en="Choose weather"></div>
+    </section>
+
+    <section class="block kurz" data-az="5" data-el="15" data-dist="0.62" data-e="0" data-tx="0">
+      <p class="etikett"><span lang="de">Erinnerungen</span><span lang="en">Reminders</span></p>
+      <h2><span lang="de">Bewegung nur, wenn ein Termin ansteht.</span><span lang="en">Motion only when something is due.</span></h2>
+      <p class="satz"><span lang="de">In der Küche möchte ich keine dauernde Bewegung auf dem Bildschirm. Zwanzig Minuten vor einem Termin leuchtet der Rand dreimal langsam auf, dazu kommen ein Ton und ein gesprochener Satz. Zwischen den Seiten blättere ich per Wischgeste. Die Termine in dieser Vorschau sind Beispiele; die Oberfläche des Geräts ist deutsch.</span><span lang="en">I do not want constant motion on a screen in the kitchen. Twenty minutes before an appointment the border glows slowly three times, accompanied by a tone and a spoken sentence. I switch pages with a swipe gesture. The appointments in this preview are examples; the device interface is in German.</span></p>
+      <div class="tasten">
+        <button class="taste haupt" id="erinnern" type="button"><span lang="de">Erinnerung auslösen (mit Ton)</span><span lang="en">Trigger reminder (with sound)</span></button>
+        <button class="taste" data-seite="-1" type="button">‹ Apps</button>
+        <button class="taste" data-seite="0" type="button"><span lang="de">Heute</span><span lang="en">Today</span></button>
+        <button class="taste" data-seite="1" type="button"><span lang="de">Morgen ›</span><span lang="en">Tomorrow ›</span></button>
+      </div>
+    </section>
+
+    <section class="block kurz" data-az="-7" data-el="15" data-dist="0.66" data-e="0" data-tx="0">
+      <p class="etikett"><span lang="de">Sprache und Gesten</span><span lang="en">Voice and gestures</span></p>
+      <h2><span lang="de">Ein Sprachassistent für zwei Geräte.</span><span lang="en">One voice assistant, two devices.</span></h2>
+      <p class="satz"><span lang="de">Bei uns im Haus läuft bereits ein Sprachgerät mit meinem Assistenten Elektra. Das Display wird ihr zweites Gerät: dieselbe Elektra, kein zweiter Assistent. Die Figur im Bildschirm zeigt den Zustand: zuhören, nachdenken, sprechen. Die Kamera wertet Handgesten lokal auf dem Gerät aus, flache Hand für Stopp, Wischen zum Blättern. Ein erster Test auf dem echten Display lief flüssig.</span><span lang="en">A voice device with my assistant Elektra already runs in our house. The display becomes her second device: the same Elektra, not a second assistant. The character on screen shows her state: listening, thinking, speaking. The camera evaluates hand gestures locally on the device, an open palm for stop and a swipe to turn pages. A first test on the actual display ran smoothly.</span></p>
+      <div class="tasten">
+        <button class="taste" id="sprechen" type="button"><span lang="de">Elektra fragen</span><span lang="en">Ask Elektra</span></button>
+      </div>
+      <p class="gedacht" id="sprech-text" aria-live="polite"></p>
+    </section>
+
+    <section class="block" id="innen" data-az="-56" data-el="22" data-dist="1.42" data-e="1" data-labels="1">
+      <p class="etikett"><span lang="de">Bauteile</span><span lang="en">Components</span></p>
+      <h2><span lang="de">Zehn Baugruppen, überwiegend Standardteile.</span><span lang="en">Ten assemblies, mostly off-the-shelf parts.</span></h2>
+      <p class="satz"><span lang="de">Die Explosionsansicht zeigt, wie ich die Teile im Gehäuse anordnen will; die genaue Lage vermesse ich nach dem Tischtest. Eine Zeile der Liste hebt das Teil im Modell hervor.</span><span lang="en">The exploded view shows how I intend to arrange the parts inside the enclosure; I will measure exact positions after the bench test. Each row in the list highlights its part in the model.</span></p>
+      <ul class="teile" id="teile"></ul>
+      <p class="gedacht"><span lang="de">Preise: was ich tatsächlich bezahlt habe, ohne Versand. „ca.“ heißt: noch nicht gekauft.</span><span lang="en">Prices: what I actually paid, excluding shipping. “approx.” means not yet bought.</span></p>
+    </section>
+
+    <section class="block kurz" data-az="52" data-el="16" data-dist="1.4" data-e="1" data-labels="0">
+      <p class="etikett"><span lang="de">Aufbau</span><span lang="en">Construction</span></p>
+      <h2><span lang="de">Holzmantel außen, Lautsprecher seitlich.</span><span lang="en">Wood shell outside, speakers at the sides.</span></h2>
+      <p class="satz"><span lang="de">Die Lautsprecher sitzen in eigenen Kammern in den Seitenwänden, hinter Langlöchern. So bleibt die Front frei, und der Schall erreicht die Mikrofone auf der Oberseite nicht direkt. Kühlluft tritt unten ein und oben aus. Den Mantel drucke ich aus Holzfilament, nach dem Vorbild des Holzgehäuses beim RT 20; er lässt sich schleifen und ölen. Mein Drucker verarbeitet nur eine Farbe pro Teil, deshalb besteht das Gehäuse aus mehreren Teilen.</span><span lang="en">The speakers sit in their own chambers in the side walls, behind slots. This keeps the front clear and stops the sound from reaching the microphones on top directly. Cooling air enters at the bottom and leaves at the top. I print the shell in wood filament, after the wooden cabinet of the RT 20; it can be sanded and oiled. My printer handles one colour per part, so the enclosure is made of several parts.</span></p>
+    </section>
+
+    <section class="block kurz" data-az="-22" data-el="14" data-dist="0.74" data-e="0">
+      <p class="etikett"><span lang="de">Zusammengebaut</span><span lang="en">Assembled</span></p>
+      <h2><span lang="de">Keine sichtbaren Schrauben an Front, Seiten und Oberseite.</span><span lang="en">No visible screws on the front, sides or top.</span></h2>
+      <p class="satz"><span lang="de">Ich verschraube die Hülle von innen; die Elektronik sitzt auf einem Träger, der von hinten eingeschoben wird. Außen sichtbar sind zwei graue Knöpfe mit Mulde, eine orange Leuchte und eine Leuchtleiste nach dem Vorbild der Senderskala des RT 20. Auf dieser Seite dient sie <span class="nur-breit">am rechten Rand</span><span class="nur-schmal">am unteren Rand</span> als Navigation.</span><span lang="en">I screw the shell together from the inside; the electronics sit on a carrier that slides in from the back. Visible from outside are two grey buttons with a recess, an orange indicator and a light bar modelled on the tuning scale of the RT 20. On this page it serves as navigation <span class="nur-breit">along the right edge</span><span class="nur-schmal">along the bottom edge</span>.</span></p>
+    </section>
+  </div>
+
+  <div id="buehne">
+    <img id="bild-ersatz" src="bilder/entwurf-fertig.jpg" data-alt-de="Renderbild des Küchen-Displays: weißer Rahmen um den Bildschirm, Mantel in Holzoptik, zwei graue Knöpfe rechts" data-alt-en="Render of the kitchen display: white bezel around the screen, wood-look shell, two grey buttons on the right" alt="">
+    <canvas id="gl" data-aria-de="Drehbares 3D-Modell des Geräts" data-aria-en="Rotatable 3D model of the device"></canvas>
+    <canvas id="fx" aria-hidden="true"></canvas>
+    <div id="marken" aria-hidden="true"></div>
+    <p class="etikett" id="griff-hinweis"><span lang="de">Ziehen zum Drehen</span><span lang="en">Drag to rotate</span></p>
+  </div>
+</div>
+
+<section id="entwuerfe" data-aria-de="Entwurfsgeschichte" data-aria-en="Design history">
+  <div class="tuner">
+    <div class="tuner-kopf">
+      <h2><span lang="de">Zwölf Entwürfe, 4. bis 16. Oktober.</span><span lang="en">Twelve designs, 4 to 16 October.</span></h2>
+      <p class="satz"><span lang="de">Mein Vorbild ist das Braun RT 20 von Dieter Rams aus dem Jahr 1961, ein Tischradio, das ich sehr bewundere: eine ruhige helle Front mit sanfter Abkantung, ein Gehäuse aus Holz, eine klare Skala und nichts Überflüssiges. Von ihm übernehme ich die Abkantung der Frontplatte, den Holzmantel und die Skala. Jeder Entwurf ist ein eigenes Blender-Skript, verworfene Varianten behalte ich. Der letzte Halt der Skala zeigt den heutigen Stand.</span><span lang="en">My model is the Braun RT 20 by Dieter Rams from 1961, a table radio I greatly admire: a calm, light front with a gentle chamfer, a wooden cabinet, a clear scale and nothing superfluous. From it I take the chamfer of the front panel, the wood shell and the scale. Each design is its own Blender script, and I keep the discarded variants. The last stop on the scale shows the current state.</span></p>
+    </div>
+    <div class="tuner-mitte">
+      <div class="dia" id="dia"><span class="stempel" id="e-stempel"></span></div>
+      <div>
+        <div class="buchstabe" id="e-buchstabe" aria-hidden="true">C</div>
+        <h3 id="e-titel"></h3>
+        <p class="etikett" id="e-datum" style="margin-block:.35rem .6rem"></p>
+        <p class="satz" id="e-text"></p>
+      </div>
+    </div>
+    <div class="band" id="band">
+      <div class="ziffern" id="ziffern"></div>
+      <div id="band-zeiger" aria-hidden="true"></div>
+    </div>
+  </div>
+</section>
+
+<section id="ki" class="breit">
+  <div class="ki-kopf">
+    <div>
+      <p class="etikett" style="margin-bottom:.8rem"><span lang="de">Elektra · der Sprachassistent</span><span lang="en">Elektra · the voice assistant</span></p>
+      <h2><span lang="de">Ein Gespräch, viele Werkzeuge.</span><span lang="en">One conversation, many tools.</span></h2>
+    </div>
+    <p class="satz"><span lang="de">Elektra ist mein Sprachassistent und läuft bereits auf einem Sprachgerät bei uns im Haus. Das Küchen-Display wird ihr zweites Gerät, mit gleicher Stimme, gleichen Werkzeugen und gleichen Nachrichten. Das Sprachmodell führt das Gespräch und wählt das passende Werkzeug; ausgeführt wird jeder Aufruf von Code aus meinen Repositories. In der Küche fehlt noch die Anbindung, sie ist Teil des Tischtests.</span><span lang="en">Elektra is my voice assistant and already runs on a voice device in our house. The kitchen display becomes her second device, with the same voice, tools and messages. The language model conducts the conversation and picks the right tool; every call is executed by code from my repositories. The kitchen connection is still missing and is part of the bench test.</span></p>
+  </div>
+
+  <ul class="faehig">
+    <li>
+      <p class="etikett"><span lang="de">Heimautomation</span><span lang="en">Home automation</span></p>
+      <q><span lang="de">Mach das Licht im Esszimmer an.</span><span lang="en">Turn on the dining room light.</span></q>
+      <p><span lang="de">Über Home Assistant listet und schaltet Elektra unsere Geräte, etwa Licht, Steckdosen, Rollläden und das Heizungsthermostat.</span><span lang="en">Via Home Assistant, Elektra lists and switches our devices, such as lights, sockets, shutters and the heating thermostat.</span></p>
+      <span class="marke-status an"><span lang="de">läuft auf Elektra</span><span lang="en">running on Elektra</span></span>
+    </li>
+    <li>
+      <p class="etikett"><span lang="de">Rezepte und Einkauf</span><span lang="en">Recipes and shopping</span></p>
+      <q><span lang="de">Was können wir heute mit Kürbis kochen?</span><span lang="en">What can we cook with pumpkin today?</span></q>
+      <p><span lang="de">Vorschläge aus unserer eigenen Rezeptverwaltung oder neu erzeugt; fehlende Zutaten landen direkt auf unserer gemeinsamen Einkaufsliste.</span><span lang="en">Suggestions from our own recipe manager or freshly generated; missing ingredients go straight onto our shared shopping list.</span></p>
+      <span class="marke-status an"><span lang="de">läuft auf Elektra</span><span lang="en">running on Elektra</span></span>
+    </li>
+    <li>
+      <p class="etikett"><span lang="de">Musik</span><span lang="en">Music</span></p>
+      <q><span lang="de">Spiel etwas Ruhiges.</span><span lang="en">Play something calm.</span></q>
+      <p><span lang="de">Wiedergabe über Spotify Connect auf unserem Radio, ohne Smartphone.</span><span lang="en">Playback via Spotify Connect on our radio, no phone needed.</span></p>
+      <span class="marke-status an"><span lang="de">läuft auf Elektra</span><span lang="en">running on Elektra</span></span>
+    </li>
+    <li>
+      <p class="etikett"><span lang="de">Allgemeine Fragen</span><span lang="en">General questions</span></p>
+      <q><span lang="de">Wie lange muss ein Ei weich kochen?</span><span lang="en">How long does a soft-boiled egg take?</span></q>
+      <p><span lang="de">Beantwortet das Sprachmodell direkt, auf ausdrücklichen Wunsch mit Websuche. Das Wetter kommt aus einem eigenen Werkzeug, nicht aus der Suche.</span><span lang="en">Answered directly by the language model, with a web search when explicitly asked. Weather comes from a dedicated tool, not from search.</span></p>
+      <span class="marke-status an"><span lang="de">läuft auf Elektra</span><span lang="en">running on Elektra</span></span>
+    </li>
+    <li>
+      <p class="etikett"><span lang="de">Aufgaben im Hintergrund</span><span lang="en">Background tasks</span></p>
+      <q><span lang="de">Finde bis heute Abend heraus, welcher Filter in unsere Dunstabzugshaube passt.</span><span lang="en">Find out by tonight which filter fits our cooker hood.</span></q>
+      <p><span lang="de">Längere Aufträge gehen an meinen Haus-Agenten. Claude arbeitet sie ab, das Ergebnis kommt als Nachricht aufs Gerät oder per Mail.</span><span lang="en">Longer jobs go to my house agent. Claude works through them and the result arrives as a message on the device or by email.</span></p>
+      <span class="marke-status an"><span lang="de">läuft auf Elektra</span><span lang="en">running on Elektra</span></span>
+    </li>
+    <li>
+      <p class="etikett"><span lang="de">Bildschirm per Stimme</span><span lang="en">Screen by voice</span></p>
+      <q><span lang="de">Zeig mir morgen.</span><span lang="en">Show me tomorrow.</span></q>
+      <p><span lang="de">Seiten wechseln, Apps öffnen, im Rezept weiterblättern, per Stimme oder per Wischgeste vor der Kamera.</span><span lang="en">Switch pages, open apps, step through a recipe, by voice or with a swipe in front of the camera.</span></p>
+      <span class="marke-status"><span lang="de">geplant für die Küche</span><span lang="en">planned for the kitchen</span></span>
+    </li>
+  </ul>
+
+  <div class="schichten">
+    <div>
+      <h3><span lang="de">Auf dem Gerät</span><span lang="en">On the device</span></h3>
+      <p><span lang="de">Mikrofone mit Echounterdrückung, Aktivierungswort, Anzeige. Die Kamera erkennt Gesten lokal, Bilder verlassen das Gerät nicht.</span><span lang="en">Microphones with echo cancellation, wake word, display. The camera recognises gestures locally; images never leave the device.</span></p>
+    </div>
+    <div>
+      <h3><span lang="de">Brücke im Haus</span><span lang="en">Bridge in the house</span></h3>
+      <p><span lang="de">Ein kleiner Server bei uns im Haus führt die Gespräche aller Geräte und kennt sie mit Namen, etwa „Küche“. So bleibt es ein Assistent statt zwei.</span><span lang="en">A small server in our house conducts the conversations of all devices and knows them by name, such as “kitchen”. That keeps it one assistant rather than two.</span></p>
+    </div>
+    <div>
+      <h3><span lang="de">Modelle und Dienste</span><span lang="en">Models and services</span></h3>
+      <p><span lang="de">GPT-Live von OpenAI für das Gespräch, Claude für Hintergrundaufgaben und Rezepte, dazu Home Assistant, Rezeptverwaltung und Spotify.</span><span lang="en">OpenAI's GPT-Live for conversation, Claude for background tasks and recipes, plus Home Assistant, the recipe manager and Spotify.</span></p>
+    </div>
+    <div>
+      <h3><span lang="de">Grundsatz</span><span lang="en">Principle</span></h3>
+      <p><span lang="de">Das Modell urteilt, der Code rechnet. Schalten, Speichern und Rechnen überlasse ich deterministischem, getestetem Code.</span><span lang="en">The model judges, the code computes. I leave switching, storing and calculating to deterministic, tested code.</span></p>
+    </div>
+  </div>
+</section>
+
+<section id="labor" class="breit">
+  <div class="labor-kopf">
+    <div>
+      <p class="etikett" style="margin-bottom:.8rem"><span lang="de">Tischtest · Stand 7.11.2026</span><span lang="en">Bench test · as of 7 Nov 2026</span></p>
+      <h2><span lang="de">Erst testen, dann drucken.</span><span lang="en">Test first, then print.</span></h2>
+    </div>
+    <p class="satz"><span lang="de">Die größten technischen Risiken sind für mich die Stromversorgung des Verstärkers über USB und die Echounterdrückung. Deshalb baue ich die Elektronik offen auf dem Tisch auf und messe, bevor ich das Gehäuse drucke.</span><span lang="en">For me the main technical risks are powering the amplifier over USB and echo cancellation. So I assemble the electronics openly on the bench and measure before I print the enclosure.</span></p>
+  </div>
+  <div class="schnur">
+    <figure class="foto f1"><img src="bilder/tisch-01-teile.jpg" data-alt-de="Ausgepackt: Mikrofonleiste, Hauptplatine, Stiftleisten und ein Flachbandkabel mit Knick" data-alt-en="Unpacked: microphone bar, main board, pin headers and a ribbon cable with a kink" alt="" loading="lazy"><figcaption><span><i lang="de">Audio-Platine, Mikrofonleiste und Flachbandkabel. Der Knick im Kabel ist unkritisch.</i><i lang="en">Audio board, microphone bar and ribbon cable. The kink in the cable is harmless.</i></span></figcaption></figure>
+    <figure class="foto f2"><img src="bilder/tisch-04-aufbau-schraeg.jpg" data-alt-de="Offener Aufbau auf dem Schreibtisch: Pi auf dem Akku-Board, Display von hinten, Audio-Board, Kabel dazwischen" data-alt-en="Open bench setup: Pi on the battery board, display from behind, audio board, cables in between" alt="" loading="lazy"><figcaption><span><i lang="de">Raspberry Pi 5 auf dem Akku-Board, Display von hinten, vorn die Audio-Platine.</i><i lang="en">Raspberry Pi 5 on the battery board, display from behind, audio board in front.</i></span></figcaption></figure>
+    <figure class="foto f3"><img src="bilder/tisch-06-mit-display-2.jpg" data-alt-de="Mikrofonleiste in einer Halterung, daneben das Display" data-alt-en="Microphone bar in a holder, the display next to it" alt="" loading="lazy"><figcaption><span><i lang="de">Mikrofonleiste in einer Halterung, rechts das Display.</i><i lang="en">Microphone bar in a holder, display on the right.</i></span></figcaption></figure>
+  </div>
+  <div class="status-zeile">
+    <div>
+      <h3 style="margin-bottom:.8rem"><span lang="de">Prüfpunkte</span><span lang="en">Checkpoints</span></h3>
+      <ul class="lampen" id="lampen"></ul>
+    </div>
+    <a class="weiter" href="messungen.html"><span lang="de">Messprotokoll: Messwerte, Klopftest an den Mikrofonen, Befunde</span><span lang="en">Measurement log: readings, microphone tap test, findings</span> ›</a>
+  </div>
+</section>
+
+<section id="arbeitsweise" class="breit">
+  <p class="etikett" style="margin-bottom:.8rem"><span lang="de">Arbeitsweise</span><span lang="en">Method</span></p>
+  <h2><span lang="de">Ich, eine KI und ein Repository.</span><span lang="en">Me, an AI and a repository.</span></h2>
+  <p class="vorsatz"><span lang="de">Ich entwickle das Projekt im Gespräch mit Claude Code. Ich entscheide über Gestaltung und Festlegungen; Claude schreibt die Skripte, liest Datenblätter und wertet Messungen aus. Alle Dateien liegen offen unter MIT-Lizenz.</span><span lang="en">I develop the project in conversation with Claude Code. I decide on design and requirements; Claude writes the scripts, reads datasheets and evaluates measurements. All files are openly available under the MIT licence.</span></p>
+  <ol class="schritte">
+    <li>
+      <div class="neben"><h3><span lang="de">Gehäuse als Skript</span><span lang="en">Enclosure as a script</span></h3><p><span lang="de">Maße, Neigung, Displaygröße und die Teilung für den Drucker sind Parameter eines Python-Skripts für Blender. Für eine Variante ändere ich einen Wert, und das Skript rendert daraus ein Bild.</span><span lang="en">Dimensions, tilt, display size and the split into printable parts are parameters of a Python script for Blender. For a variant I change a value, and the script renders an image from it.</span></p></div>
+      <div class="befehl"><code>blender -b -P gehaeuse/blender/entwurf_o.py -- w75 acht mantel skala iso</code></div>
+    </li>
+    <li>
+      <div class="neben"><h3><span lang="de">Entwurf vor Code</span><span lang="en">Design before code</span></h3><p><span lang="de">Gehäuse und Oberfläche bespreche ich zuerst als Bild und baue erst danach. So entstanden die zwölf Gehäuseentwürfe und mehrere Varianten des Ruhebildschirms.</span><span lang="en">I discuss enclosure and interface as images first and only build afterwards. This produced the twelve enclosure designs and several variants of the idle screen.</span></p></div>
+    </li>
+    <li>
+      <div class="neben"><h3><span lang="de">Riskantes zuerst</span><span lang="en">Risky parts first</span></h3><p><span lang="de">Die Kernteile stecke ich offen zusammen, bevor ich drucke. Am ersten Testtag zeigten sich drei Abweichungen von meiner Planung, ohne dass Filament verbraucht war.</span><span lang="en">I connect the core parts openly before printing anything. The first test day revealed three deviations from my plan before any filament was used.</span></p></div>
+    </li>
+    <li>
+      <div class="neben"><h3><span lang="de">Messen, dann drucken</span><span lang="en">Measure, then print</span></h3><p><span lang="de">Die tatsächlichen Maße der Teile übertrage ich mit dem Messschieber ins Skript, danach folgen kleine Probedrucke: eine Ecke, ein Wandstück mit Lochung, die Knopfmulde. Dieser Schritt steht noch aus. Ich drucke auf einem Bambu Lab A1 ohne Mehrfarbsystem; das Druckbett von rund 256 mm begrenzt das Display auf 8 Zoll.</span><span lang="en">I transfer the actual dimensions of the parts into the script with a caliper, followed by small test prints: a corner, a wall section with perforation, the button recess. This step is still pending. I print on a Bambu Lab A1 without multi-material unit; the print bed of about 256 mm limits the display to 8 inches.</span></p></div>
+    </li>
+  </ol>
+
+  <div class="geld">
+    <h3><span lang="de">Materialkosten</span><span lang="en">Material cost</span></h3>
+    <div class="balken" id="balken" role="img"></div>
+    <div class="balken-legende" id="legende"></div>
+    <p class="satz" id="kosten-text"></p>
+    <div class="zwei-listen">
+      <details class="liste">
+        <summary><span lang="de">Gekauftes Material einzeln</span><span lang="en">Purchased material, itemised</span></summary>
+        <div class="tabelle"><table>
+          <thead><tr><th><span lang="de">Teil</span><span lang="en">Item</span></th><th><span lang="de">Bezahlt</span><span lang="en">Paid</span></th></tr></thead>
+          <tbody id="kaufliste"></tbody>
+          <tfoot><tr><td><span lang="de">Zusammen</span><span lang="en">Total</span></td><td id="kauf-summe"></td></tr></tfoot>
+        </table></div>
+      </details>
+      <details class="liste">
+        <summary><span lang="de">Werkzeug und Messgeräte, getrennt gerechnet</span><span lang="en">Tools and test equipment, counted separately</span></summary>
+        <div class="tabelle"><table>
+          <thead><tr><th><span lang="de">Werkzeug</span><span lang="en">Tool</span></th><th><span lang="de">Bezahlt</span><span lang="en">Paid</span></th></tr></thead>
+          <tbody id="werkzeugliste"></tbody>
+          <tfoot><tr><td><span lang="de">Zusammen</span><span lang="en">Total</span></td><td id="werkzeug-summe"></td></tr></tfoot>
+        </table></div>
+        <p class="gedacht" style="margin-top:.7rem"><span lang="de">Schon vorhanden und nicht gerechnet: mein 3D-Drucker Bambu Lab A1, Multimeter, Inbusschlüssel und ein USB-C-Ladegerät für den Tischtest.</span><span lang="en">Already on hand and not counted: my Bambu Lab A1 3D printer, a multimeter, hex keys and a USB-C charger for the bench test.</span></p>
+      </details>
+    </div>
+  </div>
+
+  <div class="regeln">
+    <div><h3><span lang="de">Festlegungen im Issue</span><span lang="en">Decisions in issues</span></h3><p><span lang="de">Jede Entscheidung halte ich mit Datum und Begründung in einem GitHub-Issue fest.</span><span lang="en">I record every decision with date and rationale in a GitHub issue.</span></p></div>
+    <div><h3><span lang="de">Nachmessen</span><span lang="en">Verify by measuring</span></h3><p><span lang="de">Datenblatt, Produktbeschreibung und KI können irren. Die als kreisförmig angebotene Mikrofonleiste ist gerade.</span><span lang="en">Datasheets, product listings and AI can be wrong. The microphone bar sold as circular is straight.</span></p></div>
+    <div><h3><span lang="de">Verworfenes behalten</span><span lang="en">Keep discarded work</span></h3><p><span lang="de">Ich behalte jeden verworfenen Entwurf als Skript. So kann ich jederzeit vergleichen und zurückgehen.</span><span lang="en">I keep every discarded design as a script, so I can compare and go back at any time.</span></p></div>
+    <div><h3><span lang="de">Ruhe in der Küche</span><span lang="en">Calm in the kitchen</span></h3><p><span lang="de">In der Küche will ich keine dauernde Bewegung auf dem Bildschirm, Animation nur bei Erinnerungen und beim Blättern.</span><span lang="en">In the kitchen I want no constant motion on screen; animation only for reminders and page turns.</span></p></div>
+  </div>
+
+  <div class="schluss">
+    <a class="los" href="https://github.com/dragondiver/kuechen-display"><span lang="de">Repository auf GitHub</span><span lang="en">Repository on GitHub</span> ›</a>
+    <span><span lang="de">MIT-Lizenz · Das 3D-Modell dieser Seite wird direkt aus dem Skript im Repository exportiert.</span><span lang="en">MIT licence · The 3D model on this page is exported directly from the script in the repository.</span></span>
+  </div>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script src="modell.js"></script>
+<script>
+(function () {
+"use strict";
+var ruhig = matchMedia("(prefers-reduced-motion: reduce)").matches;
+var $ = function (s, r) { return (r || document).querySelector(s); };
+var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
+var clamp = function (v, a, b) { return Math.min(b, Math.max(a, v)); };
+var glatt = function (t) { return t * t * (3 - 2 * t); };
+var root = document.documentElement;
+
+/* ---------- Daten ---------- */
+var L = window.kdSprache.L, SPR = function () { return window.kdSprache.get(); };
+function euro(n) { return new Intl.NumberFormat(SPR() === "de" ? "de-DE" : "en-GB", { style: "currency", currency: "EUR" }).format(n); }
+function ca(n) { return (SPR() === "de" ? "ca. " : "approx. ") + euro(n).replace(/[.,]00(?=\D*$)/, ""); }
+var WETTER = {
+  sonnig:    { name: { de: "Sonnig", en: "Sunny" },      text: "Sonnig",     grad: 19, tief: 8,  glas: "rgba(255,255,255,.26)" },
+  wolkig:    { name: { de: "Wolkig", en: "Cloudy" },     text: "Wolkig",     grad: 14, tief: 7,  glas: "rgba(255,255,255,.24)" },
+  gedaempft: { name: { de: "Bedeckt", en: "Overcast" },  text: "Bedeckt",    grad: 11, tief: 6,  glas: "rgba(255,255,255,.2)" },
+  regen:     { name: { de: "Regen", en: "Rain" },        text: "Regen",      grad: 9,  tief: 5,  glas: "rgba(25,30,36,.34)" },
+  schnee:    { name: { de: "Schnee", en: "Snow" },       text: "Schneefall", grad: -1, tief: -4, glas: "rgba(40,55,75,.3)" },
+  nacht:     { name: { de: "Nacht", en: "Night" },       text: "Klar",       grad: 6,  tief: 2,  glas: "rgba(255,255,255,.11)" }
+};
+/* p: bezahlt (Zahl), ca: geschätzt, set: Preis steht bei einem anderen Teil */
+var TEILE = [
+  { k: "display", n: { de: "Display, 8 Zoll", en: "Display, 8 inch" }, d: { de: "1280 × 800, Touch. Glas 194 × 119 mm, 7,4 mm dick. Läuft seit dem 29.10.", en: "1280 × 800, touch. Glass 194 × 119 mm, 7.4 mm thick. Running since 29 Oct." }, p: 84.69 },
+  { k: "mikro", n: { de: "Mikrofonleiste", en: "Microphone bar" }, d: { de: "Vier Mikrofone im Abstand von 33 mm, flach auf der Oberseite. Im Set mit der Audio-Platine.", en: "Four microphones 33 mm apart, flush on top. Sold as a set with the audio board." }, p: 69.99 },
+  { k: "kern", n: { de: "Audio-Platine XVF3800", en: "Audio board XVF3800" }, d: { de: "Echounterdrückung und Richtungserkennung im Chip, per USB am Pi.", en: "Echo cancellation and direction finding on chip, connected to the Pi via USB." }, set: true },
+  { k: "pi", n: { de: "Raspberry Pi 5, 8 GB", en: "Raspberry Pi 5, 8 GB" }, d: { de: "85 × 56 mm, mit aktivem Kühler und microSD.", en: "85 × 56 mm, with active cooler and microSD." }, p: 220.80 },
+  { k: "ups", n: { de: "Akku-Board UPS HAT (E)", en: "Battery board UPS HAT (E)" }, d: { de: "Ein Dienst soll den Pi bei leerem Akku sauber herunterfahren; im Betrieb noch nicht getestet.", en: "A service is meant to shut the Pi down cleanly when the battery runs low; not yet tested in operation." }, p: 46.99 },
+  { k: "akku", n: { de: "Vier Zellen 21700", en: "Four 21700 cells" }, d: { de: "Je 5000 mAh. Laufzeit noch nicht gemessen.", en: "5000 mAh each. Runtime not yet measured." }, p: 58.84 },
+  { k: "ls_l", n: { de: "Zwei Lautsprecher FRS 7", en: "Two FRS 7 speakers" }, d: { de: "66,5 × 66,5 mm, 32 mm tief, nachgemessen. In Reihe an der Audio-Platine.", en: "66.5 × 66.5 mm, 32 mm deep, measured. Wired in series to the audio board." }, p: 23.88 },
+  { k: "front", n: { de: "Kamera und Frontplatte", en: "Camera and front panel" }, d: { de: "Camera Module 3 Wide im weißen Rahmen. Platte aus mattem PLA.", en: "Camera Module 3 Wide in the white bezel. Panel in matte PLA." }, p: 39.90, ca: 20 },
+  { k: "holz_l", n: { de: "Holzmantel", en: "Wood shell" }, d: { de: "Seiten, Oberseite und Rückdeckel aus PLA Wood, Lautsprecher hinter Langlöchern.", en: "Sides, top and back cover in PLA Wood, speakers behind slots." }, ca: 28 },
+  { k: "schale", n: { de: "Innere Schale und Füße", en: "Inner tray and feet" }, d: { de: "Trägt die Technik. Probedrucke zuerst in Grau.", en: "Carries the electronics. Test prints in grey first." }, ca: 20 }
+];
+function teilPreis(t) {
+  if (t.set) return SPR() === "de" ? "im Set oben" : "in set above";
+  if (t.p != null && t.ca != null) return euro(t.p) + " + " + ca(t.ca);
+  return t.p != null ? euro(t.p) : ca(t.ca);
+}
+var EXPLOSION = {
+  front: [0, .05, .17], display: [0, .028, .085], screen: [0, .028, .085],
+  mikro: [0, .205, -.005], kern: [0, .085, -.115], pi: [0, .085, .005], ups: [0, .045, .005], akku: [0, -.01, .01],
+  ls_l: [-.11, .02, 0], ls_r: [.11, .02, 0],
+  holz_l: [-.185, .02, 0], holz_r: [.185, .02, 0], holz_oben: [0, .27, -.02], holz_hinten: [0, .035, -.21], schale: [0, -.21, -.05]
+};
+var STEMPEL = {
+  verworfen: { de: "verworfen", en: "discarded" }, grundform: { de: "Grundform", en: "basic shape" }, stil: { de: "Stil gesetzt", en: "style set" },
+  uebernommen: { de: "übernommen", en: "adopted" }, zwischen: { de: "Zwischenstand", en: "interim" }, acht: { de: "später 8 Zoll", en: "later 8 inch" },
+  wahl: { de: "zur Wahl", en: "option" }, aktuell: { de: "aktuell", en: "current" }
+};
+/* Buchstabe, Tag im Oktober, Maße, Stempel, Titel, Text */
+var ENTWUERFE = [
+  ["c", 4, "125 × 100 × 100", "verworfen", { de: "Mini-Monitor mit Mikrofon-Puck", en: "Mini monitor with microphone puck" }, { de: "Erster Ansatz: ein kleiner Monitor mit rundem Mikrofon-Puck obenauf. Mit einem großen Display wäre das Gehäuse rund 180 mm tief geworden.", en: "First approach: a small monitor with a round microphone puck on top. With a large display the enclosure would have been about 180 mm deep." }],
+  ["d", 4, "252 × 124 × 170", "grundform", { de: "Keil mit 10 Zoll bei 60°", en: "Wedge, 10 inch at 60°" }, { de: "Die Keilform entsteht, die Mikrofone wandern in eine getrennte Leiste. Diese Grundform ist bis heute geblieben.", en: "The wedge shape appears and the microphones move into a separate bar. This basic shape has remained." }],
+  ["e", 4, "", "verworfen", { de: "Grundig-Stil", en: "Grundig style" }, { de: "Nussbaum, Messingrahmen, goldener Bespannstoff, Holzbeine. Schön, aber ich wollte mich am Braun RT 20 orientieren.", en: "Walnut, brass frame, gold grille cloth, wooden legs. Beautiful, but I wanted to follow the Braun RT 20." }],
+  ["f", 4, "252 × 124 × 170", "stil", { de: "Braun-Stil mit Lippe", en: "Braun style with lip" }, { de: "Mattes Hellgrau, scharfe Kanten, Lochraster, ein oranger Knopf. Damit stand für mich die Stilrichtung fest.", en: "Matte light grey, sharp edges, perforated grid, one orange button. This settled the stylistic direction for me." }],
+  ["g", 4, "252 × 124 × 195", "verworfen", { de: "Höhere Lippe", en: "Taller lip" }, { de: "Mehr Platz für den Lautsprecher. Beibehalten wurde trotzdem die Proportion von F.", en: "More room for the speaker. The proportions of F were kept nonetheless." }],
+  ["h", 4, "", "uebernommen", { de: "Lautsprecher seitlich", en: "Side-mounted speakers" }, { de: "Die Treiber wandern in die Seitenwände: mehr Volumen, und die Front bleibt frei.", en: "The drivers move into the side walls: more volume and a clear front." }],
+  ["i", 4, "252 × 124 × 170", "zwischen", { de: "F und H kombiniert", en: "F and H combined" }, { de: "Kombination aus beiden. Am ersten Tag entstanden sieben Entwürfe.", en: "A combination of both. Seven designs were produced on the first day." }],
+  ["k", 5, "252 × 124 × 170", "uebernommen", { de: "Weiche Kanten wie beim RT 20", en: "Soft edges like the RT 20" }, { de: "Die Frontplatte erhält oben und unten eine sanfte Abkantung nach dem Braun-Radio RT 20, dazu die Teilung für den Drucker.", en: "The front panel gets a gentle chamfer at top and bottom after the Braun RT 20 radio, plus the split into printable parts." }],
+  ["l", 13, "194 × 103 × 133", "acht", { de: "7 Zoll", en: "7 inch" }, { de: "Kleiner, passend für die Arbeitsplatte. Am 16.10. auf 8 Zoll geändert: 50 % mehr Fläche, passt noch auf das Druckbett.", en: "Smaller, to suit the countertop. Changed to 8 inch on 16 Oct: 50 % more area, still fits the print bed." }],
+  ["m", 13, "230 × 103 × 133", "uebernommen", { de: "Bedienspalte rechts", en: "Control column on the right" }, { de: "Zwei gleiche graue Knöpfe mit Mulde, eine orange Leuchte, die Mikrofonleiste flach auf der Oberseite.", en: "Two identical grey buttons with a recess, an orange indicator, the microphone bar flush on top." }],
+  ["n", 13, "230 × 109 × 145", "wahl", { de: "Kameraleiste über dem Glas", en: "Camera strip above the glass" }, { de: "Das Display hat keine Kamera, und sein Glasrand lässt sich nicht bohren. Hier sitzt die Kamera in einer schwarzen Leiste.", en: "The display has no camera and its glass edge cannot be drilled. Here the camera sits in a black strip." }],
+  ["o", 15, "230 × 113 × 126", "uebernommen", { de: "Weißer Rahmen, ohne Lippe", en: "White bezel, no lip" }, { de: "Die Frontplatte steigt ohne senkrechte Lippe vom Tisch schräg an, wie beim RT 20. Der weiße Rahmen verdeckt den Displayrand und nimmt die Kamera auf. Noch 7 Zoll, 60° Neigung und ganz in Weiß.", en: "The front panel rises at an angle from the table without a vertical lip, like the RT 20. The white bezel covers the display edge and holds the camera. Still 7 inch, 60° tilt and all white." }],
+  ["fertig", { de: "15./16.10.", en: "15/16 Oct" }, "235 × 105 × 143", "aktuell", { de: "Entwurf O mit Holzmantel, 75° und 8 Zoll", en: "Design O with wood shell, 75° and 8 inch" }, { de: "Am 15.10. habe ich festgelegt: Mantel aus Holzfilament an Seiten, Oberseite und Rückdeckel, Neigung 75° statt 60°, eine Leuchtleiste als Skala über den Knöpfen. Am 16.10. kam das 8-Zoll-Display dazu. Dieser Stand ist das 3D-Modell oben auf der Seite.", en: "On 15 Oct I decided on a wood-filament shell on the sides, top and back, 75° tilt instead of 60°, and a light bar as a scale above the buttons. The 8-inch display followed on 16 Oct. This is the 3D model at the top of the page." }, { de: "Heute", en: "Today" }]
+];
+function marke(e) { return e[6] ? L(e[6]) : e[0].toUpperCase(); }
+function entwurfDatum(e) { var t = typeof e[1] === "object" ? L(e[1]) : SPR() === "de" ? e[1] + ".10." : e[1] + " Oct"; return e[2] ? t + " · " + e[2] + " mm" : t; }
+var LAMPEN = [
+  [1, { de: "Display und Touch", en: "Display and touch" }, { de: "Läuft seit dem 29.10., Touch-Eingaben treffen.", en: "Running since 29 Oct, touch input is accurate." }],
+  [1, { de: "Mikrofone am Pi", en: "Microphones on the Pi" }, { de: "Alle vier liefern ein Signal, keine Unterspannung gemeldet.", en: "All four deliver a signal, no undervoltage reported." }],
+  [1, { de: "Kamera", en: "Camera" }, { de: "Erkannt, Testbild in Ordnung. Küchenlicht noch nicht getestet.", en: "Detected, test image fine. Kitchen lighting not yet tested." }],
+  [0, { de: "Lautsprecher an USB-Strom", en: "Speakers on USB power" }, { de: "Test ab 9.11.: Reichen die 600 mA des Pi?", en: "Test from 9 Nov: is the Pi's 600 mA enough?" }],
+  [0, { de: "Echounterdrückung", en: "Echo cancellation" }, { de: "Nimmt das Gerät sich bei voller Lautstärke selbst auf?", en: "Does the device pick up its own output at full volume?" }],
+  [0, { de: "Akku und Gesamtstrom", en: "Battery and total current" }, { de: "Laufzeit grob messen.", en: "Rough runtime measurement." }],
+  [0, { de: "Sprachweg", en: "Voice path" }, { de: "Anbindung an den Sprachassistenten über die Brücke.", en: "Connection to the voice assistant via the bridge." }]
+];
+/* Material, wie bezahlt (Stückliste, Stand 7.11.2026) */
+var KAUF = [
+  [{ de: "Raspberry Pi 5, 8 GB", en: "Raspberry Pi 5, 8 GB" }, 189], [{ de: "Display Waveshare 8inch DSI LCD (C)", en: "Display Waveshare 8inch DSI LCD (C)" }, 84.69],
+  [{ de: "Audio-Platine reSpeaker Flex XVF3800 Linear-4", en: "Audio board reSpeaker Flex XVF3800 Linear-4" }, 69.99], [{ de: "4 × Samsung 21700 50E", en: "4 × Samsung 21700 50E" }, 58.84],
+  [{ de: "Akku-Board Waveshare UPS HAT (E)", en: "Battery board Waveshare UPS HAT (E)" }, 46.99], [{ de: "Camera Module 3 Wide", en: "Camera Module 3 Wide" }, 39.90],
+  [{ de: "microSD 64 GB", en: "microSD 64 GB" }, 25.90], [{ de: "2 × Visaton FRS 7, 4 Ω", en: "2 × Visaton FRS 7, 4 Ω" }, 23.88],
+  [{ de: "JST-PH-Kabel, 50 Sätze", en: "JST PH cables, 50 sets" }, 7.99], [{ de: "Active Cooler", en: "Active Cooler" }, 5.90],
+  [{ de: "Kamerakabel und Displaykabel", en: "Camera and display cables" }, 2.40], [{ de: "CO₂-Ausgleich beim Händler", en: "Carbon offset at retailer" }, 4.50],
+  [{ de: "Versand", en: "Shipping" }, 6.95]
+];
+var WERKZEUG = [
+  [{ de: "Digitaler Messschieber", en: "Digital caliper" }, 15.96], [{ de: "USB-Messgerät", en: "USB power meter" }, 13.98],
+  [{ de: "12-V-Netzteil für den Tischtest", en: "12 V power supply for the bench test" }, 10.99], [{ de: "Hohlstecker-Adapter mit Schraubklemme", en: "Barrel jack adapters with screw terminal" }, 4.99]
+];
+var summeKauf = KAUF.reduce(function (a, k) { return a + k[1]; }, 0), summeWerkzeug = WERKZEUG.reduce(function (a, k) { return a + k[1]; }, 0);
+/* Balken: gekauftes Material plus geschätzte offene Posten */
+var PHASEN = [
+  ["p1", { de: "Gekauft", en: "Bought" }, summeKauf, false], ["p2", { de: "Bedienung, Licht", en: "Controls, lighting" }, 35, true],
+  ["p3", { de: "Kabel, Kleinteile", en: "Cables, small parts" }, 105, true], ["p4", { de: "Filament, Probedrucke", en: "Filament, test prints" }, 85, true],
+  ["p5", { de: "Oberfläche", en: "Finish" }, 20, true]
+];
+var MARKEN = [["display", { de: "Display", en: "Display" }], ["mikro", { de: "Mikrofone", en: "Microphones" }], ["kern", { de: "Audio-Platine", en: "Audio board" }], ["pi", { de: "Pi 5", en: "Pi 5" }], ["ups", { de: "Akku-Board", en: "Battery board" }], ["akku", { de: "Zellen", en: "Cells" }], ["ls_l", { de: "Lautsprecher", en: "Speakers" }], ["front", { de: "Frontplatte", en: "Front panel" }], ["holz_l", { de: "Holzmantel", en: "Wood shell" }], ["schale", { de: "Schale", en: "Tray" }]];
+var SAETZE = {
+  erinnerung: { de: "In 20 Minuten Chorprobe.", en: "Choir practice in 20 minutes." },
+  frage: { de: "Hört zu: „Was steht heute noch an?“", en: "Listening: “What's left for today?”" },
+  denkt: { de: "Denkt nach.", en: "Thinking." },
+  antwort: { de: "Heute Abend noch die Chorprobe und danach der Krimi.", en: "Choir practice this evening, then the crime drama." },
+  antwortet: { de: "Antwortet: „%s“", en: "Answering: “%s”" },
+  ruhe: { de: "Die Stimme ist Marin, mit der Elektra auch auf dem Gerät spricht: KI-generiert von OpenAI. Fehlt die Aufnahme, spricht der Browser.", en: "The voice is Marin, the one Elektra uses on the device: AI-generated by OpenAI. If the recording is missing, the browser speaks instead." }
+};
+
+/* ---------- Wetter und Bilder ---------- */
+var bilder = {};
+Object.keys(WETTER).forEach(function (n) { var i = new Image(); i.src = "bilder/wetter-" + n + ".jpg"; i.onload = function () { if (n === zustand.wetter) zeichne(); }; bilder[n] = i; });
+var figuren = {};
+["zuhoeren","sprechen-halb","sprechen-offen","nachdenken"].forEach(function (n) { var i = new Image(); i.src = "bilder/figur-" + n + ".png"; figuren[n] = i; });
+
+function startWetter() {
+  var dt = root.getAttribute("data-theme");
+  if (dt === "dark") return "nacht";
+  if (dt === "light") return "sonnig";
+  var h = new Date().getHours();
+  if (matchMedia("(prefers-color-scheme: dark)").matches || h >= 20 || h < 7) return "nacht";
+  return h < 10 || h > 16 ? "wolkig" : "sonnig";
+}
+var zustand = { wetter: startWetter(), seite: 0, seiteVon: 0, seiteT: 1, erinnerung: 0, figur: null };
+
+function setzeWetter(n) {
+  zustand.wetter = n;
+  root.setAttribute("data-wetter", n);
+  $("#aura").style.backgroundImage = "url(bilder/wetter-" + n + ".jpg)";
+  $$("#wetter-tasten .taste").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.w === n)); });
+  zeichne();
+  starteFx();
+  try { localStorage.setItem("kd-wetter", n); } catch (e) { /* nur Komfort */ }
+  bewege();
+}
+Object.keys(WETTER).forEach(function (n) {
+  var b = document.createElement("button");
+  b.className = "taste"; b.type = "button"; b.dataset.w = n;
+  b.innerHTML = '<i class="punkt" style="background-image:url(bilder/wetter-' + n + '.jpg)"></i><span class="wn"></span>';
+  b.addEventListener("click", function () { setzeWetter(n); });
+  $("#wetter-tasten").appendChild(b);
+});
+
+/* ---------- Der Bildschirm des Geräts: eine Leinwand, die im 3D-Modell liegt ---------- */
+var bs = document.createElement("canvas"); bs.width = 1280; bs.height = 800;
+var c = bs.getContext("2d");
+var schrift = '"Schibsted Grotesk", "Helvetica Neue", Helvetica, sans-serif';
+function rr(x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
+function deckend(img) { if (!img.complete || !img.naturalWidth) { c.fillStyle = "#333"; c.fillRect(0, 0, 1280, 800); return; } c.drawImage(img, 0, 0, 1280, 800); }
+function glas(x, y, w, h) {
+  var img = bilder[zustand.wetter];
+  c.save(); rr(x, y, w, h, 26); c.clip();
+  if ("filter" in c && img.complete && img.naturalWidth) { c.filter = "blur(22px)"; c.drawImage(img, -40, -40, 1360, 880); c.filter = "none"; }
+  c.fillStyle = WETTER[zustand.wetter].glas; c.fillRect(x, y, w, h); c.restore();
+  c.save(); rr(x + .5, y + .5, w - 1, h - 1, 26); c.strokeStyle = "rgba(255,255,255,.28)"; c.lineWidth = 1.5; c.stroke(); c.restore();
+}
+function zwei(n) { return (n < 10 ? "0" : "") + n; }
+function plus(min) { var d = new Date(Date.now() + min * 6e4); return zwei(d.getHours()) + ":" + zwei(Math.floor(d.getMinutes() / 5) * 5); }
+function txt(s, x, y, gr, gew, f, al) { c.font = (gew || 500) + " " + gr + "px " + schrift; c.fillStyle = f || "#fff"; c.textAlign = al || "left"; c.fillText(s, x, y); }
+function seiteHeute() {
+  var d = new Date(), w = WETTER[zustand.wetter], er = zustand.erinnerung > 0;
+  c.shadowColor = "rgba(0,0,0,.28)"; c.shadowBlur = 16;
+  txt(zwei(d.getHours()) + ":" + zwei(d.getMinutes()), 56, 136, 112, 500);
+  txt(d.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" }), 60, 182, 30, 500, "rgba(255,255,255,.92)");
+  c.shadowBlur = 0;
+  glas(44, 222, 470, 534);
+  txt("NOCH HEUTE", 76, 276, 20, 600, "rgba(255,255,255,.78)");
+  var y = 334, zeilen = er ? [[plus(20), "Chorprobe", "in 20 Min"], [plus(150), "Krimi", "Alle"]] : [[plus(50), "Chorprobe", "Einzeln"], [plus(150), "Krimi", "Alle"]];
+  zeilen.forEach(function (z, i) {
+    var gross = er && i === 0;
+    if (er && i > 0) c.globalAlpha = .55;
+    txt(z[0], 76, y, gross ? 54 : 36, 500);
+    txt(z[1], gross ? 240 : 196, y, gross ? 54 : 36, 500);
+    txt(z[2], gross ? 240 : 196, y + (gross ? 40 : 34), gross ? 28 : 23, gross ? 600 : 400, gross ? "#ffd9a8" : "rgba(255,255,255,.8)");
+    c.globalAlpha = 1;
+    y += gross ? 130 : 100;
+  });
+  c.fillStyle = "rgba(255,255,255,.26)"; c.fillRect(76, 668, 406, 1.5);
+  txt("Morgen", 76, 716, 30, 500); txt("6 Termine ›", 482, 716, 26, 400, "rgba(255,255,255,.85)", "right");
+  glas(866, 222, 370, 300);
+  txt("ZUHAUSE", 898, 276, 20, 600, "rgba(255,255,255,.78)");
+  txt(w.grad + "°", 894, 396, 110, 500);
+  txt(w.text, 898, 448, 34, 500);
+  txt("Tiefst " + w.tief + "°", 898, 490, 26, 400, "rgba(255,255,255,.85)");
+}
+function seiteMorgen() {
+  c.shadowColor = "rgba(0,0,0,.28)"; c.shadowBlur = 16; txt("Morgen", 56, 136, 92, 500); c.shadowBlur = 0;
+  glas(44, 180, 730, 576);
+  [["08:00–09:00","Zahnarzt"],["10:00–10:30","Handwerker Heizung"],["12:30–13:30","Mittagessen"],["16:00–17:00","Physiotherapie"],["19:00–20:30","Elternabend"],["20:45–22:30","Länderspiel"]].forEach(function (z, i) {
+    var y = 252 + i * 84;
+    txt(z[0], 76, y, 25, 400, "rgba(255,255,255,.85)"); txt(z[1], 262, y, 36, 500);
+  });
+  glas(800, 180, 436, 576);
+  txt("DIE WOCHE", 830, 232, 20, 600, "rgba(255,255,255,.78)");
+  ["Mo  6 Termine","Di  Klavierstunde","Mi  keine Termine","Do  Chorprobe","Fr  Flughafen","Sa  Wochenmarkt"].forEach(function (z, i) { txt(z, 830, 298 + i * 72, 30, 500); });
+}
+function seiteApps() {
+  c.shadowColor = "rgba(0,0,0,.28)"; c.shadowBlur = 16; txt("Apps", 56, 136, 92, 500); c.shadowBlur = 0;
+  [["Rezepte","#e8590c"],["YouTube","#3b4750"],["Timer","#3b4750"],["Radio","#3b4750"],["Einkauf","#3b4750"],["Browser","#3b4750"]].forEach(function (a, i) {
+    var x = 56 + (i % 3) * 396, y = 186 + Math.floor(i / 3) * 278;
+    glas(x, y, 372, 252);
+    c.fillStyle = a[1]; rr(x + 30, y + 30, 74, 74, 20); c.fill();
+    txt(a[0], x + 30, y + 200, 44, 500);
+  });
+}
+var zeichneSeite = { "-1": seiteApps, "0": seiteHeute, "1": seiteMorgen };
+function zeichne() {
+  deckend(bilder[zustand.wetter]);
+  var t = zustand.seiteT;
+  if (t < 1) {
+    var e = glatt(t), rich = zustand.seite > zustand.seiteVon ? 1 : -1;
+    c.save(); c.translate(-rich * e * 1280, 0); zeichneSeite[zustand.seiteVon](); c.restore();
+    c.save(); c.translate(rich * (1 - e) * 1280, 0); zeichneSeite[zustand.seite](); c.restore();
+  } else zeichneSeite[zustand.seite]();
+  if (zustand.erinnerung > 0) {
+    c.save(); c.globalAlpha = zustand.erinnerung; c.strokeStyle = "#fff"; c.lineWidth = 14; c.shadowColor = "#fff"; c.shadowBlur = 44; c.strokeRect(7, 7, 1266, 786); c.restore();
+  }
+  if (zustand.figur) {
+    var f = figuren[zustand.figur];
+    if (f.complete && f.naturalWidth) { c.save(); c.shadowColor = "rgba(0,0,0,.35)"; c.shadowBlur = 24; c.drawImage(f, 1040, 556, 216, 216); c.restore(); }
+  }
+  c.textAlign = "left";
+  if (tex) { tex.needsUpdate = true; bewege(); }
+}
+setInterval(function () { zeichne(); }, 3e4);
+
+function zuSeite(n) {
+  if (n === zustand.seite) return;
+  zustand.seiteVon = zustand.seite; zustand.seite = n; zustand.seiteT = ruhig ? 1 : 0;
+  var a = performance.now();
+  (function s(now) { zustand.seiteT = clamp((now - a) / 480, 0, 1); zeichne(); if (zustand.seiteT < 1) requestAnimationFrame(s); })(a);
+}
+$$("[data-seite]").forEach(function (b) { b.addEventListener("click", function () { zuSeite(+b.dataset.seite); }); });
+
+/* Weicher Zwei-Ton und ein gesprochener Satz: beides startet erst nach einem Klick */
+function ton() {
+  try {
+    var A = window.AudioContext || window.webkitAudioContext, a = new A(), jetzt = a.currentTime;
+    [[659.3, 0], [880, .28]].forEach(function (p) {
+      var o = a.createOscillator(), g = a.createGain();
+      o.type = "sine"; o.frequency.value = p[0];
+      g.gain.setValueAtTime(0, jetzt + p[1]); g.gain.linearRampToValueAtTime(.09, jetzt + p[1] + .06); g.gain.exponentialRampToValueAtTime(.0005, jetzt + p[1] + 1.5);
+      o.connect(g).connect(a.destination); o.start(jetzt + p[1]); o.stop(jetzt + p[1] + 1.6);
+    });
+  } catch (e) { /* Ohne Ton geht die Erinnerung trotzdem */ }
+}
+function sage(satz, fertig, name) {
+  var erledigt = false, einmal = function () { if (!erledigt) { erledigt = true; fertig && fertig(); } };
+  if (name) {
+    /* Aufnahme mit Marin (werkzeuge/stimme_proben.py); fehlt sie, spricht der Browser */
+    var a = new Audio("ton/" + name + "-" + SPR() + ".mp3"), notfall = setTimeout(einmal, 12000);
+    a.onended = function () { clearTimeout(notfall); einmal(); };
+    a.onerror = function () { clearTimeout(notfall); sage(satz, fertig); };
+    var p = a.play(); if (p && p.catch) p.catch(function () { clearTimeout(notfall); sage(satz, fertig); });
+    return;
+  }
+  try {
+    if (!window.speechSynthesis) throw 0;
+    var u = new SpeechSynthesisUtterance(satz); u.lang = SPR() === "de" ? "de-DE" : "en-GB"; u.rate = 1; u.onend = einmal; u.onerror = einmal;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+    setTimeout(einmal, 5500);
+  } catch (e) { setTimeout(einmal, 2800); }
+}
+$("#erinnern").addEventListener("click", function () {
+  zuSeite(0); ton();
+  setTimeout(function () { sage(L(SAETZE.erinnerung), null, "erinnerung"); }, 900);
+  var a = performance.now(), dauer = ruhig ? 0 : 6000;
+  (function s(now) {
+    var t = (now - a) / 2000;
+    if (t < 3 && dauer) { zustand.erinnerung = .25 + .75 * Math.abs(Math.sin(t * Math.PI / 1)); zeichne(); requestAnimationFrame(s); }
+    else { zustand.erinnerung = 1; zeichne(); setTimeout(function () { zustand.erinnerung = 0; zeichne(); }, 9000); }
+  })(a);
+});
+var sprichtGerade = false;
+$("#sprechen").addEventListener("click", function () {
+  if (sprichtGerade) return;
+  sprichtGerade = true; zuSeite(0);
+  var txtEl = $("#sprech-text");
+  zustand.figur = "zuhoeren"; txtEl.textContent = L(SAETZE.frage); zeichne();
+  setTimeout(function () {
+    zustand.figur = "nachdenken"; txtEl.textContent = L(SAETZE.denkt); zeichne();
+    setTimeout(function () {
+      var satz = L(SAETZE.antwort);
+      txtEl.textContent = L(SAETZE.antwortet).replace("%s", satz);
+      var offen = false, klapp = setInterval(function () { offen = !offen; zustand.figur = offen ? "sprechen-offen" : "sprechen-halb"; zeichne(); }, 190);
+      sage(satz, function () {
+        clearInterval(klapp); zustand.figur = "zuhoeren"; zeichne();
+        setTimeout(function () { zustand.figur = null; zeichne(); sprichtGerade = false; txtEl.textContent = L(SAETZE.ruhe); }, 1400);
+      }, "antwort");
+    }, 1200);
+  }, 1500);
+});
+
+/* ---------- Bauteil-Liste ---------- */
+function baueTeile() {
+  $("#teile").innerHTML = "";
+  TEILE.forEach(function (t) {
+    var li = document.createElement("li"); li.tabIndex = 0; li.dataset.k = t.k;
+    li.innerHTML = "<b>" + L(t.n) + "</b><span class=\"preis\">" + teilPreis(t) + "</span><small>" + L(t.d) + "</small>";
+    li.addEventListener("mouseenter", function () { heiss(t.k); }); li.addEventListener("click", function () { heiss(t.k); });
+    li.addEventListener("mouseleave", function () { heiss(null); });
+    li.addEventListener("focus", function () { heiss(t.k); });
+    li.addEventListener("blur", function () { heiss(null); });
+    $("#teile").appendChild(li);
+  });
+}
+function heiss(k) { $$(".marke").forEach(function (m) { m.classList.toggle("heiss", m.dataset.k === k); }); }
+
+/* ---------- 3D ---------- */
+var tex = null, renderer, szene, kamera, modell, teile = {}, schatten, startHell = ruhig ? 1 : 0, screenMat = null, skalaMat = null, marken = [];
+var ziel = { az: -34, el: 17, dist: .74, e: 0, tx: 0, labels: 0 }, ist = { az: -34, el: 17, dist: .74, e: 0, tx: 0, labels: 0 };
+var dreh = { az: 0, el: 0 }, zieht = false, laeuft = false;
+var blocks = $$(".block");
+function holzTextur() {
+  var k = document.createElement("canvas"); k.width = 1024; k.height = 512; var x = k.getContext("2d");
+  x.fillStyle = "#ad7a45"; x.fillRect(0, 0, 1024, 512);
+  for (var i = 0; i < 520; i++) {
+    var y = Math.random() * 512, a = .02 + Math.random() * .07, h = 22 + Math.random() * 30;
+    x.strokeStyle = "hsla(" + (24 + Math.random() * 10) + ",46%," + (Math.random() < .5 ? 34 : 70) + "%," + a + ")";
+    x.lineWidth = .5 + Math.random() * 1.4; x.beginPath(); x.moveTo(0, y);
+    for (var u = 0; u <= 1024; u += 64) x.lineTo(u, y + Math.sin(u / 170 + i) * (h / 12) + Math.sin(u / 63 + i * 2) * .9);
+    x.stroke();
+  }
+  var t = new THREE.CanvasTexture(k); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; return t;
+}
+function uvAus(mesh, fn) {
+  var g = mesh.geometry, p = g.attributes.position, uv = new Float32Array(p.count * 2);
+  for (var i = 0; i < p.count; i++) { var a = fn(p.getX(i), p.getY(i), p.getZ(i)); uv[2 * i] = a[0]; uv[2 * i + 1] = a[1]; }
+  g.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+}
+function initialisiere3D() {
+  if (!window.THREE || !THREE.GLTFLoader) return ersatz();
+  var cv = $("#gl");
+  try { renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true }); } catch (e) { return ersatz(); }
+  renderer.setClearColor(0, 0);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  szene = new THREE.Scene();
+  kamera = new THREE.PerspectiveCamera(26, 1, .01, 10);
+  if (THREE.RoomEnvironment) { var pm = new THREE.PMREMGenerator(renderer); szene.environment = pm.fromScene(new THREE.RoomEnvironment(), .04).texture; pm.dispose(); }
+  var key = new THREE.DirectionalLight(0xfff2e2, 1.1); key.position.set(-.5, .9, .8); szene.add(key);
+  // weicher Bodenschatten
+  var sk = document.createElement("canvas"); sk.width = sk.height = 256; var sx = sk.getContext("2d");
+  var gr = sx.createRadialGradient(128, 128, 8, 128, 128, 128); gr.addColorStop(0, "rgba(0,0,0,.36)"); gr.addColorStop(.5, "rgba(0,0,0,.12)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+  sx.fillStyle = gr; sx.fillRect(0, 0, 256, 256);
+  schatten = new THREE.Mesh(new THREE.PlaneGeometry(.38, .2), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sk), transparent: true, depthWrite: false, toneMapped: false }));
+  schatten.rotation.x = -Math.PI / 2; schatten.position.y = -.0035; szene.add(schatten);
+
+  if (!window.KD_MODELL) { ersatz(); return; }
+  var roh = Uint8Array.from(atob(window.KD_MODELL), function (z) { return z.charCodeAt(0); }).buffer;
+  new THREE.GLTFLoader().parse(roh, "", function (g) {
+    modell = g.scene; szene.add(modell);
+    var holz = holzTextur(), holzMat = new THREE.MeshStandardMaterial({ map: holz, roughness: .68, metalness: 0 });
+    tex = new THREE.CanvasTexture(bs); tex.encoding = THREE.sRGBEncoding; tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    screenMat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, color: new THREE.Color(startHell, startHell, startHell) });
+    var TH = 75 * Math.PI / 180, sy = Math.sin(TH), sz = -Math.cos(TH);
+    modell.traverse(function (o) {
+      if (!o.isMesh) return;
+      var n = o.material && o.material.name || "";
+      var grp = o; while (grp.parent && grp.parent !== modell) grp = grp.parent;
+      teile[grp.name] = grp;
+      if (n === "furnier") {
+        o.material = holzMat;
+        uvAus(o, grp.name === "holz_oben" ? function (x, y, z) { return [x * 4, z * 4]; } : grp.name === "holz_hinten" ? function (x, y) { return [x * 4, y * 4]; } : function (x, y, z) { return [z * 4, y * 4]; });
+      } else if (n === "gehaeuse") {
+        o.material = new THREE.MeshStandardMaterial({ color: 0xf0efe9, roughness: .52 }); o.material.side = THREE.DoubleSide;
+      } else if (n === "screen") {
+        var b = new THREE.Box3().setFromBufferAttribute(o.geometry.attributes.position), mn = Infinity, mx = -Infinity, p = o.geometry.attributes.position;
+        for (var i = 0; i < p.count; i++) { var d = p.getY(i) * sy + p.getZ(i) * sz; mn = Math.min(mn, d); mx = Math.max(mx, d); }
+        uvAus(o, function (x, y, z) { return [(x - b.min.x) / (b.max.x - b.min.x), (y * sy + z * sz - mn) / (mx - mn)]; });
+        o.material = screenMat;
+      } else if (n === "skala_licht") {
+        skalaMat = o.material; skalaMat.emissiveIntensity = ruhig ? 1 : 0;
+      } else if (o.material) { o.material.side = THREE.DoubleSide; }
+    });
+    zeichne();
+    baueMarken();
+    cv.classList.add("bereit"); $("#bild-ersatz").hidden = true;
+    if (!ruhig) einschalten();
+    bewege();
+  }, function () { ersatz(); });
+
+  /* Ziehen dreht, senkrecht bleibt die Seite scrollbar */
+  var lx = 0, ly = 0;
+  cv.addEventListener("pointerdown", function (e) { zieht = true; lx = e.clientX; ly = e.clientY; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener("pointermove", function (e) { if (!zieht) return; dreh.az -= (e.clientX - lx) * .45; dreh.el = clamp(dreh.el + (e.clientY - ly) * .2, -18, 38); lx = e.clientX; ly = e.clientY; bewege(); });
+  cv.addEventListener("pointerup", function () { zieht = false; });
+  cv.addEventListener("pointercancel", function () { zieht = false; });
+  addEventListener("resize", groesse); groesse();
+}
+function ersatz() { $("#griff-hinweis").hidden = true; $("#bild-ersatz").style.animation = "none"; }
+function einschalten() {
+  var a = performance.now();
+  (function s(now) {
+    var t = clamp((now - a - 400) / 1500, 0, 1), h = glatt(t);
+    if (screenMat) screenMat.color.setScalar(h);
+    if (skalaMat) skalaMat.emissiveIntensity = h;
+    bewege();
+    if (t < 1) requestAnimationFrame(s);
+  })(a);
+}
+function groesse() {
+  if (!renderer) return;
+  var b = $("#buehne"), w = b.clientWidth, h = b.clientHeight;
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.setSize(w, h, false);
+  kamera.aspect = w / h; kamera.updateProjectionMatrix();
+  var fx = $("#fx"); fx.width = w; fx.height = h;
+  bewege();
+}
+function baueMarken() {
+  var box = $("#marken");
+  MARKEN.forEach(function (m) {
+    var t = teile[m[0]]; if (!t) return;
+    var el = document.createElement("div"); el.className = "marke"; el.dataset.k = m[0]; el.innerHTML = "<i></i><b>" + L(m[1]) + "</b>"; box.appendChild(el);
+    var bb = new THREE.Box3(), c0 = new THREE.Vector3(); bb.setFromObject(t); bb.getCenter(c0);
+    marken.push({ el: el, t: t, c: c0, k: m[0] });
+  });
+}
+function kameraSetzen() {
+  var az = (ist.az + dreh.az) * Math.PI / 180, el = clamp(ist.el + dreh.el, -10, 70) * Math.PI / 180, d = ist.dist;
+  var bx = $("#buehne"), eng = bx.clientWidth / bx.clientHeight;
+  if (eng < 1.05) d *= 1.05 / Math.max(eng, .6);
+  kamera.position.set(ist.tx + d * Math.sin(az) * Math.cos(el), .072 + d * Math.sin(el), d * Math.cos(az) * Math.cos(el));
+  kamera.lookAt(ist.tx, .072, 0);
+}
+function bild() {
+  if (!renderer || !modell) return;
+  var e = glatt(clamp(ist.e, 0, 1));
+  for (var k in teile) { var v = EXPLOSION[k]; if (v) teile[k].position.set(v[0] * e, v[1] * e, v[2] * e); }
+  schatten.material.opacity = 1 - e * .75;
+  schatten.scale.setScalar(1 + e * .8);
+  kameraSetzen();
+  renderer.render(szene, kamera);
+  var box = $("#marken"), bx = box.clientWidth, by = box.clientHeight;
+  box.style.opacity = ist.labels > .55 ? 1 : 0;
+  if (ist.labels > .01 && bx) marken.forEach(function (m) {
+    var v = m.c.clone(); var o = m.t.position; v.add(o); v.project(kamera);
+    m.el.style.transform = "translate(" + clamp(Math.round((v.x * .5 + .5) * bx), 34, bx - 120) + "px," + Math.round((-v.y * .5 + .5) * by - 7) + "px)";
+  });
+}
+function zielAusScroll() {
+  var mitte = innerHeight * .5, posn = blocks.map(function (b) { var r = b.getBoundingClientRect(); return r.top + r.height * .5; });
+  var i = 0; while (i < posn.length - 1 && posn[i + 1] < mitte) i++;
+  var a = blocks[i], b = blocks[Math.min(i + 1, blocks.length - 1)];
+  var t = posn[i + 1] !== undefined ? clamp((mitte - posn[i]) / (posn[i + 1] - posn[i]), 0, 1) : 0;
+  t = glatt(glatt(t));
+  ["az", "el", "dist", "e", "tx", "labels"].forEach(function (k) {
+    var attr = k === "labels" ? "labels" : k, va = parseFloat(a.dataset[attr]) || 0, vb = parseFloat(b.dataset[attr]) || 0;
+    ziel[k] = va + (vb - va) * t;
+  });
+}
+function bewege() {
+  if (laeuft) return; laeuft = true; requestAnimationFrame(schritt);
+}
+function schritt() {
+  zielAusScroll();
+  var f = ruhig ? 1 : .11, offen = false;
+  for (var k in ziel) { var d = ziel[k] - ist[k]; if (Math.abs(d) > .0006) { ist[k] += d * f; offen = true; } else ist[k] = ziel[k]; }
+  bild();
+  if (offen) requestAnimationFrame(schritt); else laeuft = false;
+}
+addEventListener("scroll", function () { bewege(); nadel(); tuner(); }, { passive: true });
+
+/* ---------- Skala ---------- */
+var abschnitte = ["start", "bildschirm", "innen", "entwuerfe", "ki", "labor", "arbeitsweise"].map(function (i) { return document.getElementById(i); });
+var links = $$(".skala a");
+var skalaOrt = [.07, .21, .35, .49, .63, .78, .92];
+function schmal() { return innerWidth <= 900; }
+function legeSkala() { links.forEach(function (a, i) { if (schmal()) { a.style.left = skalaOrt[i] * 100 + "%"; a.style.top = ""; } else { a.style.left = ""; a.style.top = skalaOrt[i] * 100 + "%"; } }); nadel(); }
+function nadel() {
+  var y = scrollY, tops = abschnitte.map(function (a) { return a.getBoundingClientRect().top + y; }), voll = document.documentElement.scrollHeight - innerHeight, m = y + innerHeight * .4;
+  var i = 0; while (i < tops.length - 1 && tops[i + 1] <= m) i++;
+  var nach = i < tops.length - 1 ? tops[i + 1] : voll + innerHeight * .4, t = clamp((m - tops[i]) / (nach - tops[i]), 0, 1);
+  var von = skalaOrt[i], bis = i < skalaOrt.length - 1 ? skalaOrt[i + 1] : .98, ort = von + (bis - von) * t, n = $("#zeiger"), s = $(".skala");
+  n.style.transform = schmal() ? "translateX(" + ort * s.clientWidth + "px)" : "translateY(" + ort * s.clientHeight + "px)";
+  links.forEach(function (a, j) { a.classList.toggle("an", j === i); });
+}
+addEventListener("resize", legeSkala);
+
+/* ---------- Entwürfe ---------- */
+var dia = $("#dia"), z = $("#ziffern"), aktuellE = -1;
+ENTWUERFE.forEach(function (e, i) {
+  var im = new Image(); im.src = "bilder/entwurf-" + e[0] + ".jpg"; im.alt = ""; im.dataset.i = i; dia.insertBefore(im, dia.firstChild);
+  var b = document.createElement("button"); b.type = "button"; b.textContent = e[6] ? "●" : e[0].toUpperCase(); if (e[6]) b.className = "heute";
+  b.addEventListener("click", function () { zuEntwurf(i); }); z.appendChild(b);
+});
+var bandZiehen = false, band = $("#band");
+function entwurfAusX(x) { var r = band.getBoundingClientRect(); var v = clamp((x - r.left - r.width * .022) / (r.width * .956), 0, 1); zuEntwurfWert(v); }
+band.addEventListener("pointerdown", function (e) { if (e.target.tagName === "BUTTON") return; bandZiehen = true; band.setPointerCapture(e.pointerId); entwurfAusX(e.clientX); });
+band.addEventListener("pointermove", function (e) { if (bandZiehen) entwurfAusX(e.clientX); });
+band.addEventListener("pointerup", function () { bandZiehen = false; });
+function zuEntwurf(i) { zuEntwurfWert(i / (ENTWUERFE.length - 1)); }
+function zuEntwurfWert(v) {
+  var s = $("#entwuerfe"), r = s.getBoundingClientRect(), weg = s.offsetHeight - innerHeight;
+  scrollTo({ top: scrollY + r.top + v * weg, behavior: "auto" });
+  tuner();
+}
+function tuner() {
+  var s = $("#entwuerfe"), r = s.getBoundingClientRect(), weg = s.offsetHeight - innerHeight, v = clamp(-r.top / weg, 0, 1);
+  var bb = band.clientWidth, ziff = bb * .022, b0 = $("#ziffern button"), bw = b0 ? b0.offsetWidth : 0;
+  $("#band-zeiger").style.transform = "translateX(" + (ziff + bw / 2 + v * (bb * .956 - bw) - 1.5) + "px)";
+  var i = Math.round(v * (ENTWUERFE.length - 1));
+  if (i === aktuellE) return; aktuellE = i;
+  var e = ENTWUERFE[i];
+  $$("img", dia).forEach(function (im) { im.classList.toggle("an", +im.dataset.i === i); });
+  $("#e-buchstabe").textContent = marke(e); $("#e-buchstabe").classList.toggle("wort", !!e[6]);
+  zeigeEntwurf(e);
+}
+function zeigeEntwurf(e) {
+  $("#e-titel").textContent = L(e[4]); $("#e-datum").textContent = entwurfDatum(e); $("#e-text").textContent = L(e[5]); $("#e-stempel").textContent = L(STEMPEL[e[3]]);
+}
+
+/* ---------- Tischtest ---------- */
+function baueLampen() {
+  $("#lampen").innerHTML = "";
+  LAMPEN.forEach(function (l) {
+    var li = document.createElement("li");
+    li.innerHTML = '<i class="lampe' + (l[0] ? " an" : "") + '" aria-hidden="true"></i><div>' + L(l[1]) + (l[0] ? "" : (SPR() === "de" ? " (offen)" : " (open)")) + "<small>" + L(l[2]) + "</small></div>";
+    $("#lampen").appendChild(li);
+  });
+}
+
+/* ---------- Kosten ---------- */
+function rund(n) { return euro(Math.round(n)).replace(/[.,]00(?=\D*$)/, ""); }
+function baueKosten() {
+  var gesamt = PHASEN.reduce(function (a, p) { return a + p[2]; }, 0), de = SPR() === "de";
+  $("#balken").innerHTML = ""; $("#legende").innerHTML = "";
+  PHASEN.forEach(function (p) {
+    var betrag = p[3] ? ca(p[2]) : euro(p[2]);
+    var d = document.createElement("div"); d.className = p[0]; d.style.flex = p[2] + " 1 0"; d.textContent = p[2] >= 80 ? betrag : ""; $("#balken").appendChild(d);
+    var l = document.createElement("span"); l.innerHTML = L(p[1]) + " <b>" + betrag + "</b>"; $("#legende").appendChild(l);
+  });
+  $("#balken").setAttribute("aria-label", de ? "Materialkosten, gekauft und geschätzt, zusammen rund " + rund(gesamt) : "Material cost, bought and estimated, about " + rund(gesamt) + " in total");
+  $("#kosten-text").innerHTML = de
+    ? "Für Material habe ich bisher <strong>" + euro(summeKauf) + "</strong> bezahlt, mit Versand und CO₂-Ausgleich. Geschätzt kommen rund " + rund(gesamt - summeKauf) + " dazu. Größter Posten ist der Raspberry Pi 5 mit 8 GB; ob die rund 26 € günstigere Variante mit 4 GB reichen würde, habe ich nicht gemessen. Werkzeug und Messgeräte für " + euro(summeWerkzeug) + " führe ich getrennt auf."
+    : "So far I have paid <strong>" + euro(summeKauf) + "</strong> for material, including shipping and carbon offset. An estimated " + rund(gesamt - summeKauf) + " is still to come. The largest item is the Raspberry Pi 5 with 8 GB; I have not measured whether the 4 GB variant, about €26 cheaper, would suffice. I list tools and test equipment (" + euro(summeWerkzeug) + ") separately.";
+  var zeile = function (k) { return "<tr><td>" + L(k[0]) + "</td><td>" + euro(k[1]) + "</td></tr>"; };
+  $("#kaufliste").innerHTML = KAUF.map(zeile).join(""); $("#kauf-summe").textContent = euro(summeKauf);
+  $("#werkzeugliste").innerHTML = WERKZEUG.map(zeile).join(""); $("#werkzeug-summe").textContent = euro(summeWerkzeug);
+}
+
+/* ---------- Sprache ---------- */
+function texteSetzen() {
+  var de = SPR() === "de";
+  $$("#wetter-tasten .taste").forEach(function (b) { b.querySelector(".wn").textContent = L(WETTER[b.dataset.w].name); });
+  baueTeile(); baueLampen(); baueKosten();
+  marken.forEach(function (m) { var e = MARKEN.filter(function (x) { return x[0] === m.k; })[0]; if (e) m.el.querySelector("b").textContent = L(e[1]); });
+  $$("img", dia).forEach(function (im) { var e = ENTWUERFE[+im.dataset.i]; im.alt = (e[6] ? L(e[6]) : (de ? "Entwurf " : "Design ") + e[0].toUpperCase()) + ": " + L(e[4]); });
+  $$("#ziffern button").forEach(function (b, i) { var e = ENTWUERFE[i]; b.setAttribute("aria-label", e[6] ? (de ? "Aktueller Stand" : "Current state") : (de ? "Entwurf " : "Design ") + b.textContent); });
+  if (aktuellE >= 0) zeigeEntwurf(ENTWUERFE[aktuellE]);
+  if (!sprichtGerade) $("#sprech-text").textContent = L(SAETZE.ruhe);
+}
+window.kdSprache.bei(texteSetzen);
+
+/* ---------- Regen und Schnee vor dem Gerät ---------- */
+var fxLaeuft = false, fxId = 0, stuecke = [];
+function starteFx() {
+  var fx = $("#fx"), x = fx.getContext("2d"), w = zustand.wetter;
+  fxId++;
+  x.clearRect(0, 0, fx.width, fx.height);
+  if (ruhig || (w !== "regen" && w !== "schnee")) return;
+  var id = fxId, n = w === "regen" ? 90 : 70;
+  stuecke = []; for (var i = 0; i < n; i++) stuecke.push({ x: Math.random(), y: Math.random(), v: .3 + Math.random() * .7, s: Math.random() });
+  var alt = performance.now();
+  (function s(now) {
+    if (id !== fxId) return;
+    var dt = Math.min(now - alt, 40) / 1000; alt = now;
+    var B = fx.width, H = fx.height, sichtbar = $("#buehne").getBoundingClientRect().bottom > 0 && document.visibilityState === "visible";
+    if (sichtbar && scrollY < $("#entwuerfe").offsetTop) {
+      x.clearRect(0, 0, B, H);
+      if (w === "regen") {
+        x.strokeStyle = "rgba(225,235,245,.26)"; x.lineWidth = 1;
+        x.beginPath();
+        stuecke.forEach(function (p) { p.y += dt * p.v * 1.2; p.x -= dt * p.v * .08; if (p.y > 1) { p.y = 0; p.x = Math.random() * 1.1; } x.moveTo(p.x * B, p.y * H); x.lineTo(p.x * B - 2.5, p.y * H + 14 * p.v); });
+        x.stroke();
+      } else {
+        x.fillStyle = "rgba(255,255,255,.85)";
+        stuecke.forEach(function (p) { p.y += dt * p.v * .08; p.x += Math.sin(now / 1500 + p.s * 9) * dt * .012; if (p.y > 1) p.y = 0; x.beginPath(); x.arc(((p.x % 1) + 1) % 1 * B, p.y * H, 1 + p.s * 2.1, 0, 7); x.fill(); });
+      }
+    }
+    requestAnimationFrame(s);
+  })(alt);
+}
+
+/* ---------- Start ---------- */
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(zeichne);
+setzeWetter(zustand.wetter);
+legeSkala(); tuner(); texteSetzen();
+initialisiere3D();
+window.__kd = { setzeWetter: setzeWetter };
+})();
+</script>
+</body>
+</html>
