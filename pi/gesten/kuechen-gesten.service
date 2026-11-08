@@ -1,6 +1,6 @@
 [Unit]
-Description=Küchen-Display: Gestendienst und Kiosk-Seite (kuechen-display#2, #15)
-After=network.target
+Description=Küchen-Display: Kameradienst für Handgesten (kuechen-display#2)
+After=kuechen-dienst.service
 
 [Service]
 Type=simple
@@ -10,5 +10,5 @@ ExecStart=/home/florian/gesten-venv/bin/python /home/florian/kuechen-display/ges
 Restart=on-failure
 RestartSec=5
 
-[Install]
-WantedBy=multi-user.target
+# Bewusst ohne [Install]: Die Kamera läuft nur, wenn man den Dienst von Hand startet
+# (Festlegung 8.11.2026, Kamera nur beim Testen).

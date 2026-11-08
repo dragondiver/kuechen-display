@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
-"""Gestendienst und Webserver für den Kiosk des Küchen-Displays (kuechen-display#2, #15).
+"""Kameradienst des Küchen-Displays: Handgesten per MediaPipe (kuechen-display#2).
 
-Ein Prozess, zwei Aufgaben:
-- liefert die Kiosk-Seite aus (pi/kiosk, Wetterbilder) auf http://localhost:8080/
-- liest die Kamera, erkennt mit MediaPipe Hand und Handform, macht daraus Gesten
-  (geste.py) und schickt sie als Server-Sent Events an /ereignisse.
+Liest die Kamera, erkennt Hand und Handform, macht daraus Gesten (geste.py) und meldet sie
+per POST an den Küchen-Dienst (pi/dienst, http://127.0.0.1:8080/geste). Der reicht sie an
+die Seite und, bei Stopp, an die Bridge weiter.
 
 Bilder verlassen das Gerät nicht und werden nicht gespeichert (Festlegung 19.10.2026).
-Der Server hört nur auf localhost.
-
-POST /messung nimmt die Bildraten-Messung der Seite (?messen=1) an und schreibt sie ins Journal.
-Anleitung: docs/kiosk-und-gesten.md
+Die Kamera läuft nur, wenn dieser Dienst läuft; beim Tischtest nur zum Testen (8.11.2026).
+Anleitung: docs/stimme-und-geste.md
 """
 
 import json
@@ -20,75 +17,52 @@ import queue
 import sys
 import threading
 import time
-from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+import urllib.request
 
-from geste import Beobachtung, Gestenerkenner
+from geste import Beobachtung, Gestenerkenner, flache_hand, gestenhand, handmitte
 
-PORT = 8080
-SEITE = os.environ.get(
-    "KIOSK_VERZEICHNIS", os.path.expanduser("~/kuechen-display/kiosk")
-)
+DIENST = os.environ.get("DIENST_URL", "http://127.0.0.1:8080")
+PUNKTE_MITSENDEN = os.environ.get("GESTEN_PUNKTE") == "1"
+KOPFUEBER = int(os.environ.get("KAMERA_KOPFUEBER", "0"))
 MODELL = os.environ.get(
     "GESTEN_MODELL", os.path.expanduser("~/kuechen-display/gesture_recognizer.task")
 )
 BILD = (640, 360)
+SENSOR = (2304, 1296)
 # Kamera mit 30 Bildern/s und kurzer Belichtung, damit eine schnell bewegte Hand nicht verwischt.
 # Ausgewertet wird, so schnell die Erkennung kommt (ca. 20/s), immer das neueste Bild.
 BILDER_PRO_S = 30
 
 log = logging.getLogger("gesten")
-abonnenten: list[queue.Queue] = []
-abonnenten_sperre = threading.Lock()
 statistik = {"bilder": 0, "mit_hand": 0, "erkennung_ms": 0.0}
+ausgang: queue.Queue = queue.Queue(maxsize=50)
 
 
 def verteile(ereignis: dict, art: str = "geste") -> None:
+    """Nicht blockierend: Die Kamera-Schleife wartet nie auf den Dienst."""
     if art == "geste":
         log.info("Geste: %s", ereignis)
-    with abonnenten_sperre:
-        for q in abonnenten:
-            q.put((art, ereignis))
+    try:
+        ausgang.put_nowait((art, ereignis))
+    except queue.Full:
+        if art == "geste":
+            log.warning("Dienst nimmt nichts an, Geste verworfen: %s", ereignis)
 
 
-class Handler(SimpleHTTPRequestHandler):
-    def log_message(self, format, *args):
-        pass
-
-    def do_GET(self):
-        if self.path != "/ereignisse":
-            return super().do_GET()
-        self.send_response(200)
-        self.send_header("Content-Type", "text/event-stream")
-        self.send_header("Cache-Control", "no-cache")
-        self.end_headers()
-        q: queue.Queue = queue.Queue()
-        with abonnenten_sperre:
-            abonnenten.append(q)
+def sende_schleife() -> None:
+    while True:
+        art, ereignis = ausgang.get()
+        anfrage = urllib.request.Request(
+            f"{DIENST}/{art}",
+            data=json.dumps(ereignis).encode(),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
         try:
-            while True:
-                try:
-                    art, e = q.get(timeout=15)
-                    self.wfile.write(
-                        f"event: {art}\ndata: {json.dumps(e)}\n\n".encode()
-                    )
-                except queue.Empty:
-                    self.wfile.write(b": still\n\n")
-                self.wfile.flush()
-        except (BrokenPipeError, ConnectionResetError):
-            pass
-        finally:
-            with abonnenten_sperre:
-                abonnenten.remove(q)
-
-    def do_POST(self):
-        if self.path != "/messung":
-            self.send_error(404)
-            return
-        laenge = int(self.headers.get("Content-Length", 0))
-        log.info("Messung Seite: %s", self.rfile.read(laenge).decode(errors="replace"))
-        self.send_response(204)
-        self.end_headers()
+            urllib.request.urlopen(anfrage, timeout=2).close()
+        except OSError as fehler:
+            if art == "geste":
+                log.warning("Geste nicht zugestellt (%s): %s", fehler, ereignis)
 
 
 def kamera_schleife() -> None:
@@ -101,8 +75,11 @@ def kamera_schleife() -> None:
     kamera.configure(
         kamera.create_video_configuration(
             main={"size": BILD, "format": "RGB888"},
-            # Die Kamera liegt beim Tischtest kopfüber; im Gehäuse ggf. anpassen.
-            transform=libcamera.Transform(hflip=1, vflip=1),
+            # Ohne Vorgabe wählt libcamera 1536x864, beim IMX708 ein Ausschnitt aus der Mitte.
+            # 2304x1296 ist gebinnt und behält den vollen Weitwinkel (bis 56 Bilder/s).
+            sensor={"output_size": SENSOR},
+            # Kabel nach unten wie im Gehäuse: keine Drehung. KAMERA_KOPFUEBER=1 für Kabel oben.
+            transform=libcamera.Transform(hflip=KOPFUEBER, vflip=KOPFUEBER),
             controls={
                 "FrameDurationLimits": (int(1e6 / BILDER_PRO_S),) * 2,
                 "AeExposureMode": libcamera.controls.AeExposureModeEnum.Short,
@@ -114,7 +91,7 @@ def kamera_schleife() -> None:
         vision.GestureRecognizerOptions(
             base_options=BaseOptions(model_asset_path=MODELL),
             running_mode=vision.RunningMode.VIDEO,
-            num_hands=1,
+            num_hands=2,
         )
     )
     gesten = Gestenerkenner()
@@ -135,19 +112,20 @@ def kamera_schleife() -> None:
                 verteile({}, "hand")
             continue
         statistik["mit_hand"] += 1
-        punkte = erg.hand_landmarks[0]
-        # Handmitte: Handgelenk und die Grundgelenke der Finger
-        mitte = [punkte[i] for i in (0, 5, 9, 13, 17)]
-        x = sum(p.x for p in mitte) / len(mitte)
-        y = sum(p.y for p in mitte) / len(mitte)
-        kategorie = erg.gestures[0][0] if erg.gestures and erg.gestures[0] else None
+        nr = gestenhand(erg.hand_landmarks)
+        punkte = erg.hand_landmarks[nr]
+        x, y = handmitte(punkte)
+        kategorie = (
+            erg.gestures[nr][0] if len(erg.gestures) > nr and erg.gestures[nr] else None
+        )
         ereignis = gesten.beobachte(
             Beobachtung(
                 t,
                 x,
                 y,
-                kategorie.category_name if kategorie else "",
-                kategorie.score if kategorie else 0.0,
+                # Die eigene Regel ersetzt MediaPipes "Open_Palm" (geste.FLACH_AB).
+                "Open_Palm" if flache_hand(punkte) else "",
+                1.0,
             )
         )
         if n % 3 == 0:
@@ -158,6 +136,12 @@ def kamera_schleife() -> None:
                     "y": round(y, 2),
                     "form": kategorie.category_name if kategorie else "",
                     "sicher": round(kategorie.score, 2) if kategorie else 0,
+                    # Nur zum Messen (GESTEN_PUNKTE=1): alle 21 Handpunkte.
+                    **(
+                        {"punkte": [[round(p.x, 3), round(p.y, 3)] for p in punkte]}
+                        if PUNKTE_MITSENDEN
+                        else {}
+                    ),
                 },
                 "hand",
             )
@@ -197,12 +181,9 @@ def main() -> None:
     logging.basicConfig(
         level=logging.INFO, format="%(levelname)s %(message)s", stream=sys.stdout
     )
-    threading.Thread(target=kamera_wache, daemon=True).start()
+    threading.Thread(target=sende_schleife, daemon=True).start()
     threading.Thread(target=statistik_schleife, daemon=True).start()
-    server = ThreadingHTTPServer(("127.0.0.1", PORT), partial(Handler, directory=SEITE))
-    server.daemon_threads = True
-    log.info("Kiosk-Seite aus %s auf http://localhost:%d/", SEITE, PORT)
-    server.serve_forever()
+    kamera_wache()
 
 
 if __name__ == "__main__":
