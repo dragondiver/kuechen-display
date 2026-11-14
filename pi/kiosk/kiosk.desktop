@@ -2,5 +2,5 @@
 Type=Application
 Name=Küchen-Display Kiosk
 Comment=Ruhebildschirm im Chromium-Kiosk (kuechen-display#15)
-Exec=sh -c 'sleep 8; exec sh "$HOME/kuechen-display/kiosk-start.sh"'
+Exec=sh -c 'sleep 8; exec sh /home/florian/kuechen-display/kiosk-start.sh'
 X-GNOME-Autostart-enabled=true
