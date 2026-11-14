@@ -60,18 +60,11 @@ ssh -t raspi-agent.local 'sudo install -D -m 644 /tmp/geraete.conf /etc/systemd/
 **3. Dateien auf den Pi und einrichten.**
 
 ```bash
-rsync -a --exclude __pycache__ --exclude 'test_*.py' pi/dienst pi/gesten pi/kiosk pi/werkzeuge pi/install-kiosk.sh kuechen-display.local:kuechen-display/
+pi/push.sh
 ```
 
-Die Bilder der Figur (F2) kommen aus den Entwürfen:
-
-```bash
-rsync -a docs/entwuerfe/figur/*-klein.png kuechen-display.local:kuechen-display/kiosk/figur/
-```
-
-```bash
-ssh -t kuechen-display.local 'bash ~/kuechen-display/install-kiosk.sh'
-```
+Das Skript spiegelt `pi/`, die Wetterbilder und die Figur (F2), ruft auf dem Pi
+`install-kiosk.sh` auf und lädt den Kiosk neu. Einzelheiten: `docs/deploy.md`.
 
 `install-kiosk.sh` legt `~/kuechen-venv` (nur `websockets`) und `~/gesten-venv` (MediaPipe) an,
 installiert beide Units, startet `kuechen-dienst` und lässt `kuechen-gesten` aus.

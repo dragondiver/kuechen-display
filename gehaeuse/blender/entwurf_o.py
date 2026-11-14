@@ -1,12 +1,25 @@
-"""Entwurf O (ohne senkrechte Lippe wie Braun RT 20: Frontplatte geht vom Boden schraeg nach oben; weisser Rahmen ueber dem Displayrand, nur die Bildflaeche sichtbar, Kamera im Rahmen. Basis N: wie M, plus schwarze Kameraleiste ueber dem Displayglas, Schraege dafuer 14 mm laenger; Basis M: wie L, 7 Zoll, plus Bedienspalte rechts: Ein/Aus-Taste und Lautstaerkeknopf, beide gleich grau, Ø 12 mm, Mulde nach innen, enger und unten in der Spalte, orange LED rechts neben der Taste (13.10.2026); Mikrofonleiste flach oben, Oeffnungen nach oben; offizielles Touch Display 2, 7″; sonst wie K; mit weich gekanteten Ober- und Unterkanten der Frontplatte wie beim Braun RT 20): Keilgehaeuse, 10-Zoll-Touchdisplay mit 60 Grad Neigung, Pi im Gehaeuse,
-ReSpeaker Flex XVF3800 Linear-4 als Mikrofonleiste in der oberen Blende, optionale Kamera.
+"""Entwurf O: Keilgehaeuse im Braun-Stil nach dem RT 20 fuer das Kuechen-Display (#1).
 
-Aufruf:  blender -b -P entwurf_d.py -- [quick] [ansicht ...]
-Ansichten: iso front side back top detail   (ohne Angabe: alle)
+Aktueller Entwurf (seit 15.10.2026). Mit `w75 acht` etwa 235 x 105 x 143 mm:
+- keine senkrechte Lippe, die Frontplatte laeuft vom Boden schraeg nach oben (75 Grad)
+- weisser Rahmen ueber dem Displayrand, sichtbar ist nur die Bildflaeche; Kamera mittig im Rahmen
+- Bedienspalte rechts: zwei graue Knoepfe (Ø 12 mm, oben Lautstaerke, unten Ein/Aus),
+  orange LED neben der Ein/Aus-Taste, mit `skala` die Leuchtleiste darueber (#7, #17)
+- Mikrofonleiste (reSpeaker Flex XVF3800 Linear-4) flach auf der Oberseite, Oeffnungen nach oben (#6)
+- Lautsprecher seitlich hinter Langloechern (#3)
+- mit `mantel`: Holzmantel an Seiten, Oberseite und Rueckdeckel
 
-Maße in Metern. Gesichert (Seeed-Wiki/Shop): Mikrofonabstand 33 mm, akustische Ports 7 mm,
-Linear-Platine ca. 115 mm lang (aus DXF abgelesen). Angenommen: Gehaeuse, Display (10,1 Zoll,
-sichtbar ca. 217 x 136 mm), Kamera, Lage der Lueftung und Buchsen.
+Aufruf:  blender -b -P entwurf_o.py -- w75 acht mantel skala [quick] [ansicht ...]
+Schalter: w<Grad> Neigung (ohne Angabe 60), acht = Waveshare 8inch DSI LCD (C) (ohne: 7 Zoll),
+          mantel, holz, schlitze, skala, innen, grau, weiss, schwarzfront
+Ansichten: iso front side back top detail   (ohne Angabe: iso front detail side)
+
+Maße in Metern. Gesichert: Mikrofonabstand 33 mm, akustische Ports 7 mm, Linear-Platine ca.
+115 mm lang (Seeed, aus DXF abgelesen); Display 8 Zoll aus der Waveshare-Zeichnung
+(referenz/8inch-dsi-lcd_c.pdf, nur lokal). Geschaetzt und nach dem Tischtest (#18) zu ersetzen:
+Rueckseite und Lochbild des Displays, Kernboard, Pi-Stapel mit UPS HAT, Lautsprecher, Kamera,
+Lage von Lueftung und Buchsen. Die frueheren Buchstaben (entwurf_c.py bis entwurf_n.py) sind
+die Entwurfsgeschichte.
 """
 import bpy, sys, math, os
 from mathutils import Vector
