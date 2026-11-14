@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Auf dem Pi: bash ~/kuechen-display/install-kiosk.sh   (idempotent, fragt sudo für die Dienste)
+# Vom Mac aus ruft pi/push.sh dieses Skript auf (docs/deploy.md).
 # Richtet Küchen-Dienst, Kameradienst und Chromium-Kiosk ein.
 # Anleitung: docs/stimme-und-geste.md und docs/kiosk-und-gesten.md
 set -euo pipefail

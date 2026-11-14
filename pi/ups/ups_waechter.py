@@ -22,8 +22,8 @@ import time
 import smbus
 
 ADRESSE = 0x2D
-ZELLE_LEER_MV = 3150   # wie Waveshare ups.py
-LADESTROM_MA = 50      # darunter gilt der Akku als "lädt nicht"
+ZELLE_LEER_MV = 3150  # wie Waveshare ups.py
+LADESTROM_MA = 50  # darunter gilt der Akku als "lädt nicht"
 TAKT_S = 2
 FRIST_S = 60
 STATUS = "/run/ups-waechter/status.json"
@@ -106,14 +106,20 @@ def main():
 
         status_schreiben(werte)
         if werte["modus"] != letzter_modus:
-            log(f"Zustand {werte['modus']}, Akku {werte['prozent']} %, {werte['akku_mv']} mV")
+            log(
+                f"Zustand {werte['modus']}, Akku {werte['prozent']} %, {werte['akku_mv']} mV"
+            )
             letzter_modus = werte["modus"]
 
-        leer = min(werte["zellen_mv"]) < ZELLE_LEER_MV and werte["akku_ma"] < LADESTROM_MA
+        leer = (
+            min(werte["zellen_mv"]) < ZELLE_LEER_MV and werte["akku_ma"] < LADESTROM_MA
+        )
         if leer:
             if leer_seit is None:
                 leer_seit = time.monotonic()
-                log(f"Zelle unter {ZELLE_LEER_MV} mV ({werte['zellen_mv']}), Abschalten in {FRIST_S} s, außer es wird geladen")
+                log(
+                    f"Zelle unter {ZELLE_LEER_MV} mV ({werte['zellen_mv']}), Abschalten in {FRIST_S} s, außer es wird geladen"
+                )
             elif time.monotonic() - leer_seit >= FRIST_S:
                 herunterfahren()
                 return 0

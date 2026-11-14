@@ -21,8 +21,7 @@ Die Entwürfe als Website (GitHub Pages, Ordner `docs/`): <https://dragondiver.g
 | `gehaeuse/blender/` | Gehäuse als Blender-Skripte, `entwurf_o.py` ist der aktuelle Stand; ältere Buchstaben sind die Entwurfsgeschichte |
 | `gehaeuse/referenz/` | nur lokal, nicht im Git: Maßzeichnung des Displays ([Waveshare 8inch DSI LCD (C)](https://www.waveshare.com/wiki/8inch_DSI_LCD_(C))) und Fotos des Braun RT 20 als Vorbild |
 | `docs/entwuerfe/` | Entwurfsseiten: Galerie, Entwurfsgeschichte, Hardware-Auswahl, Ruhebildschirm |
-| `oberflaeche/` | *kommt:* Browser-App für den Chromium-Kiosk (1280 × 800), #10, #15 |
-| `geraet/` | *kommt:* Einrichtung des Pi 5 (Kiosk, Dienste, Deploy) |
+| `pi/` | alles, was auf dem Pi 5 läuft: `kiosk/` (Ruhebildschirm für den Chromium-Kiosk, 1280 × 800, #10, #15), `dienst/` (Küchen-Dienst: Seite, Sprachweg zur rundfunk-Bridge, Ton), `gesten/` (Kameradienst, #2), `ups/` (Akku-Wächter, #9). Ausrollen mit `pi/push.sh`, Anleitung: [docs/deploy.md](docs/deploy.md) |
 | `werkzeuge/` | Hilfsskripte, z. B. `figur_bilder.py`: Elektras Figur in vier Zuständen per OpenAI-Bild-API aus einer Vorlage erzeugen (#15); `wetter_bilder.py`: Hintergrundbilder für sechs Wetterlagen mit dem Fernsehturm in der Kartenlücke (#15). Anleitung: [docs/bilder-erzeugen.md](docs/bilder-erzeugen.md); `stimme_proben.py`: Sprachproben mit Elektras Stimme Marin für die Projektseite, Anleitung: [docs/stimme-erzeugen.md](docs/stimme-erzeugen.md); `modell_exportieren.py`: 3D-Modell als `docs/projekt/modell.js` ([docs/projektseite.md](docs/projektseite.md)) |
 
 Gehäuse rendern (Blender im Hintergrund, Bilder landen in `gehaeuse/renders/`, nicht im Git):
@@ -34,8 +33,8 @@ blender -b -P gehaeuse/blender/entwurf_o.py -- w75 acht mantel skala
 ## Abgrenzung zu rundfunk
 
 Das Sprach-Gehirn (GPT-Live, Werkzeuge, Home Assistant, Nachrichten) lebt in
-[rundfunk](https://github.com/dragondiver/rundfunk). Wie das Display daran spricht,
-entscheidet [rundfunk#128](https://github.com/dragondiver/rundfunk/issues/128); dort
+[rundfunk](https://github.com/dragondiver/rundfunk). Das Display hängt als Netz-Gerät `kueche` an der rundfunk-Bridge
+([rundfunk#128](https://github.com/dragondiver/rundfunk/issues/128), [docs/stimme-und-geste.md](docs/stimme-und-geste.md)); in rundfunk
 bleiben auch rundfunk#134 (Stimmung) und rundfunk#135 (Gespräch wandert zwischen den Geräten).
 
 ## Alte Nummern
