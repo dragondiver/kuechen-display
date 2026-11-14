@@ -9,7 +9,7 @@ blättert die Seiten um. Termine und Wetter sind noch Platzhalter, nur Uhr und D
 
 | Teil | Datei im Repo | Auf dem Pi |
 |---|---|---|
-| Kiosk-Seite | `pi/kiosk/index.html` | `~/kuechen-display/kiosk/` |
+| Kiosk-Seite mit Schrift | `pi/kiosk/index.html`, `pi/kiosk/schrift/` | `~/kuechen-display/kiosk/` |
 | Wetterbild (W5, flach) | `docs/entwuerfe/wetter/flach/*.png` | `~/kuechen-display/kiosk/wetter/` |
 | Figur (F2) | `docs/entwuerfe/figur/*-klein.png` | `~/kuechen-display/kiosk/figur/` |
 | Küchen-Dienst: Seite und Ereignisse | `pi/dienst/dienst.py` | Dienst `kuechen-dienst` |
@@ -115,5 +115,7 @@ Die Kamera lag unter dem Display und schaute leicht nach oben, später sitzt sie
 - Hält die Hand zwischen zwei Wischern kurz flach und aufrecht inne, zählt das als Stopp.
 - Alle Werte stammen vom Schreibtisch. In der Küche hängt die Kamera über dem Display und die
   Abstände sind andere.
-- Schrift: Auf dem Pi gibt es weder SF Pro noch Helvetica. Chromium nimmt Nimbus Sans, die keinen
-  dünnen Schnitt hat.
+- Schrift: Die Seite bringt Hanken Grotesk mit (`pi/kiosk/schrift/`, eine Datei für alle Stärken,
+  Lizenz OFL, nur lateinische Zeichen). Auf dem Pi gibt es weder SF Pro noch Helvetica, und Nimbus
+  Sans hat keinen dünnen Schnitt. Die Wahl ist ein Vorschlag (#15) und am Display noch nicht
+  angesehen. Die Entwürfe in `docs/entwuerfe/ruhebildschirm.html` nutzen weiter die Apple-Systemschrift.

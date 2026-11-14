@@ -17,9 +17,13 @@
   ?debug=1   zeigt erkannte Gesten unten links an.
 -->
 <style>
+  /* Schrift liegt bei (schrift/, OFL): Auf dem Pi gibt es weder SF Pro noch Helvetica, und
+     Nimbus Sans hat keinen dünnen Schnitt für Uhr und Temperatur. Eine Datei für alle Stärken. */
+  @font-face { font-family: "Hanken Grotesk"; src: url("schrift/hanken-grotesk.woff2") format("woff2");
+               font-weight: 100 900; font-style: normal; font-display: block; }
   html, body { margin: 0; width: 1280px; height: 800px; overflow: hidden; background: #000; cursor: none; }
   .scr { position: absolute; top: 0; left: 0; width: 1280px; height: 800px; overflow: hidden;
-         font-family: -apple-system, "SF Pro Display", "Helvetica Neue", Helvetica, "Nimbus Sans", Arial, sans-serif; color: #fff; line-height: normal;
+         font-family: "Hanken Grotesk", "Nimbus Sans", sans-serif; color: #fff; line-height: normal;
          user-select: none; -webkit-user-select: none; }
   .scr * { box-sizing: border-box; }
   .wetterbild { position: absolute; inset: 0; width: 1280px; height: 800px; object-fit: cover; }
