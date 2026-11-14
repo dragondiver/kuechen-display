@@ -1,0 +1,17 @@
+[Unit]
+Description=Küchen-Display: Kiosk-Seite, Sprachweg zur Bridge, Ton (kuechen-display#15)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=florian
+WorkingDirectory=/home/florian/kuechen-display/dienst
+# pw-cat und wpctl brauchen die PipeWire-Sitzung des Desktop-Nutzers.
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+ExecStart=/home/florian/kuechen-venv/bin/python /home/florian/kuechen-display/dienst/dienst.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

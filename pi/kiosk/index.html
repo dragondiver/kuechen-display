@@ -71,13 +71,35 @@
            border: 1px solid rgba(255,255,255,.18); opacity: 0; transition: opacity .25s; pointer-events: none; }
   .stopp.an { opacity: 1; }
   .stopp svg { width: 88px; height: 88px; }
+  /* ===== Elektra: Figur F2 unten rechts (Entwurf ruhebildschirm.html) ===== */
+  .figur { position: absolute; right: 70px; bottom: 40px; width: 250px; height: 260px; overflow: visible; }
+  .figur .fb, .figur .kopf-f { opacity: 0; transition: opacity .3s; }
+  .figur .boegen path { fill: none; stroke: #f39a2b; stroke-linecap: round; stroke-width: 6; opacity: 0; transition: opacity .4s; }
+  .figur .boegen .b2 { stroke-width: 5; }
+  .scr:not([data-zustand="aus"]) .figur .kopf-f { opacity: 1; }
+  .scr[data-zustand="zuhoeren"] .figur .fb-zuhoeren,
+  .scr[data-zustand="nachdenken"] .figur .fb-nachdenken,
+  .scr[data-zustand="sprechen"] .figur .fb-sprechen-offen { opacity: 1; }
+  .scr[data-zustand="zuhoeren"] .figur .b1 { opacity: .45; } .scr[data-zustand="zuhoeren"] .figur .b2 { opacity: .2; }
+  .scr[data-zustand="sprechen"] .figur .b1 { opacity: 1; } .scr[data-zustand="sprechen"] .figur .b2 { opacity: .7; }
+  .figur .mikro { cursor: pointer; transition: opacity .3s; }
+  .scr[data-zustand="aus"] .figur .mikro { opacity: .55; }
+  .scr[data-verbunden="nein"] .figur .mikro { opacity: .2; }
+  .scr:not([data-zustand="aus"]) .figur .mikro circle { filter: drop-shadow(0 0 8px rgba(243,154,43,.9)); }
+  .figur .tippflaeche { fill: transparent; cursor: pointer; }
+  .zeile { position: absolute; right: 340px; bottom: 70px; max-width: 560px; padding: 22px 30px; font-size: 28px; line-height: 1.3;
+           opacity: 0; transition: opacity .3s; pointer-events: none;
+           display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .zeile.an { opacity: 1; }
+  .zeile.nutzer { font-style: italic; opacity: 0; }
+  .zeile.nutzer.an { opacity: .85; }
   .debug { position: absolute; left: 16px; bottom: 16px; font: 16px/1.3 "DejaVu Sans Mono", monospace; background: rgba(0,0,0,.55); padding: 6px 10px; border-radius: 8px; display: none; }
   .debug.an { display: block; }
   .debug .hand { opacity: .75; }
 </style>
 </head>
 <body>
-<div class="scr" id="scr" style="--seite:2">
+<div class="scr" id="scr" style="--seite:2" data-zustand="aus" data-verbunden="nein">
   <img class="wetterbild" src="wetter/gedaempft.png" alt="">
   <div class="bahn" id="bahn">
     <div class="seite"><div class="raster">
@@ -147,6 +169,29 @@
   </div>
   <div class="punkte" id="punkte"><i></i><i></i><i class="an"></i><i></i></div>
   <div class="stopp" id="stopp" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 34V16a3 3 0 0 1 6 0v14M28 30V12a3 3 0 0 1 6 0v18M34 30V14a3 3 0 0 1 6 0v18M40 32v-10a3 3 0 0 1 6 0v18c0 9-6 16-15 16-6 0-10-3-13-8l-6-10a3 3 0 0 1 5-3l3 4"/></svg></div>
+  <div class="glas zeile" id="zeile"></div>
+  <svg class="figur" id="figur" viewBox="0 0 240 250" aria-label="Elektra">
+    <defs><clipPath id="fkreis"><circle cx="120" cy="112" r="92"/></clipPath></defs>
+    <g class="kopf-f">
+      <circle cx="120" cy="112" r="92" fill="rgba(246,242,236,.93)"/>
+      <g class="boegen">
+        <path class="b1" d="M26 84 Q12 112 26 140"/><path class="b2" d="M12 72 Q-6 112 12 152"/>
+        <path class="b1" d="M214 84 Q228 112 214 140"/><path class="b2" d="M228 72 Q246 112 228 152"/>
+      </g>
+      <g clip-path="url(#fkreis)">
+        <image class="fb fb-zuhoeren" href="figur/zuhoeren-klein.png" x="22" y="18" width="196" height="196"/>
+        <image class="fb fb-sprechen-offen" href="figur/sprechen-offen-klein.png" x="22" y="18" width="196" height="196"/>
+        <image class="fb fb-nachdenken" href="figur/nachdenken-klein.png" x="22" y="18" width="196" height="196"/>
+      </g>
+      <circle class="tippflaeche" cx="120" cy="112" r="92"/>
+    </g>
+    <g class="mikro">
+      <circle cx="120" cy="214" r="30" fill="transparent"/>
+      <circle cx="120" cy="214" r="21" fill="#fff" stroke="#f39a2b" stroke-width="3"/>
+      <rect x="115" y="202" width="10" height="16" rx="5" fill="#3c3f46"/>
+      <path d="M110 212 Q120 228 130 212 M120 222 V227 M114 227 H126" fill="none" stroke="#3c3f46" stroke-width="2.5" stroke-linecap="round"/>
+    </g>
+  </svg>
   <div class="debug" id="debug"></div>
 </div>
 <script>
@@ -194,7 +239,7 @@
     start = null;
   });
 
-  // Flache Hand: Stopp. Noch gibt es nichts anzuhalten, also nur die Rückmeldung.
+  // Flache Hand: Stopp. Die Rückmeldung zeigt die Seite, angehalten wird im Dienst (Wiedergabe, Bridge).
   const stoppZeichen = document.getElementById('stopp');
   let stoppAus = null;
   function stopp() {
@@ -203,7 +248,16 @@
     stoppAus = setTimeout(function () { stoppZeichen.classList.remove('an'); }, 900);
   }
 
-  // Gesten vom Gestendienst (pi/gesten/gesten.py)
+  // Ereignisse vom Küchen-Dienst (pi/dienst/dienst.py): Gesten, Elektras Zustand, Befehle
+  function melde(pfad, daten) {
+    return fetch(pfad, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(daten || {}) });
+  }
+  const zeile = document.getElementById('zeile');
+  function zeigeZeile(rolle, text) {
+    zeile.textContent = text;
+    zeile.classList.toggle('nutzer', rolle === 'nutzer');
+    zeile.classList.toggle('an', !!text);
+  }
   const quelle = new EventSource('/ereignisse');
   quelle.addEventListener('hand', function (e) {
     const h = JSON.parse(e.data);
@@ -215,6 +269,34 @@
     zeigeDebug(g.art + (g.richtung ? ' ' + g.richtung : ''));
     if (g.art === 'wischen') wischen(g.richtung);
     else if (g.art === 'stopp') stopp();
+  });
+  quelle.addEventListener('verbindung', function (e) {
+    scr.dataset.verbunden = JSON.parse(e.data).da ? 'ja' : 'nein';
+  });
+  quelle.addEventListener('zustand', function (e) {
+    const wert = JSON.parse(e.data).wert;
+    scr.dataset.zustand = wert;
+    zeigeDebug('Elektra: ' + wert);
+    if (wert === 'aus') zeigeZeile('', '');
+  });
+  quelle.addEventListener('text', function (e) {
+    const t = JSON.parse(e.data);
+    zeigeZeile(t.rolle, t.text);
+  });
+  // Befehle, die Elektra per Werkzeug schickt (rundfunk: server._oberflaechen_werkzeuge)
+  const SEITEN = { apps: 1, heute: HEUTE, morgen: LETZTE };
+  quelle.addEventListener('befehl', function (e) {
+    const b = JSON.parse(e.data);
+    zeigeDebug('Befehl ' + b.name + ' ' + JSON.stringify(b.argumente));
+    let fehler = null;
+    if (b.name === 'seite_zeigen' && b.argumente.seite in SEITEN) setzeSeite(SEITEN[b.argumente.seite]);
+    else if (b.name === 'rezeptschritt') fehler = 'Es ist kein Rezept offen.';
+    else fehler = 'Das kann die Anzeige noch nicht: ' + b.name;
+    melde('/quittung', fehler ? { id: b.id, ok: false, fehler: fehler } : { id: b.id, ok: true });
+  });
+  // Tipp aufs Mikrofon oder auf die Figur: Gespräch beginnen bzw. Elektra anhalten.
+  document.getElementById('figur').addEventListener('click', function (e) {
+    if (e.target.closest('.mikro, .tippflaeche')) melde('/tipp');
   });
 
   // Messung der Bildrate: Abstände zwischen Frames während des Gleitens und in Ruhe.
