@@ -36,7 +36,7 @@ ORDNER = Path("docs/entwuerfe/figur")
 VORLAGE = ORDNER / "vorlage-pferdeschwanz.png"
 # Linke Figur („Agent hört zu“) aus Florians Vorlage vom 19.10.2026, 1254 × 1254 px.
 AUSSCHNITT = (30, 250, 610, 830)
-MODELL = "gpt-image-2.5-sunburst"  # Standard der Bild-API im Oktober 2026
+MODELL = "gpt-image-2.6-sunburst"  # seit 15.11.2026, vorher 2.5-sunburst
 KLEIN_PX = 256
 
 GRUNDREGELN = (

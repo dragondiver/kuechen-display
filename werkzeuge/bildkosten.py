@@ -1,6 +1,6 @@
 """Verbrauch und Kosten der Bild-API mitschreiben (für figur_bilder.py und wetter_bilder.py).
 
-Preise laut OpenAI-Preisseite für gpt-image-2.5 (Stand Oktober 2026), in US-Dollar
+Preise laut OpenAI-Preisseite für gpt-image-2.6 (Stand 15.11.2026, gleich wie 2.5), in US-Dollar
 pro Million Tokens. Ändern sich die Preise, hier anpassen.
 """
 

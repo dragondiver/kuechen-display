@@ -52,7 +52,7 @@ Mikrofon und Text: Diese Teile zeichnet die Oberfläche selbst.
 5. Bilder per PR ins Repo bringen (main ist geschützt).
 
 **Optionen:** `--qualitaet low|medium|high`, `--modell <name>` (Standard
-`gpt-image-2.5-sunburst`), `--vorlage <datei>`, `--ohne-ausschnitt`.
+`gpt-image-2.6-sunburst`), `--vorlage <datei>`, `--ohne-ausschnitt`.
 
 **Erster Lauf:** 19.10.2026, Ergebnis ist Entwurf F2, von Florian als Elektras Figur gewählt.
 
@@ -156,8 +156,8 @@ Lücke. „Gedämpft“ zeigt noch feine Regenstriche aus dem Grundbild. Im Entw
 
 Beide Skripte schreiben nach jedem Bild die verbrauchten Tokens und die Kosten in
 [`docs/bild-laeufe.md`](bild-laeufe.md) und geben sie aus. Grundlage sind die Tokens aus
-der API-Antwort und die Preise in `werkzeuge/bildkosten.py` (gpt-image-2.5, Stand
-Oktober 2026: Bild ein 8 $, Text ein 5 $, Bild aus 30 $ je Million Tokens). Die
+der API-Antwort und die Preise in `werkzeuge/bildkosten.py` (gpt-image-2.6, Stand
+15.11.2026, gleich wie 2.5: Bild ein 8 $, Text ein 5 $, Bild aus 30 $ je Million Tokens). Die
 ersten beiden Läufe am 19.10.2026 sind dort nicht drin, weil das Protokoll erst danach
 kam. Geschätzt kosteten sie zusammen unter einen Euro.
 

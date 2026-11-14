@@ -37,7 +37,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ORDNER = Path("docs/entwuerfe/wetter")
-MODELL = "gpt-image-2.5-sunburst"
+MODELL = "gpt-image-2.6-sunburst"
 BREITE, HOEHE = 1280, 800
 # Glaskarten im Startbild (Entwurf C, 1280 × 800): links 48–688, rechts 772–1232.
 KARTE_LINKS = (48, 48, 688, 752)
