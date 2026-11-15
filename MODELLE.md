@@ -17,7 +17,7 @@ neue Bilder gebraucht werden; den Schlüssel dafür liefert `../rundfunk/.env`.
 | Stelle | Zweck | Anbieter | Code | Gerät | Denken |
 |---|---|---|---|---|---|
 | `pi/dienst/diktat.py` `MODELL` | Diktat ins Suchfeld: Ton zu Text, Sprachen Deutsch und Englisch | OpenAI Transkription (`/v1/audio/transcriptions`) | `gpt-transcribe` (Unit-Variable `DIKTAT_MODELL`) | Default, nicht gesetzt (15.11.2026) | – |
-| `pi/dienst/diktat.py` `TEXT_MODELL` | Suchbegriff aus einem gesprochenen Satz („spiel mir was von Queen“ → „Queen“); nur ab vier Wörtern, der Code prüft das Ergebnis | OpenAI Responses (`/v1/responses`) | `gpt-6-luna` (Unit-Variable `DIKTAT_TEXT_MODELL`) | Default, nicht gesetzt (15.11.2026) | `none` (`TEXT_DENKEN`) |
+| `pi/dienst/diktat.py` `TEXT_MODELL` | Suchbegriff aus einem gesprochenen Satz („spiel mir was von Queen“ → „Queen“); nur ab vier Wörtern, der Code prüft das Ergebnis | OpenAI Responses (`/v1/responses`) | `gpt-6-luna` (Unit-Variable `DIKTAT_TEXT_MODELL`) | Default, nicht gesetzt (15.11.2026) | `none` (`TEXT_DENKEN`), Stufe `priority` (`TEXT_STUFE`, Messung im Code) |
 | `werkzeuge/wetter_bilder.py` `MODELL` | Hintergrundbilder des Ruhebildschirms für sechs Wetterlagen (kein Laufzeitcode) | OpenAI Bild-API | `gpt-image-2.6-sunburst` | – | – |
 | `werkzeuge/figur_bilder.py` `MODELL` | Elektras Figur in vier Zuständen für den Ruhebildschirm (kein Laufzeitcode) | OpenAI Bild-API | `gpt-image-2.6-sunburst` | – | – |
 | `werkzeuge/stimme_proben.py` `MODELL` | Sprachproben mit Elektras Stimme für die Projektseite `docs/projekt/` (kein Laufzeitcode) | OpenAI Sprachausgabe (`/v1/audio/speech`) | `gpt-4o-mini-tts`, Stimme `marin` | – | – |

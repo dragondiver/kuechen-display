@@ -69,7 +69,8 @@ Wer einen ganzen Satz sagt („spiel mir was von Queen“), bekommt nur den Such
 (Florian, 15.11.2026). Ab vier Wörtern fragt der Dienst `gpt-6-luna`, was davon gesucht ist. Der
 Code nimmt die Antwort nur, wenn sie kurz ist, einzeilig und mindestens ein Wort mit dem Gesagten
 teilt. Sonst, und wenn das Modell nicht antwortet, kommt der erkannte Satz ins Feld. Bis drei Wörter
-geht der Text ohne Modell durch, das ist dann schon ein Name. Die Anfrage kostet ungefähr 0,0025 Cent.
+geht der Text ohne Modell durch, das ist dann schon ein Name. Die Anfrage läuft über OpenAIs Priority-Stufe, weil die Standardstufe
+bei Messungen vom Pi bis 4,3 s brauchte, Priority höchstens 1,1 s. Sie kostet ungefähr 0,005 Cent.
 
 Die Pause misst der Pegel: Der Boden ist das 10. Perzentil der Rahmen vor dem Sprechen. Sprache
 heißt drei Rahmen (180 ms) mindestens 15 dB über dem Boden, Ruhe heißt unter Boden + 8 dB. Die

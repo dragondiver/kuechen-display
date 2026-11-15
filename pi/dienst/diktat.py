@@ -30,6 +30,9 @@ MODELL = "gpt-transcribe"
 TEXT_ADRESSE = "https://api.openai.com/v1/responses"
 TEXT_MODELL = "gpt-6-luna"
 TEXT_DENKEN = "none"  # einfache Aufgabe, jede Zehntelsekunde zählt
+# Gemessen 15.11.2026 vom Pi, je 8 Anfragen: Standard 0,8–4,3 s, Priority 0,5–1,1 s.
+# Kostet das Doppelte, bei rund 110 Token pro Suche trotzdem unter 0,01 Cent.
+TEXT_STUFE = "priority"
 KURZ_WOERTER = 3  # so kurz ist es schon ein Name; dann ohne Modell
 BEGRIFF_MAX = 80
 ANWEISUNG = (
@@ -225,6 +228,7 @@ def suchbegriff(
             "instructions": ANWEISUNG,
             "input": text,
             "reasoning": {"effort": TEXT_DENKEN},
+            "service_tier": TEXT_STUFE,
             "max_output_tokens": 60,
             "store": False,
         }
