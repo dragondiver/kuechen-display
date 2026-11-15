@@ -15,6 +15,7 @@ blättert die Seiten um. Uhr, Datum und Wetter sind echt (`docs/datenweg.md`), d
 | Küchen-Dienst: Seite und Ereignisse | `pi/dienst/dienst.py` | Dienst `kuechen-dienst` |
 | Kameradienst | `pi/gesten/gesten.py`, `geste.py` | Dienst `kuechen-gesten`, nur beim Testen an |
 | Rückweg-Leiste auf App-Seiten (#10) | `pi/kiosk-rueckweg/` | `~/kuechen-display/kiosk-rueckweg/`, siehe `docs/spotify.md` |
+| Fensterregel und Panel (Bildschirmtastatur) | `pi/kiosk/labwc-rc.xml`, `pi/kiosk/wf-panel-pi.ini` | `~/.config/labwc/rc.xml`, `~/.config/wf-panel-pi/wf-panel-pi.ini` |
 | Chromium-Autostart | `pi/kiosk/kiosk.desktop`, `pi/kiosk-start.sh` | `~/.config/autostart/kiosk.desktop`, `~/kuechen-display/kiosk-start.sh` |
 | Deploy vom Mac | `pi/push.sh` | – |
 | Einrichtung | `pi/install-kiosk.sh` | `~/kuechen-display/install-kiosk.sh` |
@@ -55,6 +56,33 @@ pi/push.sh
 
 Siehe `docs/deploy.md`. Die erste Einrichtung (Token, Gerätewerte der Bridge) steht in
 `docs/stimme-und-geste.md`.
+
+## Bildschirmtastatur
+
+Tippt man in ein Textfeld (zum Beispiel die Suche im Spotify-Player), geht unten die
+Bildschirmtastatur von Pi OS auf (squeekboard, deutsches Layout). Sie läuft schon von Haus aus.
+Damit sie sichtbar wird, braucht es drei Dinge, eingerichtet von `pi/install-kiosk.sh` und
+`pi/kiosk-start.sh`:
+
+- Chromium startet mit `--enable-wayland-ime --wayland-text-input-version=3`. Ohne diese Flags
+  meldet Chromium squeekboard kein Textfeld.
+- Kein `--kiosk`. Im Vollbild blendet labwc die Layer-Shell-Ebene aus, in der squeekboard liegt.
+  squeekboard meldete dann „sichtbar“, auf dem Bildschirm war aber nichts (15.11.2026).
+- Stattdessen maximiert eine labwc-Fensterregel (`pi/kiosk/labwc-rc.xml`, für alle Fenster
+  `chrom*`) Chromium ohne Titelleiste, und das Panel blendet sich aus (`autohide=true` in
+  `pi/kiosk/wf-panel-pi.ini`).
+
+`install-kiosk.sh` legt beide Dateien nur ab, wenn sie sich unterscheiden. Beim ersten Mal sichert
+es die alte Datei als `*.vor-kiosk`, lädt labwc neu (`kill -HUP`) und startet das Panel neu.
+
+Von Hand ein- und ausblenden (zum Prüfen ohne Finger):
+
+```bash
+ssh kuechen-display.local 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus busctl --user call sm.puri.OSK0 /sm/puri/OSK0 sm.puri.OSK0 SetVisible b true'
+```
+
+Bekannt: Oben bleibt ein Streifen von etwa 5 px vom ausgeblendeten Panel sichtbar. Berührt man
+ihn, fährt das Panel herunter.
 
 ## Kiosk sofort neu starten
 

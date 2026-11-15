@@ -16,11 +16,15 @@ while [ "$n" -lt 30 ] && ! curl -s -o /dev/null --max-time 2 http://localhost:80
   sleep 1
 done
 
+# Kein --kiosk: Im Vollbild läge der Kiosk über der Bildschirmtastatur. Randlos und maximiert
+# macht ihn die labwc-Fensterregel (kiosk/labwc-rc.xml). Die beiden Wayland-IME-Flags lassen
+# Chromium mit squeekboard reden, sonst geht die Tastatur nie auf (Test 15.11.2026).
 # Rückweg-Leiste oben links auf Seiten, die aus der Apps-Seite geöffnet werden (#10, docs/spotify.md).
 RUECKWEG="$(cd "$(dirname "$0")" && pwd)/kiosk-rueckweg"
 
-exec chromium --kiosk --noerrdialogs --disable-infobars --no-first-run \
+exec chromium --noerrdialogs --disable-infobars --no-first-run \
   --password-store=basic --ozone-platform=wayland --touch-events=enabled \
   --overscroll-history-navigation=0 --lang=de-DE --disable-features=Translate \
   --autoplay-policy=no-user-gesture-required --load-extension="$RUECKWEG" \
+  --enable-wayland-ime --wayland-text-input-version=3 \
   "--app=http://localhost:8080/${1:-}"

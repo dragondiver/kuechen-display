@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+  labwc-Einstellungen für das Küchen-Display, install-kiosk.sh legt sie nach ~/.config/labwc/rc.xml.
+  Touch: Der Goodix-Touch gehört zum DSI-Display und kommt als Maus an (Wischen = Pointer-Ziehen).
+  Fenster: Der Kiosk läuft nicht im Vollbild, sonst verdeckt er die Bildschirmtastatur
+  (squeekboard liegt in der Layer-Shell-Ebene „top“, die labwc bei Vollbild ausblendet).
+  Stattdessen wird Chromium randlos maximiert. Anleitung: docs/kiosk-und-gesten.md
+-->
+<openbox_config xmlns="http://openbox.org/3.4/rc">
+	<touch deviceName="10-0014 Goodix Capacitive TouchScreen" mapToOutput="DSI-1" mouseEmulation="yes"/>
+	<windowRules>
+		<windowRule identifier="chrom*" serverDecoration="no">
+			<action name="Maximize"/>
+		</windowRule>
+	</windowRules>
+</openbox_config>
