@@ -152,7 +152,9 @@ class Ablage:
     niemand innerhalb von FRIST_S, bekommt die Bridge eine Fehler-Quittung.
     """
 
-    FRIST_S = 4.0
+    # Unter der Frist der Bridge (rundfunk BEFEHL_FRIST_S = 3 s), sonst führt die App einen
+    # Befehl aus, für den Elektra schon „keine Antwort“ gesagt hat (verifier zu #71).
+    FRIST_S = 2.5
     # So lange nach der letzten Abfrage gilt eine App als vorn. Die Erweiterung fragt jede
     # Sekunde; die Kiosk-Seite meldet ihr Kommen über /ereignisse (kiosk_vorn).
     APP_WEG_S = 2.5
@@ -160,14 +162,28 @@ class Ablage:
     def __init__(self) -> None:
         self.befehle: list[tuple[float, dict]] = []
         self.app_zuletzt: float | None = None
+        # Die Kiosk-Seite meldet beim Verlassen /weg. Ihr SSE-Abonnent gilt sonst noch bis zu 15 s
+        # als lebendig, und ein Befehl ginge an eine Seite, die es nicht mehr gibt.
+        self.kiosk_weg = False
 
     def app_meldet(self, jetzt: float) -> None:
         self.app_zuletzt = jetzt
 
-    def kiosk_vorn(self) -> None:
+    def kiosk_vorn(self, jetzt: float) -> list[dict]:
+        """Eine Kiosk-Seite hat sich verbunden. Gibt die Befehle zurück, die noch gelten; die
+        bekommt sie gleich (Neuladen, Rückkehr aus einer App)."""
         self.app_zuletzt = None
+        self.kiosk_weg = False
+        offen = [b for zeit, b in self.befehle if jetzt - zeit < self.FRIST_S]
+        self.befehle = [(z, b) for z, b in self.befehle if jetzt - z >= self.FRIST_S]
+        return offen
+
+    def kiosk_geht(self) -> None:
+        self.kiosk_weg = True
 
     def app_vorn(self, jetzt: float) -> bool:
+        if self.kiosk_weg:
+            return True
         return (
             self.app_zuletzt is not None and jetzt - self.app_zuletzt < self.APP_WEG_S
         )

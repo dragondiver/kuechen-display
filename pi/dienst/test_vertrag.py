@@ -186,5 +186,27 @@ def test_app_gilt_kurz_nach_der_abfrage_als_vorn():
 def test_kiosk_seite_loest_app_sofort_ab():
     a = Ablage()
     a.app_meldet(10.0)
-    a.kiosk_vorn()
+    a.kiosk_vorn(10.0)
     assert not a.app_vorn(10.1)
+
+
+def test_frist_liegt_unter_der_der_bridge():
+    # rundfunk netzgeraet.BEFEHL_FRIST_S = 3.0
+    assert Ablage.FRIST_S < 3.0
+
+
+def test_verlassene_kiosk_seite_gilt_als_weg_bis_eine_neue_kommt():
+    a = Ablage()
+    a.kiosk_geht()
+    assert a.app_vorn(100.0)  # auch ohne Abfrage einer App
+    a.kiosk_vorn(100.0)
+    assert not a.app_vorn(100.0)
+
+
+def test_neue_kiosk_seite_bekommt_wartende_befehle():
+    a = Ablage()
+    a.ablegen({"id": 1}, 10.0)
+    a.ablegen({"id": 2}, 10.0 + Ablage.FRIST_S + 0.5)
+    assert a.kiosk_vorn(10.0 + Ablage.FRIST_S + 1) == [{"id": 2}]
+    assert a.abholen(10.0 + Ablage.FRIST_S + 1) is None
+    assert a.abgelaufen(100.0) == [{"id": 1}]

@@ -167,7 +167,8 @@
       setze('hoert', 'Hört zu …');
       // Der Dienst beendet die Aufnahme selbst nach einer Pause (oder auf Tipp) und antwortet
       // dann erst mit dem Text.
-      melde('/diktat/ergebnis').then(function (e) {
+      hoertSeit = Date.now();
+      melde('/diktat/ergebnis', { id: a.daten.id }).then(function (e) {
         if (!e.ok) return fehler(e.daten.fehler || 'Die Spracherkennung ging nicht.');
         einsetzen(e.daten.text || '');
         setze('bereit', BEREIT);
@@ -179,10 +180,20 @@
     melde('/diktat/stopp');
   }
   // Aus /lage: Hat der Dienst die Aufnahme beendet, läuft die Erkennung.
-  diktatLage = function (laeuft) { if (stand === 'hoert' && !laeuft) setze('denkt', 'Erkenne …'); };
+  // Eine /lage-Antwort, die vor dem Start abgeschickt wurde, sagt noch „läuft nicht“: erst nach
+  // anderthalb Sekunden glauben.
+  let hoertSeit = 0;
+  diktatLage = function (laeuft) {
+    if (stand === 'hoert' && !laeuft && Date.now() - hoertSeit > 1500) setze('denkt', 'Erkenne …');
+  };
   function einsetzen(text) {
     text = text.trim().replace(/[.!?]+$/, '');
-    if (!text || !feld) return;
+    if (!text) return;
+    if (!feld || !feld.isConnected) {
+      // Spotify hat die Suche inzwischen zugemacht: über die Such-Adresse statt ins Leere.
+      if (location.host === 'open.spotify.com') location.href = 'https://open.spotify.com/search/' + encodeURIComponent(text);
+      return;
+    }
     feld.focus();
     // Über den Setter des Prototyps, damit React (Spotify) die Änderung als Eingabe bemerkt.
     const proto = feld.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;

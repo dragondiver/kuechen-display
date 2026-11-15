@@ -130,3 +130,14 @@ def test_formular_hat_felder_und_datei():
         b'name="file"; filename="diktat.wav"\r\nContent-Type: audio/wav\r\n\r\nWAVDATEN\r\n'
         in rumpf
     )
+
+
+def test_neuer_start_weckt_altes_ergebnis_und_zaehlt_weiter():
+    # verifier zu #72: Ein zweites Diktat (Seite neu geladen) darf den Ton nicht an ein
+    # veraltetes „ergebnis“ verlieren. Die Nummer zeigt dem alten, dass es leer ausgeht.
+    a = Aufnahme(RATE)
+    erste = a.start()
+    assert not a.fertig.is_set()
+    zweite = a.start()
+    assert zweite == erste + 1
+    assert a.aktiv and not a.fertig.is_set()

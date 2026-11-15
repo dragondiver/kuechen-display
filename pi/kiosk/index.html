@@ -264,7 +264,7 @@
 
   // Ereignisse vom Küchen-Dienst (pi/dienst/dienst.py): Gesten, Elektras Zustand, Befehle
   function melde(pfad, daten) {
-    return fetch(pfad, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(daten || {}) });
+    return fetch(pfad, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Kuechen': '1' }, body: JSON.stringify(daten || {}) });
   }
   const zeile = document.getElementById('zeile');
   function zeigeZeile(rolle, text) {
@@ -272,6 +272,9 @@
     zeile.classList.toggle('nutzer', rolle === 'nutzer');
     zeile.classList.toggle('an', !!text);
   }
+  // Beim Verlassen (App öffnen, Neuladen) dem Dienst Bescheid geben, sonst schickt er Befehle
+  // noch bis zu 15 s an diese Seite (verifier zu #71).
+  addEventListener('pagehide', function () { navigator.sendBeacon('/weg'); });
   const quelle = new EventSource('/ereignisse');
   quelle.addEventListener('hand', function (e) {
     const h = JSON.parse(e.data);

@@ -103,6 +103,14 @@ ws = None  # aktuelle Leitung zur Bridge oder None
 # Befehle für eine offene App ohne Kiosk-Seite; die Rückweg-Erweiterung holt sie über /lage (#70).
 ablage = Ablage()
 ablage_sperre = threading.Lock()
+GESCHUETZT = {
+    "/tipp",
+    "/stopp",
+    "/quittung",
+    "/diktat/start",
+    "/diktat/stopp",
+    "/diktat/ergebnis",
+}
 # Diktat ins Suchfeld (#70), ohne Elektra; der Schlüssel kommt aus dem 1Password-Environment.
 aufnahme = Aufnahme(RATE)
 aufnahme_sperre = threading.Lock()
@@ -166,13 +174,19 @@ def ausfuehren(aktionen: list[Aktion]) -> None:
                 log.info("Befehl %s für die App bereitgelegt", daten.get("name"))
                 with ablage_sperre:
                     ablage.ablegen(daten, time.monotonic())
-                threading.Timer(Ablage.FRIST_S + 0.5, ablage_aufraeumen).start()
+                zeitgeber = threading.Timer(Ablage.FRIST_S + 0.5, ablage_aufraeumen)
+                zeitgeber.daemon = True
+                zeitgeber.start()
 
 
 def ablage_aufraeumen() -> None:
     """Befehle, die keine App abgeholt hat: laut zurückmelden."""
-    with ablage_sperre:
-        alt = ablage.abgelaufen(time.monotonic())
+    try:
+        with ablage_sperre:
+            alt = ablage.abgelaufen(time.monotonic())
+    except Exception:
+        log.exception("Ablage aufräumen")
+        return
     for befehl in alt:
         an_bruecke(
             {
@@ -194,7 +208,7 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path != "/ereignisse":
             return super().do_GET()
         with ablage_sperre:
-            ablage.kiosk_vorn()
+            offen = ablage.kiosk_vorn(time.monotonic())
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
@@ -205,6 +219,9 @@ class Handler(SimpleHTTPRequestHandler):
         # Neue Seite: gleich den aktuellen Stand, damit nach einem Neuladen nichts falsch steht.
         q.put(("verbindung", {"da": ws is not None}))
         q.put(("zustand", {"wert": leitung.zustand}))
+        for befehl in offen:
+            log.info("Befehl %s an die neue Kiosk-Seite", befehl.get("name"))
+            q.put(("befehl", befehl))
         for art, e in list(letzte_daten.items()):
             q.put((art, e))
         try:
@@ -255,9 +272,14 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(roh)
 
-    def diktat(self, schritt: str) -> None:
-        """start: Aufnahme an. stopp: Aufnahme aus (Tipp). ergebnis: wartet, bis die Aufnahme
-        endet (Ruhe, Tipp, Frist), und gibt den erkannten Text zurück."""
+    def diktat(self, schritt: str, daten: dict) -> None:
+        """start: Aufnahme an, Antwort mit ihrer Nummer. stopp: Aufnahme aus (Tipp).
+        ergebnis {id}: wartet, bis diese Aufnahme endet (Ruhe, Tipp, Frist), und gibt den
+        erkannten Text zurück; für eine veraltete Nummer sofort leeren Text."""
+        if schritt == "stopp":
+            with aufnahme_sperre:
+                aufnahme.beenden("Tipp")
+            return self.antworte(200, {})
         schluessel = geheimnis("OPENAI_API_KEY", OPENAI_DATEI)
         if not schluessel:
             return self.antworte(
@@ -265,15 +287,15 @@ class Handler(SimpleHTTPRequestHandler):
             )
         if schritt == "start":
             with aufnahme_sperre:
-                aufnahme.start()
-            log.info("Diktat: Aufnahme läuft")
-            return self.antworte(200, {})
-        if schritt == "stopp":
+                nummer = aufnahme.start()
+            log.info("Diktat: Aufnahme %d läuft", nummer)
+            return self.antworte(200, {"id": nummer})
+        if not aufnahme.fertig.wait(timeout=MAX_S + 2):
             with aufnahme_sperre:
-                aufnahme.beenden("Tipp")
-            return self.antworte(200, {})
-        aufnahme.fertig.wait(timeout=MAX_S + 2)
+                aufnahme.beenden("Zeit abgelaufen")  # Mikrofon lieferte nichts mehr
         with aufnahme_sperre:
+            if daten.get("id") != aufnahme.nummer:
+                return self.antworte(200, {"text": ""})
             ton = aufnahme.nehmen()
             grund, boden, spitze = aufnahme.grund, aufnahme.boden_db, aufnahme.spitze()
         dauer = aufnahme.sekunden(ton)
@@ -304,8 +326,21 @@ class Handler(SimpleHTTPRequestHandler):
             daten = json.loads(roh) if roh else {}
         except json.JSONDecodeError:
             daten = {}
+        # Was Mikrofon oder Elektra auslöst, nur mit eigenem Header. Eine fremde Webseite im Kiosk
+        # kann ihn nicht ohne Vorabfrage (OPTIONS, beantwortet der Dienst nicht) mitschicken;
+        # ohne ihn könnte sie per no-cors-POST das Mikrofon öffnen (verifier zu #71).
+        if self.path in GESCHUETZT and self.headers.get("X-Kuechen") != "1":
+            self.send_error(403)
+            return
+        if self.path == "/weg":
+            # sendBeacon der Kiosk-Seite beim Verlassen (kein eigener Header möglich)
+            with ablage_sperre:
+                ablage.kiosk_geht()
+            self.send_response(204)
+            self.end_headers()
+            return
         if self.path in ("/diktat/start", "/diktat/stopp", "/diktat/ergebnis"):
-            return self.diktat(self.path.rsplit("/", 1)[1])
+            return self.diktat(self.path.rsplit("/", 1)[1], daten)
         if self.path == "/tipp":
             with leitung_sperre:
                 ausfuehren(leitung.tipp())

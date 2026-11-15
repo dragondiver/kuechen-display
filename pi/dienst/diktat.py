@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import secrets
 import struct
 import threading
@@ -61,10 +62,17 @@ class Aufnahme:
         self.boden_db = -100.0
         self.ruhe_s = 0.0
         self.grund = ""
+        # Jede Aufnahme bekommt eine Nummer; ein veraltetes „ergebnis“ (Seite neu geladen,
+        # neues Diktat gestartet) erkennt daran, dass es leer ausgeht (verifier zu #72).
+        self.nummer = 0
         self.fertig = threading.Event()
         self.fertig.set()
 
-    def start(self) -> None:
+    def start(self) -> int:
+        self.beenden(
+            "neu gestartet"
+        )  # weckt ein wartendes „ergebnis“ der alten Aufnahme
+        self.nummer += 1
         self.ton = bytearray()
         self.pegel, self.dauern = [], []
         self.sprache = False
@@ -73,6 +81,7 @@ class Aufnahme:
         self.grund = ""
         self.fertig.clear()
         self.aktiv = True
+        return self.nummer
 
     def beenden(self, grund: str) -> None:
         if self.aktiv:
@@ -160,7 +169,7 @@ class DiktatFehler(Exception):
 
 
 def transkribieren(
-    pcm: bytes, rate: int, schluessel: str, modell: str = MODELL, timeout: float = 15
+    pcm: bytes, rate: int, schluessel: str, modell: str = MODELL, timeout: float = 8
 ) -> str:
     felder = [("model", modell), ("response_format", "json")]
     felder += [("languages[]", s) for s in SPRACHEN]
@@ -174,8 +183,11 @@ def transkribieren(
         with urllib.request.urlopen(anfrage, timeout=timeout) as antwort:
             return str(json.load(antwort).get("text", "")).strip()
     except urllib.error.HTTPError as fehler:
-        # Die Fehlermeldung von OpenAI enthält keinen Schlüssel, nur Code und Grund.
         text = fehler.read().decode(errors="replace")[:300]
+        # OpenAI zitiert einen falschen Schlüssel teilweise („sk-…xxxx“); nichts davon ins Journal.
+        text = re.sub(r"sk-[A-Za-z0-9_*\-…]+", "sk-…", text)
         raise DiktatFehler(f"OpenAI {fehler.code}: {text}") from None
+    except ValueError as fehler:  # 200, aber kein JSON
+        raise DiktatFehler(f"OpenAI-Antwort unlesbar: {fehler}") from None
     except (urllib.error.URLError, TimeoutError, OSError) as fehler:
         raise DiktatFehler(f"OpenAI nicht erreichbar: {fehler}") from None
