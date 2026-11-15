@@ -33,12 +33,13 @@ rs=(rsync -rlp --checksum --itemize-changes --exclude __pycache__ --exclude '.*_
 
 echo "→ spiegeln nach $ZIEL:$PFAD${NUR_ZEIGEN:+ (nur zeigen)}"
 # Die Zielordner legt rsync nicht von selbst an (erster Deploy).
-[ -n "$NUR_ZEIGEN" ] || ssh "$ZIEL" "mkdir -p $PFAD/kiosk/wetter $PFAD/kiosk/figur"
+[ -n "$NUR_ZEIGEN" ] || ssh "$ZIEL" "mkdir -p $PFAD/kiosk/wetter $PFAD/kiosk/figur $PFAD/kiosk-rueckweg"
 {
   # dienst/ und gesten/ mit --delete: eine umbenannte Datei soll auf dem Pi nicht liegen bleiben.
   "${rs[@]}" --delete --exclude 'test_*.py' pi/dienst/ "$ZIEL:$PFAD/dienst/"
   "${rs[@]}" --delete --exclude 'test_*.py' pi/gesten/ "$ZIEL:$PFAD/gesten/"
   "${rs[@]}" --delete pi/werkzeuge/ "$ZIEL:$PFAD/werkzeuge/"
+  "${rs[@]}" --delete pi/kiosk-rueckweg/ "$ZIEL:$PFAD/kiosk-rueckweg/"
   # kiosk/ ohne --delete: wetter/ und figur/ kommen aus docs/entwuerfe und liegen nicht in pi/kiosk.
   "${rs[@]}" pi/kiosk/ "$ZIEL:$PFAD/kiosk/"
   "${rs[@]}" --include '*.png' --exclude '*' docs/entwuerfe/wetter/flach/ "$ZIEL:$PFAD/kiosk/wetter/"

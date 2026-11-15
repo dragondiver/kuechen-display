@@ -14,6 +14,7 @@ blättert die Seiten um. Uhr, Datum und Wetter sind echt (`docs/datenweg.md`), d
 | Figur (F2) | `docs/entwuerfe/figur/*-klein.png` | `~/kuechen-display/kiosk/figur/` |
 | Küchen-Dienst: Seite und Ereignisse | `pi/dienst/dienst.py` | Dienst `kuechen-dienst` |
 | Kameradienst | `pi/gesten/gesten.py`, `geste.py` | Dienst `kuechen-gesten`, nur beim Testen an |
+| Rückweg-Leiste auf App-Seiten (#10) | `pi/kiosk-rueckweg/` | `~/kuechen-display/kiosk-rueckweg/`, siehe `docs/spotify.md` |
 | Chromium-Autostart | `pi/kiosk/kiosk.desktop`, `pi/kiosk-start.sh` | `~/.config/autostart/kiosk.desktop`, `~/kuechen-display/kiosk-start.sh` |
 | Deploy vom Mac | `pi/push.sh` | – |
 | Einrichtung | `pi/install-kiosk.sh` | `~/kuechen-display/install-kiosk.sh` |
