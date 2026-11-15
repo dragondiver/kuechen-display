@@ -11,7 +11,7 @@ der Anzeige wechseln.
 |---|---|---|
 | Küchen-Dienst: Seite, Bridge, Ton | `pi/dienst/dienst.py`, `vertrag.py` | Pi, Dienst `kuechen-dienst`, venv `~/kuechen-venv` |
 | Gerätewerte für die Bridge | `pi/bruecke/geraete.conf` | raspi-agent, `/etc/systemd/system/rundfunk.service.d/` |
-| Token | nicht im Repo | Pi, `~/.config/kuechen-display/geraete-token` (Rechte 600) |
+| Geheimnisse | nicht im Repo, 1Password `kuechen-display/.env` | Pi, `~/kuechen-display/.env` (Rechte 600); früher `~/.config/kuechen-display/geraete-token` |
 | Kameradienst | `pi/gesten/` | Pi, Dienst `kuechen-gesten`, nur beim Testen an |
 | Messskript Handpunkte | `pi/werkzeuge/handpunkte_messen.sh` | Pi, `~/kuechen-display/werkzeuge/` |
 
@@ -37,14 +37,10 @@ hört keinen Ton mehr und schließt die Live-Sitzung nach ihrer Ruhezeit selbst.
 
 Alles vom Mac aus, im Checkout von `kuechen-display`.
 
-**1. Token auf den Pi kopieren.** Das Token steht als `RUNDFUNK_GERAETE_TOKEN` in der `.env` der
-Bridge. Der Befehl reicht es von raspi-agent direkt an den Pi weiter und zeigt es nicht an:
-
-```bash
-ssh raspi-agent.local "grep '^RUNDFUNK_GERAETE_TOKEN=' ~/rundfunk/.env | cut -d= -f2-" | ssh kuechen-display.local 'install -d -m 700 ~/.config/kuechen-display && umask 077 && cat > ~/.config/kuechen-display/geraete-token'
-```
-
-Später soll das Token aus 1Password kommen wie die anderen Gerätewerte.
+**1. Token auf den Pi bringen.** Das Token der Bridge steht als `RUNDFUNK_GERAETE_TOKEN` im
+1Password-Environment `kuechen-display/.env` und kommt mit `pi-env-push.sh` auf den Pi. Die
+Schritte stehen in `docs/datenweg.md`, Abschnitt „Einrichten“. Bis das Environment eingerichtet
+ist, gilt die frühere Datei `~/.config/kuechen-display/geraete-token` weiter.
 
 **2. Gerätewerte für die Bridge einspielen.** Das braucht sudo auf raspi-agent und startet die
 Bridge neu. Ein laufendes Gespräch mit Elektra im Studio bricht dabei ab.
@@ -140,4 +136,3 @@ Ohne Argumente misst das Skript die sechs Handhaltungen vom 8.11.2026. Der Mitsc
 - rundfunk braucht eine Nachricht `ende`, damit ein Tipp die Live-Sitzung sofort schließt, und
   Werkzeuge für „vor“ und „zurück“, damit man per Sprache blättern kann.
 - Echounterdrückung ist mit Bluetooth nicht prüfbar. Sie braucht den Lautsprecher am XVF3800.
-- Das Token kommt noch nicht aus 1Password.

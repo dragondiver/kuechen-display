@@ -9,6 +9,10 @@ User=florian
 WorkingDirectory=/home/florian/kuechen-display/dienst
 # pw-cat und wpctl brauchen die PipeWire-Sitzung des Desktop-Nutzers.
 Environment=XDG_RUNTIME_DIR=/run/user/1000
+# Geheimnisse (HA_TOKEN, RUNDFUNK_GERAETE_TOKEN) aus dem 1Password-Environment kuechen-display/.env,
+# auf den Pi gebracht mit heim-agent/deploy/pi-env-push.sh. Das Minus: ohne die Datei startet
+# der Dienst trotzdem und nimmt die alten Token-Dateien unter ~/.config/kuechen-display/.
+EnvironmentFile=-/home/florian/kuechen-display/.env
 ExecStart=/home/florian/kuechen-venv/bin/python /home/florian/kuechen-display/dienst/dienst.py
 Restart=on-failure
 RestartSec=5

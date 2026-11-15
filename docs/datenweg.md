@@ -46,27 +46,40 @@ keine Festlegungen (#15, #50).
 
 ## Einrichten
 
-Der Dienst braucht ein eigenes Token für Home Assistant. Ohne die Token-Datei läuft er weiter
-und zeigt „Keine Wetterdaten“.
+Der Dienst braucht ein eigenes Token für Home Assistant. Ohne `HA_TOKEN` läuft er weiter und
+zeigt „Keine Wetterdaten“. Die Geheimnisse kommen aus dem 1Password-Environment
+`kuechen-display/.env`, wie bei den anderen Repos (heim-agent#87).
+
+| Name | Wofür |
+|---|---|
+| `HA_TOKEN` | langlebiges Token für Home Assistant, nur dieses Gerät |
+| `RUNDFUNK_GERAETE_TOKEN` | Token der rundfunk-Bridge, derselbe Wert wie in `rundfunk/.env` |
 
 **1. Token anlegen.** In Home Assistant: Profil (unten links) → Sicherheit →
-„Langlebige Zugangstoken“ → Token erstellen, Name `kuechen-display`. Das Token in die
-Zwischenablage kopieren.
+„Langlebige Zugangstoken“ → Token erstellen, Name `kuechen-display`. Kopieren.
 
-**2. Token auf den Pi legen.** Der Befehl schreibt die Zwischenablage in die Datei und zeigt
-das Token nicht an:
+**2. In 1Password eintragen.** In der App unter Developer → View Environments das Environment
+`kuechen-display/.env` anlegen oder öffnen und beide Namen mit Wert eintragen. Dann als
+`~/Development/kuechen-display/.env` einhängen.
+
+**3. Auf den Pi bringen.** Erst ohne `--ja` laufen lassen und die Namen lesen:
 
 ```bash
-pbpaste | ssh kuechen-display.local 'install -d -m 700 ~/.config/kuechen-display && umask 077 && cat > ~/.config/kuechen-display/ha-token'
+~/Development/heim-agent/deploy/pi-env-push.sh kuechen-display
 ```
 
-Später soll das Token aus 1Password kommen wie die anderen Gerätewerte.
+Das Skript schreibt `~/kuechen-display/.env` auf dem Pi (Rechte 600) und zeigt nur Namen, nie
+Werte. Die Unit `kuechen-dienst` lädt die Datei per `EnvironmentFile`.
 
-**3. Ausrollen.**
+**4. Ausrollen.** Startet den Dienst neu, damit er die neuen Werte sieht:
 
 ```bash
 pi/push.sh
 ```
+
+Die früheren Token-Dateien unter `~/.config/kuechen-display/` (`geraete-token`, `ha-token`)
+gelten weiter als Rückfall: Steht ein Name nicht in der `.env`, nimmt der Dienst die Datei.
+Läuft alles über die `.env`, kann `geraete-token` auf dem Pi gelöscht werden.
 
 ## Prüfen
 
@@ -84,8 +97,8 @@ ssh kuechen-display.local 'curl -sN --max-time 3 http://127.0.0.1:8080/ereigniss
 ## Andere Quelle oder anderer Ort
 
 Die Werte stehen als Umgebungsvariablen im Dienst (`pi/dienst/dienst.py`): `HA_URL`,
-`HA_TOKEN_DATEI`, `WETTER_ENTITAET`, `TEMPERATUR_SENSOR`, `ORT`. Ändern über einen Drop-in
-der Unit `kuechen-dienst`.
+`WETTER_ENTITAET`, `TEMPERATUR_SENSOR`, `ORT`. Sie sind keine Geheimnisse und gehören nicht in
+1Password: ändern über einen Drop-in der Unit `kuechen-dienst`.
 
 ## Offen: Termine
 

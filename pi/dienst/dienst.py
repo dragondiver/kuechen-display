@@ -32,6 +32,7 @@ from pathlib import Path
 
 import websockets
 from hass import HomeAssistant, wetter_karte
+from konfig import geheimnis
 from vertrag import (
     RAHMEN_BYTES,
     RAHMEN_PROBEN,
@@ -59,7 +60,7 @@ MIKRO = os.environ.get("MIKRO_GERAET", "hw:CARD=L16K6Ch,DEV=0")
 # Elektra das Werkzeug app_oeffnen gar nicht erst an.
 APPS: list[str] = []
 RAHMEN_S = RAHMEN_PROBEN / RATE
-# Home Assistant (docs/datenweg.md). Ohne Token-Datei läuft der Dienst weiter, nur ohne Wetter.
+# Home Assistant (docs/datenweg.md). Ohne HA_TOKEN läuft der Dienst weiter, nur ohne Wetter.
 HA_URL = os.environ.get("HA_URL", "http://raspi-agent.local:8123")
 HA_TOKEN_DATEI = Path(
     os.environ.get(
@@ -322,10 +323,11 @@ def mikro_schleife() -> None:
 def daten_schleife() -> None:
     """Holt alle zehn Minuten das Wetter. Schlägt ein Abruf fehl, behält die Seite den
     letzten Stand samt seiner Zeit; der Fehler steht einmal im Journal, bis es wieder geht."""
-    if not HA_TOKEN_DATEI.exists():
-        log.warning("Kein Wetter: %s fehlt (siehe docs/datenweg.md)", HA_TOKEN_DATEI)
+    token = geheimnis("HA_TOKEN", HA_TOKEN_DATEI)
+    if token is None:
+        log.warning("Kein Wetter: HA_TOKEN fehlt (siehe docs/datenweg.md)")
         return
-    ha = HomeAssistant(HA_URL, HA_TOKEN_DATEI.read_text().strip())
+    ha = HomeAssistant(HA_URL, token)
     gestoert = False
     gemeldet = None
     while True:
@@ -361,7 +363,7 @@ def daten_schleife() -> None:
 # --- Bridge -------------------------------------------------------------------
 async def bruecke_schleife() -> None:
     global ws
-    token = TOKEN_DATEI.read_text().strip()
+    token = geheimnis("RUNDFUNK_GERAETE_TOKEN", TOKEN_DATEI)
     warte = 1
     while True:
         try:
@@ -419,8 +421,8 @@ def main() -> None:
     logging.basicConfig(
         level=logging.INFO, format="%(levelname)s %(message)s", stream=sys.stdout
     )
-    if not TOKEN_DATEI.exists():
-        log.error("Token fehlt: %s (siehe docs/stimme-und-geste.md)", TOKEN_DATEI)
+    if geheimnis("RUNDFUNK_GERAETE_TOKEN", TOKEN_DATEI) is None:
+        log.error("RUNDFUNK_GERAETE_TOKEN fehlt (siehe docs/stimme-und-geste.md)")
         sys.exit(1)
     for ziel in (bruecke_faden, wiedergabe_schleife, mikro_schleife, daten_schleife):
         threading.Thread(target=ziel, daemon=True, name=ziel.__name__).start()
