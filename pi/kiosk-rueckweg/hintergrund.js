@@ -33,9 +33,9 @@ chrome.runtime.onMessage.addListener(function (nachricht, absender, antwort) {
   }
   if (nachricht.art === 'melde') {
     fetch(DIENST + nachricht.pfad, {
-      // text/plain statt application/json: so bleibt es eine einfache Anfrage ohne OPTIONS-Vorabfrage,
-      // die der Küchen-Dienst nicht beantwortet (POST kam am 15.11. nie an). Der Dienst liest JSON
-      // unabhängig vom Inhaltstyp.
+      // text/plain statt application/json: eine einfache Anfrage ohne OPTIONS-Vorabfrage, die der
+      // Küchen-Dienst nicht beantworten könnte. Ob Chromium aus der Erweiterung vorab fragen würde, ist
+      // nicht geprüft. Der Dienst liest JSON unabhängig vom Inhaltstyp.
       method: 'POST', headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(nachricht.daten || {}),
     }).then(function (r) {
