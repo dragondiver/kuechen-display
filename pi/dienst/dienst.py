@@ -7,7 +7,7 @@ Ein Prozess, vier Aufgaben:
 - verbindet sich als Netz-Gerät mit der Bridge (Vertrag: rundfunk/src/rundfunk/netzgeraet.py),
   schickt das Mikrofon (XVF3800, ALSA hw, Kanal 0) und spielt Elektras Stimme ab;
 - nimmt Gesten vom Kameradienst (pi/gesten) an und reicht sie an Seite und Bridge weiter;
-- holt das Wetter aus Home Assistant und schickt es der Seite (docs/datenweg.md).
+- holt Wetter und Termine aus Home Assistant und schickt sie der Seite (docs/datenweg.md).
 
 Ein Gespräch beginnt mit einem Tipp auf die Figur (Festlegung 8.11.2026); das Aktivierungswort
 kommt später. Ton geht an den Standardausgang von PipeWire (beim Tischtest Bluetooth).
@@ -26,12 +26,14 @@ import subprocess
 import sys
 import threading
 import time
+from datetime import datetime
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import websockets
-from hass import HomeAssistant, wetter_karte
+from hass import HomeAssistant, termine_karte, wetter_karte
 from konfig import geheimnis
 from vertrag import (
     RAHMEN_BYTES,
@@ -60,7 +62,8 @@ MIKRO = os.environ.get("MIKRO_GERAET", "hw:CARD=L16K6Ch,DEV=0")
 # Elektra das Werkzeug app_oeffnen gar nicht erst an.
 APPS: list[str] = []
 RAHMEN_S = RAHMEN_PROBEN / RATE
-# Home Assistant (docs/datenweg.md). Ohne HA_TOKEN läuft der Dienst weiter, nur ohne Wetter.
+# Home Assistant (docs/datenweg.md). Ohne HA_TOKEN läuft der Dienst weiter, nur ohne Wetter
+# und Termine.
 HA_URL = os.environ.get("HA_URL", "http://raspi-agent.local:8123")
 HA_TOKEN_DATEI = Path(
     os.environ.get(
@@ -72,7 +75,15 @@ TEMPERATUR_SENSOR = os.environ.get(
     "TEMPERATUR_SENSOR", "sensor.stuttgart_schn_temperatur"
 )
 ORT = os.environ.get("ORT", "Kornwestheim")
-WETTER_TAKT_S = 600
+# Kalender der CalDAV-Integration, durch Komma getrennt; die Reihenfolge gibt die Farbe des
+# Punkts (Festlegung 15.11.2026 in #15: Family und Abfall).
+KALENDER = [
+    k.strip()
+    for k in os.environ.get("KALENDER", "calendar.family,calendar.abfall").split(",")
+    if k.strip()
+]
+ZONE = ZoneInfo(os.environ.get("ZEITZONE", "Europe/Berlin"))
+DATEN_TAKT_S = 600
 
 log = logging.getLogger("dienst")
 leitung = Leitung()
@@ -320,27 +331,45 @@ def mikro_schleife() -> None:
 
 
 # --- Daten aus Home Assistant -------------------------------------------------
+class Abruf:
+    """Ein Abruf aus Home Assistant mit eigenem Fehlerstand: Schlägt er fehl, behält die Seite
+    den letzten Stand; der Fehler steht einmal im Journal, bis es wieder geht."""
+
+    def __init__(self, was: str) -> None:
+        self.was = was
+        self.gestoert = False
+
+    def __call__(self, holen):
+        try:
+            ergebnis = holen()
+        except (OSError, ValueError) as fehler:
+            if not self.gestoert:
+                log.warning("%s: Home Assistant antwortet nicht: %s", self.was, fehler)
+            self.gestoert = True
+            return None
+        if self.gestoert:
+            log.info("%s: Home Assistant antwortet wieder", self.was)
+        self.gestoert = False
+        return ergebnis
+
+
 def daten_schleife() -> None:
-    """Holt alle zehn Minuten das Wetter. Schlägt ein Abruf fehl, behält die Seite den
-    letzten Stand samt seiner Zeit; der Fehler steht einmal im Journal, bis es wieder geht."""
+    """Holt alle zehn Minuten Wetter und Termine und schickt sie der Seite."""
     token = geheimnis("HA_TOKEN", HA_TOKEN_DATEI)
     if token is None:
-        log.warning("Kein Wetter: HA_TOKEN fehlt (siehe docs/datenweg.md)")
+        log.warning(
+            "Kein Wetter, keine Termine: HA_TOKEN fehlt (siehe docs/datenweg.md)"
+        )
         return
     ha = HomeAssistant(HA_URL, token)
-    gestoert = False
+    wetter_abruf, termine_abruf = Abruf("Wetter"), Abruf("Termine")
     gemeldet = None
+    fehlt_gemeldet: list[str] = []
     while True:
-        try:
-            karte = wetter_karte(ha, WETTER_ENTITAET, TEMPERATUR_SENSOR, ORT)
-        except (OSError, ValueError) as fehler:
-            if not gestoert:
-                log.warning("Wetter: Home Assistant antwortet nicht: %s", fehler)
-            gestoert = True
-        else:
-            if gestoert:
-                log.info("Wetter: Home Assistant antwortet wieder")
-            gestoert = False
+        karte = wetter_abruf(
+            lambda: wetter_karte(ha, WETTER_ENTITAET, TEMPERATUR_SENSOR, ORT)
+        )
+        if karte is not None:
             if karte["unbekannt"] and karte["zustand"] != gemeldet:
                 log.warning(
                     "Wetter: %s liefert '%s', dafür gibt es kein Bild",
@@ -357,7 +386,24 @@ def daten_schleife() -> None:
                 )
             letzte_daten["wetter"] = karte
             an_seite("wetter", karte)
-        time.sleep(WETTER_TAKT_S)
+
+        termine = termine_abruf(lambda: termine_karte(ha, KALENDER, datetime.now(ZONE)))
+        if termine is not None:
+            fehlt = termine.pop("fehlt")
+            if fehlt and fehlt != fehlt_gemeldet:
+                log.warning("Termine: Home Assistant kennt %s nicht", ", ".join(fehlt))
+            fehlt_gemeldet = fehlt
+            alt = letzte_daten.get("termine", {})
+            if {**termine, "stand": 0} != {**alt, "stand": 0}:
+                log.info(
+                    "Termine: heute %d, morgen %d, Woche %d",
+                    len(termine["heute"]),
+                    len(termine["morgen"]),
+                    sum(len(t["termine"]) for t in termine["woche"]),
+                )
+            letzte_daten["termine"] = termine
+            an_seite("termine", termine)
+        time.sleep(DATEN_TAKT_S)
 
 
 # --- Bridge -------------------------------------------------------------------

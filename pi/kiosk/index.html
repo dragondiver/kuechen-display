@@ -7,8 +7,7 @@
 <!--
   Ruhebildschirm für den Chromium-Kiosk auf dem Pi (Durchstich zu #15 und #2).
   Aufbau und Aussehen aus docs/entwuerfe/ruhebildschirm.html, Entwurf C4 (Seiten) mit
-  Wetterbild W5 (flach). Das Wetter kommt aus Home Assistant (docs/datenweg.md), die Termine
-  sind noch Platzhalter.
+  Wetterbild W5 (flach). Wetter und Termine kommen aus Home Assistant (docs/datenweg.md).
 
   Seiten: Apps 2 ← Apps 1 ← Heute → Morgen/Woche. Blättern per Wischen auf dem Bildschirm,
   per Tippen auf „Morgen … ›“ oder per Handgeste vor der Kamera (Ereignisse vom Gestendienst
@@ -55,6 +54,11 @@
   .eintrag .titel { font-size: 26px; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .eintrag .punkt { width: 12px; height: 12px; }
   .eintrag.leer .titel { font-weight: 400; opacity: .45; }
+  /* Ganztägige Termine stehen oben, statt der Uhrzeit „ganztägig“ (#15, 15.11.2026). */
+  .termin .zeit.ganz { width: auto; min-width: 96px; font-size: 24px; }
+  .eintrag .zeit.ganz { width: auto; min-width: 70px; font-size: 18px; }
+  .termin.leer .titel { font-weight: 400; opacity: .45; }
+  .liste { flex: 0 1 auto; min-height: 0; overflow: hidden; }
   /* Nur die Glaskarten gleiten, das Wetterbild steht still (#15). */
   .bahn { position: absolute; top: 0; left: 0; width: 5120px; height: 800px; display: flex;
           transform: translateX(calc(var(--seite, 2) * -1280px)); transition: transform .55s cubic-bezier(.22,.8,.24,1); touch-action: pan-y; }
@@ -124,13 +128,12 @@
       <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="34" r="18"/><path d="M32 24v10l7 5M26 12h12"/></svg></div><div class="appname">Timer</div></div>
     </div></div>
     <div class="seite">
-      <div class="glas" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px;">
+      <div class="glas spalte" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px;">
         <div class="uhr" id="uhr">--:--</div>
         <div class="datum" id="datum"></div>
         <div class="kopf">Noch heute</div>
-        <div class="termin"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
-        <div class="termin"><div class="zeit">20:15</div><div class="titel">Tatort</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
-        <div class="mehr" data-weiter>Morgen 6 Termine ›</div>
+        <div class="liste" id="t-heute"></div>
+        <div class="mehr" data-weiter id="t-mehr">Morgen ›</div>
       </div>
       <div class="glas" style="position:absolute;right:48px;top:48px;width:460px;padding:40px 44px;">
         <div class="ort" id="w-ort">Kornwestheim</div>
@@ -143,32 +146,12 @@
       <div class="glas spalte" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px 0;">
         <div class="uhr">Morgen</div>
         <div class="datum" id="datum-morgen"></div>
-        <div class="kopf">6 Termine</div>
-        <div class="rolle">
-          <div class="termin"><div class="zeit spanne">08:00–09:00</div><div class="titel">Zahnarzt</div><div class="wer"><i class="punkt p1"></i>Florian</div></div>
-          <div class="termin"><div class="zeit spanne">10:00–10:30</div><div class="titel">Handwerker Heizung</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
-          <div class="termin"><div class="zeit spanne">12:30–13:30</div><div class="titel">Mittagessen</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
-          <div class="termin"><div class="zeit spanne">16:00–17:00</div><div class="titel">Physiotherapie</div><div class="wer"><i class="punkt p1"></i>Florian</div></div>
-          <div class="termin"><div class="zeit spanne">19:00–20:30</div><div class="titel">Elternabend</div><div class="wer"><i class="punkt p2"></i>Person B</div></div>
-          <div class="termin"><div class="zeit spanne">20:45–22:30</div><div class="titel">Länderspiel</div><div class="wer"><i class="punkt pa"></i>Alle</div></div>
-        </div>
+        <div class="kopf" id="t-morgen-kopf"></div>
+        <div class="rolle" id="t-morgen"></div>
       </div>
       <div class="glas spalte" style="position:absolute;right:48px;top:48px;bottom:48px;width:460px;padding:40px 44px 0;">
         <div class="ort">Die Woche</div>
-        <div class="rolle">
-          <div class="tag"><span>Heute</span></div>
-          <div class="eintrag"><div class="zeit">18:30</div><div class="titel">Probe Chor</div><i class="punkt p2"></i></div>
-          <div class="eintrag"><div class="zeit">20:15</div><div class="titel">Tatort</div><i class="punkt pa"></i></div>
-          <div class="tag"><span>Morgen</span></div>
-          <div class="eintrag"><div class="zeit">08:00</div><div class="titel">Zahnarzt</div><i class="punkt p1"></i></div>
-          <div class="eintrag"><div class="zeit">10:00</div><div class="titel">Handwerker Heizung</div><i class="punkt pa"></i></div>
-          <div class="eintrag"><div class="zeit">12:30</div><div class="titel">Mittagessen</div><i class="punkt pa"></i></div>
-          <div class="eintrag"><div class="zeit">16:00</div><div class="titel">Physiotherapie</div><i class="punkt p1"></i></div>
-          <div class="eintrag"><div class="zeit">19:00</div><div class="titel">Elternabend</div><i class="punkt p2"></i></div>
-          <div class="eintrag"><div class="zeit">20:45</div><div class="titel">Länderspiel</div><i class="punkt pa"></i></div>
-          <div class="tag"><span>Übermorgen</span></div>
-          <div class="eintrag leer"><div class="zeit"></div><div class="titel">keine Termine</div></div>
-        </div>
+        <div class="rolle" id="t-woche"></div>
       </div>
     </div>
   </div>
@@ -209,7 +192,6 @@
   debug.innerHTML = '<div class="hand">Hand: –</div><div class="letzte">noch keine Geste</div>';
   function zeigeDebug(text) { debug.querySelector('.letzte').textContent = new Date().toLocaleTimeString('de-DE') + '  ' + text; }
 
-  // Uhr, Datum und Wetter sind echt, die Termine noch Platzhalter.
   function uhrzeit() {
     const jetzt = new Date();
     document.getElementById('uhr').textContent = jetzt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -308,6 +290,63 @@
     wetterAlter();
   });
   setInterval(wetterAlter, 60000);
+
+  // Termine vom Küchen-Dienst (pi/dienst/daten.py). Jeder Eintrag trägt "bis": Die Seite blendet
+  // vorbei gegangene Termine jede Minute selbst aus, der Dienst fragt nur alle zehn Minuten.
+  let termine = null;
+  function el(tag, klasse, text) {
+    const e = document.createElement(tag);
+    if (klasse) e.className = klasse;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function zeit(t, extra) {
+    return el('div', 'zeit' + (t.zeit === 'ganztägig' ? ' ganz' : extra || ''), t.zeit);
+  }
+  function terminZeile(t, spanne) {
+    const z = el('div', 'termin');
+    z.append(zeit(t, spanne ? ' spanne' : ''), el('div', 'titel', t.titel));
+    const wer = el('div', 'wer');
+    wer.append(el('i', 'punkt ' + t.farbe), t.kalender);
+    z.append(wer);
+    return z;
+  }
+  function leer(klasse, text) {
+    const z = el('div', klasse + ' leer');
+    z.append(el('div', 'zeit'), el('div', 'titel', text));
+    return z;
+  }
+  function anzahl(n) { return n === 1 ? '1 Termin' : n + ' Termine'; }
+  function zeigeTermine() {
+    if (!termine) return;
+    const jetzt = Date.now() / 1000;
+    const offen = function (t) { return t.bis > jetzt; };
+    const heute = termine.heute.filter(offen);
+    document.getElementById('t-heute').replaceChildren(...(heute.length ? heute.map(function (t) { return terminZeile(t, false); }) : [leer('termin', 'Keine Termine mehr')]));
+    const morgen = termine.morgen;
+    document.getElementById('t-mehr').textContent = 'Morgen ' + (morgen.length ? anzahl(morgen.length) : 'keine Termine') + ' ›';
+    document.getElementById('t-morgen-kopf').textContent = morgen.length ? anzahl(morgen.length) : 'Keine Termine';
+    document.getElementById('t-morgen').replaceChildren(...morgen.map(function (t) { return terminZeile(t, true); }));
+    const woche = [];
+    termine.woche.forEach(function (tag) {
+      const kopf = el('div', 'tag');
+      kopf.append(el('span', '', tag.tag), el('span', '', tag.datum));
+      woche.push(kopf);
+      const liste = tag.termine.filter(offen);
+      if (!liste.length) woche.push(leer('eintrag', 'keine Termine'));
+      liste.forEach(function (t) {
+        const z = el('div', 'eintrag');
+        z.append(zeit(t), el('div', 'titel', t.titel), el('i', 'punkt ' + t.farbe));
+        woche.push(z);
+      });
+    });
+    document.getElementById('t-woche').replaceChildren(...woche);
+  }
+  quelle.addEventListener('termine', function (e) {
+    termine = JSON.parse(e.data);
+    zeigeTermine();
+  });
+  setInterval(zeigeTermine, 60000);
   // Befehle, die Elektra per Werkzeug schickt (rundfunk: server._oberflaechen_werkzeuge)
   const SEITEN = { apps: 1, heute: HEUTE, morgen: LETZTE };
   quelle.addEventListener('befehl', function (e) {

@@ -10,8 +10,9 @@ import json
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timedelta
 
-from daten import wetter_aufbereiten
+from daten import termine_aufbereiten, wetter_aufbereiten
 
 
 class HomeAssistant:
@@ -58,6 +59,23 @@ class HomeAssistant:
         eintrag = (antwort or {}).get("service_response", {}).get(entity_id) or {}
         return eintrag.get("forecast") or []
 
+    def termine(
+        self, entitaeten: list[str], von: datetime, bis: datetime
+    ) -> dict[str, list[dict]]:
+        """Termine aller Kalender in einem Abruf über den Dienst calendar.get_events.
+        Ergebnis: {Entität: [Termin, …]}; ein Kalender ohne Termine fehlt oder ist leer."""
+        antwort = self._anfrage(
+            "POST",
+            "/api/services/calendar/get_events?return_response",
+            {
+                "entity_id": entitaeten,
+                "start_date_time": von.isoformat(),
+                "end_date_time": bis.isoformat(),
+            },
+        )
+        ergebnis = (antwort or {}).get("service_response") or {}
+        return {e: (ergebnis.get(e) or {}).get("events") or [] for e in entitaeten}
+
 
 def wetter_karte(ha, entitaet: str, sensor: str | None, ort: str) -> dict:
     """Vier Abrufe, eine Wetterkarte. Netzfehler gehen als Ausnahme an den Aufrufer."""
@@ -70,3 +88,23 @@ def wetter_karte(ha, entitaet: str, sensor: str | None, ort: str) -> dict:
         ort=ort,
         stand=int(time.time()),
     )
+
+
+def termine_karte(ha, kalender: list[str], jetzt: datetime, tage: int = 7) -> dict:
+    """Termine von heute 0 Uhr bis zum Ende der Woche, dazu die Namen der Kalender.
+
+    Ein Kalender, den HA nicht kennt, wird ausgelassen und steht unter "fehlt", damit der
+    Dienst ihn ins Journal schreibt. Netzfehler gehen als Ausnahme an den Aufrufer."""
+    namen, da, fehlt = {}, [], []
+    for entitaet in kalender:
+        zustand = ha.entitaet(entitaet)
+        if zustand is None:
+            fehlt.append(entitaet)
+            continue
+        da.append(entitaet)
+        namen[entitaet] = (zustand.get("attributes") or {}).get("friendly_name") or ""
+    von = jetzt.replace(hour=0, minute=0, second=0, microsecond=0)
+    antwort = ha.termine(da, von, von + timedelta(days=tage)) if da else {}
+    karte = termine_aufbereiten(antwort, kalender, namen, jetzt, tage)
+    karte["fehlt"] = fehlt
+    return karte

@@ -1,6 +1,6 @@
 """Geheimnisse des Küchen-Dienstes (kuechen-display#15).
 
-Quelle ist das 1Password-Environment kuechen-display/.env. Auf dem Pi liegt es als
+Quelle ist das 1Password-Environment kuechen-display. Auf dem Pi liegt es als
 ~/kuechen-display/.env, die Unit lädt es per EnvironmentFile. Die früheren Token-Dateien
 unter ~/.config/kuechen-display/ gelten weiter als Rückfall, bis sie abgelöst sind.
 """
