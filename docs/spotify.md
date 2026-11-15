@@ -81,6 +81,14 @@ selbst (`http://localhost`) bleibt frei. YouTube und Browser bekommen sie also g
 Kacheln eine Adresse haben. Die Leiste steckt in einem Shadow-DOM, damit die CSS der Seite sie nicht
 verändert.
 
+**Nach jeder Änderung an `hintergrund.js` die `version` in `manifest.json` erhöhen.** Chromium liest
+den Hintergrund einer entpackten Erweiterung nur bei neuer Version neu ein; `rueckweg.js` dagegen
+kommt bei jedem Kiosk-Start frisch. Am 15.11.2026 lief deshalb noch die alte `zoom.js` weiter,
+und Mikro-Knopf und Diktat bekamen keine Antwort („The message port closed before a response was
+received“, #70). `pi/push.sh` bricht ab, wenn `hintergrund.js` neu ist und die Version nicht.
+Hilft auch das nicht: Chromium beenden, `~/.config/chromium/Default/Service Worker` wegschieben,
+Kiosk starten. Spotify bleibt dabei angemeldet.
+
 Ein Fenster, das vom Mac aus geöffnet wurde, hat die Leiste auch. Dort führt sie aber in diesem
 zweiten Fenster zum Ruhebildschirm. Schließen lässt es sich über VNC mit Strg+W oder durch einen
 Neustart des Kiosks (`docs/kiosk-und-gesten.md`, „Kiosk sofort neu starten“). Die Anmeldung bleibt

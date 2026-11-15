@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Küchen-Display: Rückweg",
-  "version": "2",
+  "version": "5",
   "description": "Kleine Leiste oben links auf fremden Seiten (Spotify, später YouTube, Browser): zurück zu den Apps oder zu Heute, Mikro-Knopf für Elektra. Dazu fester Zoom für Spotify. kuechen-display#10, #70",
   "content_scripts": [
     {
