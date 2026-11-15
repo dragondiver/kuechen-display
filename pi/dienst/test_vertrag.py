@@ -135,3 +135,51 @@ def test_getrennt_setzt_alles_zurueck():
     l.tipp()
     assert arten(l.getrennt()) == ["verwerfen", "anzeige"]
     assert not l.mikro_offen
+
+
+# --- Ablage für Apps ohne Kiosk-Seite (#70) -------------------------------------
+from vertrag import Ablage  # noqa: E402
+
+
+def test_ablage_gibt_befehl_einmal_heraus():
+    a = Ablage()
+    a.ablegen({"id": 1}, 10.0)
+    assert a.abholen(11.0) == {"id": 1}
+    assert a.abholen(11.5) is None
+
+
+def test_ablage_der_aelteste_zuerst():
+    a = Ablage()
+    a.ablegen({"id": 1}, 10.0)
+    a.ablegen({"id": 2}, 10.5)
+    assert [a.abholen(11.0)["id"], a.abholen(11.0)["id"]] == [1, 2]
+
+
+def test_abgelaufener_befehl_wird_nicht_mehr_ausgefuehrt():
+    a = Ablage()
+    a.ablegen({"id": 1}, 10.0)
+    assert a.abholen(10.0 + Ablage.FRIST_S) is None
+    assert a.abgelaufen(10.0 + Ablage.FRIST_S) == [{"id": 1}]
+    assert a.abgelaufen(20.0) == []
+
+
+def test_abgeholter_befehl_bekommt_keine_fehler_quittung():
+    a = Ablage()
+    a.ablegen({"id": 1}, 10.0)
+    a.abholen(11.0)
+    assert a.abgelaufen(20.0) == []
+
+
+def test_app_gilt_kurz_nach_der_abfrage_als_vorn():
+    a = Ablage()
+    assert not a.app_vorn(10.0)
+    a.app_meldet(10.0)
+    assert a.app_vorn(10.0 + Ablage.APP_WEG_S - 0.1)
+    assert not a.app_vorn(10.0 + Ablage.APP_WEG_S)
+
+
+def test_kiosk_seite_loest_app_sofort_ab():
+    a = Ablage()
+    a.app_meldet(10.0)
+    a.kiosk_vorn()
+    assert not a.app_vorn(10.1)

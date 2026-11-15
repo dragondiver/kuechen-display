@@ -130,7 +130,7 @@
     <div class="seite"><div class="raster">
       <div class="app"><div class="symbol orange"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 26h36v14a10 10 0 0 1-10 10H24a10 10 0 0 1-10-10z"/><path d="M10 26h44M24 20c0-4 4-4 4-8M36 20c0-4 4-4 4-8"/></svg></div><div class="appname">Rezepte</div></div>
       <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="12" y="14" width="40" height="36" rx="4"/><path d="M20 24h24M20 32h24M20 40h14"/></svg></div><div class="appname">News</div></div>
-      <div class="app" data-adresse="https://open.spotify.com/"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M26 44V18l22-5v26"/><circle cx="20" cy="44" r="6"/><circle cx="42" cy="39" r="6"/></svg></div><div class="appname">Spotify</div></div>
+      <div class="app" data-app="spotify" data-adresse="https://open.spotify.com/"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M26 44V18l22-5v26"/><circle cx="20" cy="44" r="6"/><circle cx="42" cy="39" r="6"/></svg></div><div class="appname">Spotify</div></div>
       <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="16" width="44" height="32" rx="8"/><path d="M28 25v14l12-7z"/></svg></div><div class="appname">YouTube</div></div>
       <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="20"/><path d="M12 32h40M32 12c-8 8-8 32 0 40M32 12c8 8 8 32 0 40"/></svg></div><div class="appname">Browser</div></div>
       <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="34" r="18"/><path d="M32 24v10l7 5M26 12h12"/></svg></div><div class="appname">Timer</div></div>
@@ -386,6 +386,15 @@
     zeigeDebug('Befehl ' + b.name + ' ' + JSON.stringify(b.argumente));
     let fehler = null;
     if (b.name === 'seite_zeigen' && b.argumente.seite in SEITEN) setzeSeite(SEITEN[b.argumente.seite]);
+    else if (b.name === 'app_oeffnen') {
+      // Apps mit Kachel data-app (#70); erst quittieren, dann wechseln, sonst geht die Quittung verloren.
+      const kachel = document.querySelector('.app[data-app="' + CSS.escape(String(b.argumente.name)) + '"]');
+      if (kachel) {
+        melde('/quittung', { id: b.id, ok: true }).finally(function () { location.href = kachel.dataset.adresse; });
+        return;
+      }
+      fehler = 'Diese App gibt es auf der Anzeige nicht: ' + b.argumente.name;
+    }
     else if (b.name === 'rezeptschritt') fehler = 'Es ist kein Rezept offen.';
     else fehler = 'Das kann die Anzeige noch nicht: ' + b.name;
     melde('/quittung', fehler ? { id: b.id, ok: false, fehler: fehler } : { id: b.id, ok: true });
