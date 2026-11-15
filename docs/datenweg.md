@@ -1,7 +1,6 @@
 # Datenweg: Wetter und Termine auf dem Ruhebildschirm
 
-Stand 15.11.2026, zu #15. Das Wetter kommt aus Home Assistant. Die Termine sind noch
-Platzhalter, ihr Weg ist nicht entschieden (siehe unten).
+Stand 15.11.2026, zu #15. Wetter und Termine kommen aus Home Assistant.
 
 ## Wie das Wetter auf die Seite kommt
 
@@ -97,20 +96,52 @@ ssh kuechen-display.local 'curl -sN --max-time 3 http://127.0.0.1:8080/ereigniss
 ## Andere Quelle oder anderer Ort
 
 Die Werte stehen als Umgebungsvariablen im Dienst (`pi/dienst/dienst.py`): `HA_URL`,
-`WETTER_ENTITAET`, `TEMPERATUR_SENSOR`, `ORT`. Sie sind keine Geheimnisse und gehören nicht in
-1Password: ändern über einen Drop-in der Unit `kuechen-dienst`.
+`WETTER_ENTITAET`, `TEMPERATUR_SENSOR`, `ORT`, für die Termine `KALENDER`. Sie sind keine
+Geheimnisse und gehören nicht in 1Password: ändern über einen Drop-in der Unit `kuechen-dienst`.
 
-## Offen: Termine
+## Termine
 
-Festgelegt ist die Quelle: der Familienkalender bei Apple (#15, 18.10.2026). In Home Assistant
-gibt es bisher keinen Kalender (geprüft am 15.11.2026: keine `calendar.*`-Entität, keine
-CalDAV-Integration). Zwei Wege:
+Die Termine kommen aus dem Familienkalender bei Apple über die CalDAV-Integration von Home
+Assistant (Festlegung 15.11.2026 in #15). Der Küchen-Dienst fragt sie mit demselben Token ab
+wie das Wetter, im selben Takt von zehn Minuten.
 
-- **Über Home Assistant.** Die CalDAV-Integration mit einem app-spezifischen Passwort von
-  Apple einrichten. Der Küchen-Dienst fragt dann `calendar.get_events` über dasselbe Token ab
-  wie das Wetter. Elektra könnte dieselben Termine ansagen.
-- **Direkt vom Pi.** Der Küchen-Dienst spricht selbst CalDAV mit iCloud. Das Passwort läge
-  dann auf dem Küchen-Pi, und Elektra hätte nichts davon.
+```
+iCloud ──CalDAV──▶ Home Assistant  calendar.family, calendar.abfall
+                      │  Dienst calendar.get_events, heute 0 Uhr bis in sieben Tagen
+                      ▼
+Küchen-Dienst  pi/dienst/hass.py   termine_karte: Namen der Kalender, ein Abruf für alle
+               pi/dienst/daten.py  termine_aufbereiten: heute, morgen, Woche (reine Funktion)
+                      │  Ereignis „termine“ über /ereignisse
+                      ▼
+Kiosk-Seite    „Noch heute“, „Morgen … ›“, Seite Morgen/Woche
+```
 
-Danach offen: ob der Punkt mit dem Namen neben einem Termin (Entwurf C) aus getrennten
-Kalendern je Person kommt, und wie ganztägige Termine aussehen.
+Regeln:
+
+- Am Display stehen nur die Kalender Family und Abfall. Die Reihenfolge in `KALENDER` gibt die
+  Farbe des Punkts: der erste blau, der zweite orange, weitere grau. Neben dem Punkt steht der
+  Name des Kalenders aus Home Assistant.
+- Ganztägige Termine stehen oben, statt der Uhrzeit steht „ganztägig“. Sie bleiben bis
+  Mitternacht stehen, mehrtägige an jedem ihrer Tage.
+- „Noch heute“ zeigt, was noch nicht vorbei ist. Ein laufender Termin bleibt bis zu seinem
+  Ende. Die Seite blendet vorbei gegangene Termine jede Minute selbst aus.
+- Morgen zeigt die Uhrzeit von–bis, die Woche nur den Beginn. Die Woche beginnt heute und hat
+  sieben Tage, Überschrift Wochentag, Datum und Kalenderwoche.
+- Ein Termin über Mitternacht steht am Folgetag mit „bis 02:00“.
+- Kennt Home Assistant einen eingestellten Kalender nicht, steht eine Warnung im Journal und
+  die übrigen Kalender erscheinen trotzdem. Antwortet Home Assistant nicht, behält die Seite
+  den letzten Stand.
+
+Die iCloud-Integration in Home Assistant ist ebenfalls eingerichtet, sie ist für die
+Anwesenheit da. Ihre Kalender (`calendar.florianhuber_icloud_com_…`) liest das Display nicht.
+
+Prüfen:
+
+```bash
+ssh kuechen-display.local 'journalctl -u kuechen-dienst -n 30 --no-pager | grep Termine'
+```
+
+Dort steht eine Zeile wie `Termine: heute 2, morgen 1, Woche 6`.
+
+Einstellungen (kein Geheimnis, Drop-in der Unit wie oben): `KALENDER` (Entitäten, durch Komma
+getrennt), `ZEITZONE` (Vorgabe `Europe/Berlin`).
