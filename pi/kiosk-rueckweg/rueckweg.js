@@ -53,12 +53,13 @@
   const APPS = { spotify: 'https://open.spotify.com/' };  // wie data-app in pi/kiosk/index.html
   function melde(pfad, daten) {
     return new Promise(function (fertig) {
-      const nichts = { ok: false, daten: {} };
+      function nichts(grund) { return { ok: false, daten: { fehler: grund } }; }
       try {
         chrome.runtime.sendMessage({ art: 'melde', pfad: pfad, daten: daten }, function (a) {
-          fertig(chrome.runtime.lastError || !a ? nichts : a);
+          if (chrome.runtime.lastError) fertig(nichts('Erweiterung: ' + chrome.runtime.lastError.message));
+          else fertig(a || nichts('Keine Antwort vom Hintergrund'));
         });
-      } catch (e) { fertig(nichts); }  // Erweiterung neu geladen: Seite hat den alten Stand
+      } catch (e) { fertig(nichts('Erweiterung: ' + e.message)); }  // z. B. nach Neuladen der Erweiterung
     });
   }
   function quittiere(id, fehler, danach) {
@@ -101,7 +102,7 @@
     <style>
       :host { all: initial; position: fixed; z-index: 2147483647; display: none; }
       :host(.an) { display: block; }
-      button { all: unset; box-sizing: border-box; height: 48px; padding: 0 20px 0 14px; display: flex; gap: 10px;
+      button { all: unset; box-sizing: border-box; min-height: 48px; max-width: 520px; white-space: normal !important; padding: 0 20px 0 14px; display: flex; gap: 10px;
                align-items: center; border-radius: 24px; cursor: pointer; -webkit-tap-highlight-color: transparent;
                font: 700 17px/1 SpotifyMixUI, CircularSp, sans-serif; color: #fff; white-space: nowrap;
                background: rgba(36,40,48,.9); backdrop-filter: blur(20px) saturate(1.3);
@@ -155,7 +156,7 @@
   });
   function fehler(text) {
     setze('fehler', text);
-    setTimeout(function () { setze('bereit', BEREIT); }, 3000);
+    setTimeout(function () { setze('bereit', BEREIT); }, 8000);
   }
   function starten() {
     setze('denkt', 'Moment …');

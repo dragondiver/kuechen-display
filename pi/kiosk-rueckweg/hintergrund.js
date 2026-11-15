@@ -27,7 +27,11 @@ chrome.runtime.onMessage.addListener(function (nachricht, absender, antwort) {
       .then(antwort, function () { antwort(null); });
     return true;
   }
-  if (nachricht.art === 'melde' && ERLAUBT.includes(nachricht.pfad)) {
+  if (nachricht.art === 'melde' && !ERLAUBT.includes(nachricht.pfad)) {
+    antwort({ ok: false, daten: { fehler: 'Pfad nicht erlaubt: ' + nachricht.pfad } });
+    return;
+  }
+  if (nachricht.art === 'melde') {
     fetch(DIENST + nachricht.pfad, {
       // text/plain statt application/json: so bleibt es eine einfache Anfrage ohne OPTIONS-Vorabfrage,
       // die der Küchen-Dienst nicht beantwortet (POST kam am 15.11. nie an). Der Dienst liest JSON
@@ -37,7 +41,7 @@ chrome.runtime.onMessage.addListener(function (nachricht, absender, antwort) {
     }).then(function (r) {
       const json = (r.headers.get('Content-Type') || '').includes('json');
       return (json ? r.json() : Promise.resolve({})).then(function (daten) { antwort({ ok: r.ok, daten: daten }); });
-    }).catch(function () { antwort({ ok: false, daten: {} }); });
+    }).catch(function (e) { antwort({ ok: false, daten: { fehler: 'Dienst nicht erreicht: ' + e.message } }); });
     return true;
   }
 });
