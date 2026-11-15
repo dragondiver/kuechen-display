@@ -18,7 +18,7 @@ chrome.tabs.onUpdated.addListener(function (tabId, info, tab) {
 // Brücke zum Küchen-Dienst für rueckweg.js (#70). Die Leiste läuft in der https-Seite der App und
 // darf http://localhost nicht selbst abfragen; der Hintergrund darf es über host_permissions.
 const DIENST = 'http://localhost:8080';
-const ERLAUBT = ['/tipp', '/quittung'];
+const ERLAUBT = ['/tipp', '/quittung', '/diktat/start', '/diktat/stopp'];
 chrome.runtime.onMessage.addListener(function (nachricht, absender, antwort) {
   if (absender.id !== chrome.runtime.id) return;
   if (nachricht.art === 'lage') {
@@ -31,7 +31,10 @@ chrome.runtime.onMessage.addListener(function (nachricht, absender, antwort) {
     fetch(DIENST + nachricht.pfad, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(nachricht.daten || {}),
-    }).then(function (r) { antwort(r.ok); }, function () { antwort(false); });
+    }).then(function (r) {
+      const json = (r.headers.get('Content-Type') || '').includes('json');
+      return (json ? r.json() : Promise.resolve({})).then(function (daten) { antwort({ ok: r.ok, daten: daten }); });
+    }).catch(function () { antwort({ ok: false, daten: {} }); });
     return true;
   }
 });

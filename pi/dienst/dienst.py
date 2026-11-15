@@ -33,6 +33,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import websockets
+from diktat import MIN_S, Aufnahme, DiktatFehler, transkribieren
 from hass import HomeAssistant, termine_karte, wetter_karte
 from konfig import geheimnis
 from vertrag import (
@@ -102,6 +103,11 @@ ws = None  # aktuelle Leitung zur Bridge oder None
 # Befehle für eine offene App ohne Kiosk-Seite; die Rückweg-Erweiterung holt sie über /lage (#70).
 ablage = Ablage()
 ablage_sperre = threading.Lock()
+# Diktat ins Suchfeld (#70), ohne Elektra; der Schlüssel kommt aus dem 1Password-Environment.
+aufnahme = Aufnahme(RATE)
+aufnahme_sperre = threading.Lock()
+DIKTAT_MODELL = os.environ.get("DIKTAT_MODELL", "gpt-transcribe")
+OPENAI_DATEI = Path(os.path.expanduser("~/.config/kuechen-display/openai-key"))
 
 
 # --- Seite --------------------------------------------------------------------
@@ -236,6 +242,43 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(roh)
 
+    def antworte(self, code: int, daten: dict) -> None:
+        roh = json.dumps(daten, ensure_ascii=False).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(roh)))
+        self.end_headers()
+        self.wfile.write(roh)
+
+    def diktat(self, schritt: str) -> None:
+        schluessel = geheimnis("OPENAI_API_KEY", OPENAI_DATEI)
+        if not schluessel:
+            return self.antworte(503, {"fehler": "Kein OpenAI-Schlüssel auf dem Display."})
+        if schritt == "start":
+            with aufnahme_sperre:
+                aufnahme.start()
+            log.info("Diktat: Aufnahme läuft")
+            return self.antworte(200, {})
+        with aufnahme_sperre:
+            ton = aufnahme.stopp()
+        dauer = aufnahme.sekunden(ton)
+        if dauer < MIN_S:
+            return self.antworte(200, {"text": ""})
+        beginn = time.monotonic()
+        try:
+            text = transkribieren(ton, RATE, schluessel, DIKTAT_MODELL)
+        except DiktatFehler as fehler:
+            log.warning("Diktat: %s", fehler)
+            return self.antworte(502, {"fehler": "Die Spracherkennung ging nicht."})
+        # Nur Längen ins Journal, nicht was gesucht wurde.
+        log.info(
+            "Diktat: %.1f s Ton, %.1f s Antwort, %d Zeichen",
+            dauer,
+            time.monotonic() - beginn,
+            len(text),
+        )
+        self.antworte(200, {"text": text})
+
     def do_POST(self):
         laenge = int(self.headers.get("Content-Length", 0))
         roh = self.rfile.read(laenge).decode(errors="replace")
@@ -243,6 +286,8 @@ class Handler(SimpleHTTPRequestHandler):
             daten = json.loads(roh) if roh else {}
         except json.JSONDecodeError:
             daten = {}
+        if self.path in ("/diktat/start", "/diktat/stopp"):
+            return self.diktat(self.path.rsplit("/", 1)[1])
         if self.path == "/tipp":
             with leitung_sperre:
                 ausfuehren(leitung.tipp())
@@ -372,8 +417,12 @@ def mikro_schleife() -> None:
             roh = prozess.stdout.read(ROH_BYTES)
             if len(roh) < ROH_BYTES:
                 break
+            ton = kanal(roh)
             if leitung.mikro_offen:
-                an_bruecke(kanal(roh))
+                an_bruecke(ton)
+            if aufnahme.aktiv:
+                with aufnahme_sperre:
+                    aufnahme.rahmen(ton)
         log.warning("arecord beendet (Code %s), starte neu", prozess.wait())
         time.sleep(2)
 
