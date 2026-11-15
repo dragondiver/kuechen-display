@@ -13,7 +13,8 @@ Aufruf:  blender -b -P entwurf_o.py -- w75 acht mantel skala [quick] [ansicht ..
 Schalter: w<Grad> Neigung (ohne Angabe 60), acht = Waveshare 8inch DSI LCD (C) (ohne: 7 Zoll),
           mantel, holz, schlitze, skala, innen, grau, weiss, schwarzfront
           Vorschlaege zur Kamera (#6, nicht entschieden): kamspalte = Kamera oben in der Bedienspalte,
-          lang = Schraege 5 mm laenger, Kamera bleibt mittig
+          lang = Schraege 5 mm laenger, Kamera bleibt mittig,
+          kamquer = Kamera mittig, um 90 Grad gedreht, Kabel zur Seite, Linse bei 132,5 statt 137 mm
           innen = Huelle durchscheinend, Wandquerschnitt als Ring; druckt Pruefwerte (Zeilen mit PRUEF)
 Ansichten: iso front side back top detail   (ohne Angabe: iso front detail side)
            mit innen: innen_iso innen_side innen_back, dazu schnitt und schnitt_oben (von links, ohne Perspektive)
@@ -37,6 +38,7 @@ schwarzfront = "schwarzfront" in argv
 mantel = "mantel" in argv
 skala = "skala" in argv
 kamspalte = "kamspalte" in argv  # Vorschlag 15.11.2026: Kamera oben in der Bedienspalte statt mittig ueber dem Display
+kamquer = "kamquer" in argv  # Vorschlag 15.11.2026: Kamera um 90 Grad gedreht, Kabel zur Seite, Linse 4,5 mm tiefer
 laenger = "lang" in argv  # Vorschlag 15.11.2026: Schraege 5 mm laenger, damit die Kameraplatine mittig unter das Dach passt
 acht = "acht" in argv  # Waveshare 8inch DSI LCD (C), Masse aus Waveshare-Zeichnung (referenz/8inch-dsi-lcd_c.pdf)
 if innen:
@@ -44,7 +46,7 @@ if innen:
 holz = "holz" in argv or mantel
 schlitze = holz or "schlitze" in argv
 WINKEL = next((int(a[1:]) for a in argv if a.startswith("w") and a[1:].isdigit()), 60)
-views = [a for a in argv if a not in ("quick", "innen", "grau", "weiss", "schwarzfront", "holz", "schlitze", "mantel", "skala", "acht", "kamspalte", "lang") and not (a.startswith("w") and a[1:].isdigit())] or (["innen_iso", "innen_side", "innen_back"] if innen else ["iso", "front", "detail", "side"])
+views = [a for a in argv if a not in ("quick", "innen", "grau", "weiss", "schwarzfront", "holz", "schlitze", "mantel", "skala", "acht", "kamspalte", "kamquer", "lang") and not (a.startswith("w") and a[1:].isdigit())] or (["innen_iso", "innen_side", "innen_back"] if innen else ["iso", "front", "detail", "side"])
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "renders")
 mm = lambda v: v / 1000.0
 
@@ -207,7 +209,7 @@ for u in (-49.5, -16.5, 16.5, 49.5):
 S0 = 71 if acht else 72
 KAM_ABS = kamspalte
 KAM_U = 93 if kamspalte else 0
-KAM_S = 131.0 if kamspalte else 137.0
+KAM_S = 131.0 if kamspalte else (132.5 if kamquer else 137.0)
 KAM_V = KAM_S - S0
 cyl("kamera_ring", mm(4.2), mm(1.2), pt(KAM_U, KAM_V, 0.6, abs_x=KAM_ABS), SILVER, rot=rot, verts=32)
 cyl("kamera_linse", mm(3.0), mm(1.6), pt(KAM_U, KAM_V, 0.9, abs_x=KAM_ABS), LENS, rot=rot, verts=32)
@@ -390,16 +392,25 @@ if acht:
 # Linse 9,46 mm ueber der Steckerkante und 14,4 mm unter der Oberkante, Linsenfront 8,3 mm vor der Platine,
 # Gehaeuse 10,8 x 10,8 x 4,07, Stecker hinten 19,61 x 5,71 x 2,75. Kabel nach unten, Linse buendig in der Front.
 KAMROT = mat("kamplatine", (0.05, 0.35, 0.12), 0.5)
-box("kam_platine", (mm(25), mm(23.862), mm(1.12)), pt(KAM_U, KAM_V + (14.4 - 9.46) / 2, -8.3 - 0.56, abs_x=KAM_ABS), KAMROT, rot=rot)
+KAM_HOCH = 12.5 if kamquer else 14.4  # Platine oberhalb der Linse
+if kamquer:
+    # um 90 Grad gedreht: 25-mm-Seite entlang der Schraege (Linse dort mittig), Stecker an der rechten Kante
+    box("kam_platine", (mm(23.862), mm(25), mm(1.12)), pt(KAM_U - (14.4 - 9.46) / 2, KAM_V, -8.3 - 0.56, abs_x=KAM_ABS), KAMROT, rot=rot)
+    box("kam_stecker", (mm(5.71), mm(19.61), mm(2.75)), pt(KAM_U + 9.46 - 2.855, KAM_V, -9.42 - 1.375, abs_x=KAM_ABS), WHITE, rot=rot)
+else:
+    box("kam_platine", (mm(25), mm(23.862), mm(1.12)), pt(KAM_U, KAM_V + (14.4 - 9.46) / 2, -8.3 - 0.56, abs_x=KAM_ABS), KAMROT, rot=rot)
+    box("kam_stecker", (mm(19.61), mm(5.71), mm(2.75)), pt(KAM_U, KAM_V - 9.46 + 2.855, -9.42 - 1.375, abs_x=KAM_ABS), WHITE, rot=rot)
 box("kam_gehaeuse", (mm(10.8), mm(10.8), mm(4.07)), pt(KAM_U, KAM_V, -8.3 + 2.035, abs_x=KAM_ABS), PCB, rot=rot)
 cyl("kam_tubus", mm(3.475), mm(4.23), pt(KAM_U, KAM_V, -2.115, abs_x=KAM_ABS), PCB, rot=rot, verts=32)
-box("kam_stecker", (mm(19.61), mm(5.71), mm(2.75)), pt(KAM_U, KAM_V - 9.46 + 2.855, -9.42 - 1.375, abs_x=KAM_ABS), WHITE, rot=rot)
-# Pruefwerte: hoechster Punkt der Platine gegen die Innenseite des Dachs, Kameragehaeuse gegen die Glasoberkante
-_ok = Vector(pt(KAM_U, KAM_V + 14.4, -8.3, abs_x=KAM_ABS)).z * 1000
-print(f"PRUEF Kamera: Platinen-Oberkante z={_ok:.1f} mm, Dach innen z={HOEHE - WAND:.1f} mm, Luft {HOEHE - WAND - _ok:+.1f} mm")
+# Pruefwerte: Platine gegen die Innenseite des Dachs; Tubus gegen die Glaskante; Kameragehaeuse gegen LCD und Glasrueckseite
+_ok = Vector(pt(KAM_U, KAM_V + KAM_HOCH, -8.3, abs_x=KAM_ABS)).z * 1000
+print(f"PRUEF Kamera: Linse bei {KAM_S:.1f} mm, Platinen-Oberkante z={_ok:.1f} mm, Dach innen z={HOEHE - WAND:.1f} mm, Luft {HOEHE - WAND - _ok:+.1f} mm")
 if acht and not kamspalte:
-    print(f"PRUEF Kamera: Kameragehaeuse-Unterkante {KAM_S - 5.4:.1f} mm, Glasoberkante {S0 - 2 + 59.5:.1f} mm auf der Schraege, Luft {KAM_S - 5.4 - (S0 - 2 + 59.5):+.1f} mm")
-    print(f"PRUEF Kamera: Platinen-Vorderseite {8.3:.1f} mm hinter der Front, Display-Rueckseite oben {2.8 + 5.9:.1f} mm, Luft {8.3 - 2.8 - 5.9:+.1f} mm")
+    GLAS_OBEN = S0 - 2 + 59.5
+    LCD_OBEN = S0 - 2 + 57.5  # LCD 115 mm hoch angenommen: Glas steht oben 2 mm ueber (nachmessen)
+    print(f"PRUEF Kamera: Tubus-Unterkante {KAM_S - 3.475:.1f} mm, Glasoberkante {GLAS_OBEN:.1f} mm, Luft {KAM_S - 3.475 - GLAS_OBEN:+.1f} mm")
+    print(f"PRUEF Kamera: Kameragehaeuse-Unterkante {KAM_S - 5.4:.1f} mm, LCD-Oberkante {LCD_OBEN:.1f} mm (angenommen), Luft {KAM_S - 5.4 - LCD_OBEN:+.1f} mm")
+    print(f"PRUEF Kamera: Kameragehaeuse beginnt {8.3 - 4.07:.2f} mm hinter der Front, Glasrueckseite bei {2.8 + 1.1:.2f} mm, Luft {8.3 - 4.07 - 3.9:+.2f} mm")
 
 # Drehgeber hinter dem Lautstaerkeknopf (EC11 aus dem Gedaechtnis: Koerper 12 x 12 x 7, dahinter ca. 5 mm Stifte/Kabel)
 box("drehgeber", (mm(12), mm(12), mm(7)), pt(COLX, -24, -WAND - 3.5, abs_x=True), ALU, rot=rot)
@@ -533,6 +544,6 @@ for name in views:
     target.location = tgt
     a, e = math.radians(az), math.radians(el)
     cam.location = tgt + Vector((dist * math.cos(e) * math.sin(a), -dist * math.cos(e) * math.cos(a), dist * math.sin(e)))
-    scene.render.filepath = os.path.join(OUT, f"entwurf_o_{name}{'' if WINKEL == 60 else f'_w{WINKEL}'}{'_8zoll' if acht else ''}{'_skala' if skala else ''}{'_kamspalte' if kamspalte else ''}{'_lang' if laenger else ''}{'_mantel' if mantel else ('_holz' if holz else ('_schlitze' if schlitze else ''))}{'_weiss' if weiss else ''}{'_schwarzfront' if schwarzfront else ''}{'_grau' if grau else ''}{'_quick' if quick else ''}.png")
+    scene.render.filepath = os.path.join(OUT, f"entwurf_o_{name}{'' if WINKEL == 60 else f'_w{WINKEL}'}{'_8zoll' if acht else ''}{'_skala' if skala else ''}{'_kamspalte' if kamspalte else ''}{'_kamquer' if kamquer else ''}{'_lang' if laenger else ''}{'_mantel' if mantel else ('_holz' if holz else ('_schlitze' if schlitze else ''))}{'_weiss' if weiss else ''}{'_schwarzfront' if schwarzfront else ''}{'_grau' if grau else ''}{'_quick' if quick else ''}.png")
     bpy.ops.render.render(write_still=True)
     print("fertig:", scene.render.filepath)
