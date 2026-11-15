@@ -5,8 +5,8 @@ lädt den Kiosk. Es ersetzt die einzelnen rsync-Zeilen, die vorher in den Anleit
 
 ## Voraussetzungen
 
-- Der Pi ist einmal eingerichtet: Token und Gerätewerte der Bridge, siehe
-  `docs/stimme-und-geste.md`, Schritte 1 und 2.
+- Der Pi ist einmal eingerichtet: Geheimnisse aus 1Password (`docs/datenweg.md`, „Einrichten“)
+  und Gerätewerte der Bridge (`docs/stimme-und-geste.md`, Schritt 2).
 - ssh auf `kuechen-display.local` geht mit Schlüssel, `sudo` dort ohne Passwort.
 - Auf dem Mac ist `pytest` installiert (`pip install -r pi/requirements-test.txt`).
 
@@ -61,6 +61,7 @@ Chromium startet.
 
 - Den Akku-Wächter (`pi/ups/`). Er läuft als root und ändert sich selten: `docs/akku-waechter.md`.
 - Die Gerätewerte der Bridge auf raspi-agent (`pi/bruecke/geraete.conf`): `docs/stimme-und-geste.md`.
+- Die `.env` mit den Geheimnissen. Die bringt `heim-agent/deploy/pi-env-push.sh kuechen-display`.
 - Das Display einschalten. Ist es per `wlr-randr` aus, bleibt es aus.
 
 ## Anderes Ziel

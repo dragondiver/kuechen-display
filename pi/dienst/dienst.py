@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Küchen-Dienst: Kiosk-Seite, Sprachweg zur rundfunk-Bridge und Ton (kuechen-display#15, rundfunk#128).
 
-Ein Prozess, drei Aufgaben:
+Ein Prozess, vier Aufgaben:
 - liefert die Kiosk-Seite aus (pi/kiosk) auf http://localhost:8080/ und schickt ihr
   Ereignisse als Server-Sent Events an /ereignisse;
 - verbindet sich als Netz-Gerät mit der Bridge (Vertrag: rundfunk/src/rundfunk/netzgeraet.py),
   schickt das Mikrofon (XVF3800, ALSA hw, Kanal 0) und spielt Elektras Stimme ab;
-- nimmt Gesten vom Kameradienst (pi/gesten) an und reicht sie an Seite und Bridge weiter.
+- nimmt Gesten vom Kameradienst (pi/gesten) an und reicht sie an Seite und Bridge weiter;
+- holt das Wetter aus Home Assistant und schickt es der Seite (docs/datenweg.md).
 
 Ein Gespräch beginnt mit einem Tipp auf die Figur (Festlegung 8.11.2026); das Aktivierungswort
 kommt später. Ton geht an den Standardausgang von PipeWire (beim Tischtest Bluetooth).
@@ -30,6 +31,8 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import websockets
+from hass import HomeAssistant, wetter_karte
+from konfig import geheimnis
 from vertrag import (
     RAHMEN_BYTES,
     RAHMEN_PROBEN,
@@ -57,6 +60,19 @@ MIKRO = os.environ.get("MIKRO_GERAET", "hw:CARD=L16K6Ch,DEV=0")
 # Elektra das Werkzeug app_oeffnen gar nicht erst an.
 APPS: list[str] = []
 RAHMEN_S = RAHMEN_PROBEN / RATE
+# Home Assistant (docs/datenweg.md). Ohne HA_TOKEN läuft der Dienst weiter, nur ohne Wetter.
+HA_URL = os.environ.get("HA_URL", "http://raspi-agent.local:8123")
+HA_TOKEN_DATEI = Path(
+    os.environ.get(
+        "HA_TOKEN_DATEI", os.path.expanduser("~/.config/kuechen-display/ha-token")
+    )
+)
+WETTER_ENTITAET = os.environ.get("WETTER_ENTITAET", "weather.stuttgart_schn")
+TEMPERATUR_SENSOR = os.environ.get(
+    "TEMPERATUR_SENSOR", "sensor.stuttgart_schn_temperatur"
+)
+ORT = os.environ.get("ORT", "Kornwestheim")
+WETTER_TAKT_S = 600
 
 log = logging.getLogger("dienst")
 leitung = Leitung()
@@ -65,6 +81,8 @@ abonnenten: list[queue.Queue] = []
 abonnenten_sperre = threading.Lock()
 wiedergabe: queue.Queue[bytes] = queue.Queue()
 schleife: asyncio.AbstractEventLoop | None = None
+# Letzter Stand je Ereignisart, den eine neu geöffnete Seite sofort bekommt (z. B. "wetter").
+letzte_daten: dict[str, dict] = {}
 ws = None  # aktuelle Leitung zur Bridge oder None
 
 
@@ -141,6 +159,8 @@ class Handler(SimpleHTTPRequestHandler):
         # Neue Seite: gleich den aktuellen Stand, damit nach einem Neuladen nichts falsch steht.
         q.put(("verbindung", {"da": ws is not None}))
         q.put(("zustand", {"wert": leitung.zustand}))
+        for art, e in list(letzte_daten.items()):
+            q.put((art, e))
         try:
             while True:
                 try:
@@ -299,10 +319,51 @@ def mikro_schleife() -> None:
         time.sleep(2)
 
 
+# --- Daten aus Home Assistant -------------------------------------------------
+def daten_schleife() -> None:
+    """Holt alle zehn Minuten das Wetter. Schlägt ein Abruf fehl, behält die Seite den
+    letzten Stand samt seiner Zeit; der Fehler steht einmal im Journal, bis es wieder geht."""
+    token = geheimnis("HA_TOKEN", HA_TOKEN_DATEI)
+    if token is None:
+        log.warning("Kein Wetter: HA_TOKEN fehlt (siehe docs/datenweg.md)")
+        return
+    ha = HomeAssistant(HA_URL, token)
+    gestoert = False
+    gemeldet = None
+    while True:
+        try:
+            karte = wetter_karte(ha, WETTER_ENTITAET, TEMPERATUR_SENSOR, ORT)
+        except (OSError, ValueError) as fehler:
+            if not gestoert:
+                log.warning("Wetter: Home Assistant antwortet nicht: %s", fehler)
+            gestoert = True
+        else:
+            if gestoert:
+                log.info("Wetter: Home Assistant antwortet wieder")
+            gestoert = False
+            if karte["unbekannt"] and karte["zustand"] != gemeldet:
+                log.warning(
+                    "Wetter: %s liefert '%s', dafür gibt es kein Bild",
+                    WETTER_ENTITAET,
+                    karte["zustand"],
+                )
+            gemeldet = karte["zustand"] if karte["unbekannt"] else None
+            if karte != {**letzte_daten.get("wetter", {}), "stand": karte["stand"]}:
+                log.info(
+                    "Wetter: %s, %s, Bild %s",
+                    karte["temperatur"],
+                    karte["zustand"],
+                    karte["bild"],
+                )
+            letzte_daten["wetter"] = karte
+            an_seite("wetter", karte)
+        time.sleep(WETTER_TAKT_S)
+
+
 # --- Bridge -------------------------------------------------------------------
 async def bruecke_schleife() -> None:
     global ws
-    token = TOKEN_DATEI.read_text().strip()
+    token = geheimnis("RUNDFUNK_GERAETE_TOKEN", TOKEN_DATEI)
     warte = 1
     while True:
         try:
@@ -360,10 +421,10 @@ def main() -> None:
     logging.basicConfig(
         level=logging.INFO, format="%(levelname)s %(message)s", stream=sys.stdout
     )
-    if not TOKEN_DATEI.exists():
-        log.error("Token fehlt: %s (siehe docs/stimme-und-geste.md)", TOKEN_DATEI)
+    if geheimnis("RUNDFUNK_GERAETE_TOKEN", TOKEN_DATEI) is None:
+        log.error("RUNDFUNK_GERAETE_TOKEN fehlt (siehe docs/stimme-und-geste.md)")
         sys.exit(1)
-    for ziel in (bruecke_faden, wiedergabe_schleife, mikro_schleife):
+    for ziel in (bruecke_faden, wiedergabe_schleife, mikro_schleife, daten_schleife):
         threading.Thread(target=ziel, daemon=True, name=ziel.__name__).start()
     server = ThreadingHTTPServer(("127.0.0.1", PORT), partial(Handler, directory=SEITE))
     server.daemon_threads = True

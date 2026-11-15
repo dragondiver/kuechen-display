@@ -3,7 +3,7 @@
 Stand 8.11.2026, zu #15 (Ruhebildschirm) und #2 (Gesten). Auf dem Display läuft der
 Ruhebildschirm aus Entwurf C4 im Chromium-Kiosk. Unten rechts sitzt die Figur (F2), ein Tipp darauf
 startet ein Gespräch mit Elektra (`docs/stimme-und-geste.md`). Eine Handgeste vor der Kamera
-blättert die Seiten um. Termine und Wetter sind noch Platzhalter, nur Uhr und Datum sind echt.
+blättert die Seiten um. Uhr, Datum und Wetter sind echt (`docs/datenweg.md`), die Termine sind noch Platzhalter.
 
 ## Was läuft
 

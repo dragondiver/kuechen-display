@@ -16,7 +16,7 @@ d=$(cd "$(dirname "$0")" && pwd)   # ~/kuechen-display, per rsync vom Mac befül
 [ -f "$d/gesture_recognizer.task" ] || curl -sSfL -o "$d/gesture_recognizer.task" \
   https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/latest/gesture_recognizer.task
 
-[ -f ~/.config/kuechen-display/geraete-token ] || echo "Achtung: Token fehlt, siehe docs/stimme-und-geste.md"
+[ -f "$d/.env" ] || [ -f ~/.config/kuechen-display/geraete-token ] || echo "Achtung: $d/.env fehlt, siehe docs/datenweg.md"
 
 sudo install -m 644 "$d/dienst/kuechen-dienst.service" /etc/systemd/system/kuechen-dienst.service
 sudo install -m 644 "$d/gesten/kuechen-gesten.service" /etc/systemd/system/kuechen-gesten.service

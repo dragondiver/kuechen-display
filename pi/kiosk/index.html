@@ -7,7 +7,8 @@
 <!--
   Ruhebildschirm für den Chromium-Kiosk auf dem Pi (Durchstich zu #15 und #2).
   Aufbau und Aussehen aus docs/entwuerfe/ruhebildschirm.html, Entwurf C4 (Seiten) mit
-  Wetterbild W5 (flach). Inhalte sind noch Platzhalter; echte Termine und Wetter folgen.
+  Wetterbild W5 (flach). Das Wetter kommt aus Home Assistant (docs/datenweg.md), die Termine
+  sind noch Platzhalter.
 
   Seiten: Apps 2 ← Apps 1 ← Heute → Morgen/Woche. Blättern per Wischen auf dem Bildschirm,
   per Tippen auf „Morgen … ›“ oder per Handgeste vor der Kamera (Ereignisse vom Gestendienst
@@ -104,7 +105,7 @@
 </head>
 <body>
 <div class="scr" id="scr" style="--seite:2" data-zustand="aus" data-verbunden="nein">
-  <img class="wetterbild" src="wetter/gedaempft.png" alt="">
+  <img class="wetterbild" id="wetterbild" src="wetter/gedaempft.png" alt="">
   <div class="bahn" id="bahn">
     <div class="seite"><div class="raster">
       <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M24 20h24M24 32h24M24 44h24"/><circle cx="16" cy="20" r="2"/><circle cx="16" cy="32" r="2"/><circle cx="16" cy="44" r="2"/></svg></div><div class="appname">Einkauf</div></div>
@@ -132,10 +133,10 @@
         <div class="mehr" data-weiter>Morgen 6 Termine ›</div>
       </div>
       <div class="glas" style="position:absolute;right:48px;top:48px;width:460px;padding:40px 44px;">
-        <div class="ort">Kornwestheim</div>
-        <div class="temp">11°</div>
-        <div class="zustand">Gedämpft</div>
-        <div class="hoch">Nacht 5°</div>
+        <div class="ort" id="w-ort">Kornwestheim</div>
+        <div class="temp" id="w-temp">–</div>
+        <div class="zustand" id="w-zustand">Keine Wetterdaten</div>
+        <div class="hoch" id="w-zeile"></div>
       </div>
     </div>
     <div class="seite">
@@ -208,7 +209,7 @@
   debug.innerHTML = '<div class="hand">Hand: –</div><div class="letzte">noch keine Geste</div>';
   function zeigeDebug(text) { debug.querySelector('.letzte').textContent = new Date().toLocaleTimeString('de-DE') + '  ' + text; }
 
-  // Uhr und Datum sind echt, alles andere ist noch Platzhalter.
+  // Uhr, Datum und Wetter sind echt, die Termine noch Platzhalter.
   function uhrzeit() {
     const jetzt = new Date();
     document.getElementById('uhr').textContent = jetzt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
@@ -287,6 +288,26 @@
     const t = JSON.parse(e.data);
     zeigeZeile(t.rolle, t.text);
   });
+  // Wetter vom Küchen-Dienst (pi/dienst/daten.py). Ohne Daten bleibt „Keine Wetterdaten“ stehen.
+  // Sind die Daten älter als eine Stunde, tritt die Karte zurück (ALT_MS), statt Falsches zu behaupten.
+  const ALT_MS = 60 * 60 * 1000;
+  let wetterStand = 0;
+  const wetterKarte = document.getElementById('w-temp').parentElement;
+  function wetterAlter() {
+    wetterKarte.style.opacity = wetterStand && Date.now() - wetterStand * 1000 > ALT_MS ? '.45' : '';
+  }
+  quelle.addEventListener('wetter', function (e) {
+    const w = JSON.parse(e.data);
+    document.getElementById('w-ort').textContent = w.ort;
+    document.getElementById('w-temp').textContent = w.temperatur;
+    document.getElementById('w-zustand').textContent = w.zustand;
+    document.getElementById('w-zeile').textContent = w.zeile;
+    const bild = 'wetter/' + w.bild + '.png', img = document.getElementById('wetterbild');
+    if (!img.src.endsWith(bild)) img.src = bild;
+    wetterStand = w.stand;
+    wetterAlter();
+  });
+  setInterval(wetterAlter, 60000);
   // Befehle, die Elektra per Werkzeug schickt (rundfunk: server._oberflaechen_werkzeuge)
   const SEITEN = { apps: 1, heute: HEUTE, morgen: LETZTE };
   quelle.addEventListener('befehl', function (e) {
