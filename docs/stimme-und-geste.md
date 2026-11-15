@@ -59,11 +59,18 @@ wartete sie bis zu ihrer Ruhezeit.
 ## Diktat ins Suchfeld
 
 Ohne Elektra (#70, Festlegung 15.11.2026). Bekommt in einer App ein Textfeld den Fokus, zum Beispiel
-Spotifys Suche „Was möchtest du wiedergeben?“, erscheint darunter der Knopf „Sprechen“. Tippen,
-sprechen, noch mal tippen; nach zehn Sekunden hört er von selbst auf. Der Text ersetzt den Inhalt
-des Feldes, ein Punkt am Ende fällt weg.
+Spotifys Suche „Was möchtest du wiedergeben?“, erscheint darunter der Knopf „Sprechen“. Tippen und
+sprechen. Nach einer Pause hört er von selbst auf; noch mal tippen beendet sofort. Wer nichts sagt,
+hat 10 Sekunden Bedenkzeit (Florian, 15.11.2026), länger als 20 Sekunden nimmt er nie auf. Der Text
+ersetzt den Inhalt des Feldes, ein Punkt am Ende fällt weg.
 
-Der Küchen-Dienst nimmt dafür Kanal 0 des XVF3800 auf (`POST /diktat/start`, `/diktat/stopp`,
+Die Pause misst der Pegel: Der Boden ist das 10. Perzentil der Rahmen vor dem Sprechen. Sprache
+heißt drei Rahmen (180 ms) mindestens 15 dB über dem Boden, Ruhe heißt unter Boden + 8 dB. Die
+Werte stehen oben in `pi/dienst/diktat.py`. Zum Nachstellen schreibt der Dienst pro Diktat Dauer,
+Grund fürs Ende, Boden und Spitze ins Journal:
+`journalctl -u kuechen-dienst | grep Diktat`.
+
+Der Küchen-Dienst nimmt dafür Kanal 0 des XVF3800 auf (`POST /diktat/start`, `/diktat/stopp`, `/diktat/ergebnis`,
 `pi/dienst/diktat.py`) und schickt den Ton als WAV an die OpenAI-Transkription, Modell
 `gpt-transcribe` (änderbar über `DIKTAT_MODELL`), Sprachen Deutsch und Englisch. Er braucht
 `OPENAI_API_KEY` im 1Password-Environment `kuechen-display` (`docs/datenweg.md`). Ins Journal

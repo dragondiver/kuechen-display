@@ -2,37 +2,83 @@
 
 Festlegung 15.11.2026: Der Ton geht an die OpenAI-Transkription (`gpt-transcribe`), weil man in
 Spotify meist nach Namen sucht. Der Küchen-Dienst nimmt Kanal 0 des XVF3800 auf, solange die
-Rückweg-Leiste ein Diktat offen hat, und schickt ihn beim Stopp als WAV.
+Rückweg-Leiste ein Diktat offen hat, und schickt ihn am Ende als WAV.
+
+Ende (Festlegung 15.11.2026): nach STILLE_S Ruhe im Anschluss an Sprache, auf Tipp, nach
+OHNE_SPRACHE_S ohne erkannte Sprache oder nach MAX_S. „Sprache“ und „Ruhe“ misst der Pegel jedes
+Rahmens gegen den Boden (10. Perzentil der Rahmen vor der Sprache, danach eingefroren, sonst wandert
+er bei langem Sprechen mit nach oben), damit Kühlschrank oder leise Musik nicht als Sprache zählen. Die Schwellen sind Startwerte und werden am Display nachgestellt.
 Ohne Fremdpakete (urllib), wie hass.py.
 """
 
 from __future__ import annotations
 
 import json
+import math
 import secrets
 import struct
+import threading
 import urllib.error
 import urllib.request
+from array import array
 
 ADRESSE = "https://api.openai.com/v1/audio/transcriptions"
 MODELL = "gpt-transcribe"
 # Deutsch und Englisch: deutsche Ansagen, englische Band- und Songnamen.
 SPRACHEN = ("de", "en")
-MAX_S = 10.0  # danach nimmt der Dienst nichts mehr auf, auch ohne Stopp
+MAX_S = 20.0  # danach nimmt der Dienst nichts mehr auf, auch ohne Stopp
 MIN_S = 0.3  # kürzer ist ein Fehltipp, dafür geht nichts an OpenAI
+STILLE_S = 1.0  # so lange Ruhe nach Sprache beendet das Diktat
+OHNE_SPRACHE_S = (
+    10.0  # Bedenkzeit; ohne erkannte Sprache bis hierhin: Ende (Florian 15.11.)
+)
+KALIBRIER_S = 0.24  # erst danach wird verglichen, vorher gibt es keinen Boden
+SPRACHE_DB = 15.0  # Pegel über dem Boden, ab dem ein Rahmen als Sprache zählt
+SPRACHE_RAHMEN = 3  # so viele Sprach-Rahmen hintereinander, damit kein Klappern zählt
+STILLE_DB = 8.0  # darunter (über dem Boden) zählt ein Rahmen als Ruhe
+
+
+def pegel_db(pcm: bytes) -> float:
+    """RMS eines PCM16-Rahmens in dBFS; Stille gibt -100."""
+    proben = array("h")
+    proben.frombytes(pcm[: len(pcm) // 2 * 2])
+    if not proben:
+        return -100.0
+    rms = math.sqrt(sum(p * p for p in proben) / len(proben))
+    return 20 * math.log10(rms / 32768) if rms > 0 else -100.0
 
 
 class Aufnahme:
-    """Puffer für ein Diktat. Kennt weder Mikrofon noch Netz."""
+    """Puffer für ein Diktat mit Ende bei Ruhe. Kennt weder Mikrofon noch Netz."""
 
     def __init__(self, rate: int) -> None:
         self.rate = rate
         self.aktiv = False
         self.ton = bytearray()
+        self.pegel: list[float] = []
+        self.dauern: list[float] = []
+        self.sprache = False
+        self.boden_db = -100.0
+        self.ruhe_s = 0.0
+        self.grund = ""
+        self.fertig = threading.Event()
+        self.fertig.set()
 
     def start(self) -> None:
-        self.aktiv = True
         self.ton = bytearray()
+        self.pegel, self.dauern = [], []
+        self.sprache = False
+        self.boden_db = -100.0
+        self.ruhe_s = 0.0
+        self.grund = ""
+        self.fertig.clear()
+        self.aktiv = True
+
+    def beenden(self, grund: str) -> None:
+        if self.aktiv:
+            self.aktiv = False
+            self.grund = grund
+        self.fertig.set()
 
     def rahmen(self, pcm: bytes) -> None:
         if not self.aktiv:
@@ -40,12 +86,37 @@ class Aufnahme:
         platz = int(MAX_S * self.rate) * 2 - len(self.ton)
         self.ton += pcm[: max(platz, 0)]
         if platz <= len(pcm):
-            self.aktiv = False
+            return self.beenden("max")
+        self.pegel.append(pegel_db(pcm))
+        self.dauern.append(len(pcm) / 2 / self.rate)
+        bisher = self.sekunden(self.ton)
+        if bisher < KALIBRIER_S:
+            return
+        if not self.sprache:
+            self.boden_db = sorted(self.pegel)[len(self.pegel) // 10]
+        boden = self.boden_db
+        if not self.sprache:
+            letzte = self.pegel[-SPRACHE_RAHMEN:]
+            if len(letzte) == SPRACHE_RAHMEN and min(letzte) > boden + SPRACHE_DB:
+                self.sprache = True
+            elif bisher >= OHNE_SPRACHE_S:
+                self.beenden("keine Sprache")
+            return
+        if self.pegel[-1] < boden + STILLE_DB:
+            self.ruhe_s += self.dauern[-1]
+            if self.ruhe_s >= STILLE_S - 1e-9:
+                self.beenden("Ruhe")
+        else:
+            self.ruhe_s = 0.0
 
-    def stopp(self) -> bytes:
-        self.aktiv = False
+    def nehmen(self) -> bytes:
+        """Den aufgenommenen Ton herausnehmen; beendet eine laufende Aufnahme."""
+        self.beenden(self.grund or "Tipp")
         ton, self.ton = bytes(self.ton), bytearray()
         return ton
+
+    def spitze(self) -> float:
+        return max(self.pegel, default=-100.0)
 
     def sekunden(self, ton: bytes) -> float:
         return len(ton) / 2 / self.rate

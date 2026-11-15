@@ -33,7 +33,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import websockets
-from diktat import MIN_S, Aufnahme, DiktatFehler, transkribieren
+from diktat import MAX_S, MIN_S, Aufnahme, DiktatFehler, transkribieren
 from hass import HomeAssistant, termine_karte, wetter_karte
 from konfig import geheimnis
 from vertrag import (
@@ -232,7 +232,12 @@ class Handler(SimpleHTTPRequestHandler):
         if befehl:
             log.info("Befehl %s von der App abgeholt", befehl.get("name"))
         roh = json.dumps(
-            {"zustand": leitung.zustand, "verbunden": ws is not None, "befehl": befehl},
+            {
+                "zustand": leitung.zustand,
+                "verbunden": ws is not None,
+                "befehl": befehl,
+                "diktat": aufnahme.aktiv,
+            },
             ensure_ascii=False,
         ).encode()
         self.send_response(200)
@@ -251,6 +256,8 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(roh)
 
     def diktat(self, schritt: str) -> None:
+        """start: Aufnahme an. stopp: Aufnahme aus (Tipp). ergebnis: wartet, bis die Aufnahme
+        endet (Ruhe, Tipp, Frist), und gibt den erkannten Text zurück."""
         schluessel = geheimnis("OPENAI_API_KEY", OPENAI_DATEI)
         if not schluessel:
             return self.antworte(
@@ -261,21 +268,30 @@ class Handler(SimpleHTTPRequestHandler):
                 aufnahme.start()
             log.info("Diktat: Aufnahme läuft")
             return self.antworte(200, {})
+        if schritt == "stopp":
+            with aufnahme_sperre:
+                aufnahme.beenden("Tipp")
+            return self.antworte(200, {})
+        aufnahme.fertig.wait(timeout=MAX_S + 2)
         with aufnahme_sperre:
-            ton = aufnahme.stopp()
+            ton = aufnahme.nehmen()
+            grund, boden, spitze = aufnahme.grund, aufnahme.boden_db, aufnahme.spitze()
         dauer = aufnahme.sekunden(ton)
+        # Nur Längen und Pegel ins Journal, nicht was gesucht wurde. Die Pegel sind zum
+        # Nachstellen der Schwellen in diktat.py.
+        werte = f"{dauer:.1f} s Ton, Ende: {grund}, Boden {boden:.0f} dB, Spitze {spitze:.0f} dB"
         if dauer < MIN_S:
+            log.info("Diktat: %s, zu kurz", werte)
             return self.antworte(200, {"text": ""})
         beginn = time.monotonic()
         try:
             text = transkribieren(ton, RATE, schluessel, DIKTAT_MODELL)
         except DiktatFehler as fehler:
-            log.warning("Diktat: %s", fehler)
+            log.warning("Diktat: %s; %s", werte, fehler)
             return self.antworte(502, {"fehler": "Die Spracherkennung ging nicht."})
-        # Nur Längen ins Journal, nicht was gesucht wurde.
         log.info(
-            "Diktat: %.1f s Ton, %.1f s Antwort, %d Zeichen",
-            dauer,
+            "Diktat: %s, %.1f s Antwort, %d Zeichen",
+            werte,
             time.monotonic() - beginn,
             len(text),
         )
@@ -288,7 +304,7 @@ class Handler(SimpleHTTPRequestHandler):
             daten = json.loads(roh) if roh else {}
         except json.JSONDecodeError:
             daten = {}
-        if self.path in ("/diktat/start", "/diktat/stopp"):
+        if self.path in ("/diktat/start", "/diktat/stopp", "/diktat/ergebnis"):
             return self.diktat(self.path.rsplit("/", 1)[1])
         if self.path == "/tipp":
             with leitung_sperre:
