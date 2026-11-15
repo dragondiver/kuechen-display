@@ -30,6 +30,26 @@ pkill -x wf-panel-pi 2>/dev/null || true
 # Rückweg-Leiste oben links auf Seiten, die aus der Apps-Seite geöffnet werden (#10, docs/spotify.md).
 RUECKWEG="$(cd "$(dirname "$0")" && pwd)/kiosk-rueckweg"
 
+# Chromium behält den Hintergrund (hintergrund.js) der entpackten Erweiterung im Service-Worker-
+# Speicher und führt ihn weiter aus, auch nach neuer "version" im Manifest (#70, 15.11.2026: zweimal
+# lief alter Code, Diktat und Mikro-Knopf bekamen keine Antwort). Hat sich die Erweiterung seit dem
+# letzten Start geändert, deshalb den Speicher leeren. Spotify bleibt angemeldet (Cookies liegen
+# woanders); Seiten legen ihre Service Worker beim nächsten Besuch neu an.
+SUMME_DATEI="$HOME/.cache/kuechen-display/rueckweg.sum"
+SUMME="$(cat "$RUECKWEG"/* | sha256sum | cut -d' ' -f1)"
+if [ "$SUMME" != "$(cat "$SUMME_DATEI" 2>/dev/null)" ]; then
+  # Chromium muss ganz beendet sein, sonst schreibt es den Speicher beim Beenden zurück.
+  for _ in $(seq 20); do pgrep -x chromium >/dev/null || break; sleep 0.5; done
+  if ! pgrep -x chromium >/dev/null; then
+    rm -rf "$HOME/.config/chromium/Default/Service Worker"
+    mkdir -p "$(dirname "$SUMME_DATEI")"
+    echo "$SUMME" >"$SUMME_DATEI"
+    echo "Rückweg-Erweiterung geändert: Service-Worker-Speicher geleert"
+  else
+    echo "Chromium läuft noch, Service-Worker-Speicher nicht geleert" >&2
+  fi
+fi
+
 exec chromium --noerrdialogs --disable-infobars --no-first-run \
   --password-store=basic --ozone-platform=wayland --touch-events=enabled \
   --overscroll-history-navigation=0 --lang=de-DE --disable-features=Translate \
