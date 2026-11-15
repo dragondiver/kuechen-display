@@ -119,8 +119,8 @@ Kiosk-Seite    „Noch heute“, „Morgen … ›“, Seite Morgen/Woche
 Regeln:
 
 - Am Display stehen nur die Kalender Family und Abfall. Die Reihenfolge in `KALENDER` gibt die
-  Farbe des Punkts: der erste blau, der zweite orange, weitere grau. Neben dem Punkt steht der
-  Name des Kalenders aus Home Assistant.
+  Farbe des Punkts: der erste gelb (Family), der zweite rot (Abfall), weitere grau. Neben dem
+  Punkt steht der Name des Kalenders aus Home Assistant.
 - Ganztägige Termine stehen oben, statt der Uhrzeit steht „ganztägig“. Sie bleiben bis
   Mitternacht stehen, mehrtägige an jedem ihrer Tage.
 - „Noch heute“ zeigt, was noch nicht vorbei ist. Ein laufender Termin bleibt bis zu seinem
