@@ -14,7 +14,8 @@ blättert die Seiten um. Termine und Wetter sind noch Platzhalter, nur Uhr und D
 | Figur (F2) | `docs/entwuerfe/figur/*-klein.png` | `~/kuechen-display/kiosk/figur/` |
 | Küchen-Dienst: Seite und Ereignisse | `pi/dienst/dienst.py` | Dienst `kuechen-dienst` |
 | Kameradienst | `pi/gesten/gesten.py`, `geste.py` | Dienst `kuechen-gesten`, nur beim Testen an |
-| Chromium-Autostart | `pi/kiosk/kiosk.desktop` | `~/.config/autostart/kiosk.desktop` |
+| Chromium-Autostart | `pi/kiosk/kiosk.desktop`, `pi/kiosk-start.sh` | `~/.config/autostart/kiosk.desktop`, `~/kuechen-display/kiosk-start.sh` |
+| Deploy vom Mac | `pi/push.sh` | – |
 | Einrichtung | `pi/install-kiosk.sh` | `~/kuechen-display/install-kiosk.sh` |
 
 Der Küchen-Dienst liefert die Seite auf `http://localhost:8080/` aus (nur lokal erreichbar) und
@@ -47,16 +48,17 @@ So entscheidet der Code (Schwellen oben in `pi/gesten/geste.py`, Tests in `test_
 
 ## Einrichten oder aktualisieren
 
-Siehe `docs/stimme-und-geste.md`, Abschnitt „Einrichten“. Dazu das Wetterbild:
-
 ```bash
-rsync -a docs/entwuerfe/wetter/flach/ --include '*.png' --exclude '*/' kuechen-display.local:kuechen-display/kiosk/wetter/
+pi/push.sh
 ```
+
+Siehe `docs/deploy.md`. Die erste Einrichtung (Token, Gerätewerte der Bridge) steht in
+`docs/stimme-und-geste.md`.
 
 ## Kiosk sofort neu starten
 
 ```bash
-ssh kuechen-display.local 'pkill -x chromium; sleep 1; WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 setsid -f chromium --kiosk --noerrdialogs --disable-infobars --no-first-run --password-store=basic --ozone-platform=wayland --touch-events=enabled --overscroll-history-navigation=0 --lang=de-DE --disable-features=Translate "--app=http://localhost:8080/?debug=1" </dev/null >/tmp/kiosk.log 2>&1'
+ssh kuechen-display.local "pkill -x chromium; sleep 1; setsid -f sh kuechen-display/kiosk-start.sh '?debug=1' </dev/null >/tmp/kiosk.log 2>&1"
 ```
 
 `pkill -x chromium` trifft nur den Browser. Ein `pkill -f chromium…` würde die eigene

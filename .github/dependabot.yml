@@ -1,6 +1,5 @@
 version: 2
 
-# Bisher nur GitHub Actions; sobald oberflaeche/ oder geraet/ Abhängigkeiten haben, hier ergänzen.
 updates:
   - package-ecosystem: github-actions
     directory: "/"
@@ -14,3 +13,17 @@ updates:
         patterns: ["*"]
     commit-message:
       prefix: "chore(ci)"
+
+  # Testwerkzeuge (pytest, ruff) für pi/. Was der Pi selbst installiert, steht in pi/install-kiosk.sh.
+  - package-ecosystem: pip
+    directory: "/pi"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    groups:
+      testwerkzeuge:
+        patterns: ["*"]
+    commit-message:
+      prefix: "chore(deps)"

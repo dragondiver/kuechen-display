@@ -1,0 +1,38 @@
+name: test
+
+# Prüft den Code, der auf dem Pi läuft (pi/). Braucht kein Secret, damit auch
+# Dependabot-PRs voll geprüft werden. Die Blender- und Bild-Skripte bleiben außen vor:
+# sie laufen nur von Hand auf dem Mac.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      # Feste Versionen: ein neues ruff formatiert sonst anders und färbt fremde PRs rot.
+      - name: Werkzeuge installieren
+        run: pip install -q -r pi/requirements-test.txt
+
+      - name: ruff
+        run: |
+          ruff check pi
+          ruff format --check pi
+
+      # Die Tests brauchen weder Kamera noch Ton noch Netz: sie prüfen nur die
+      # reine Logik in vertrag.py und geste.py.
+      - name: pytest
+        run: python -m pytest -q pi
