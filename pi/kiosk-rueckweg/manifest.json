@@ -2,12 +2,22 @@
   "manifest_version": 3,
   "name": "Küchen-Display: Rückweg",
   "version": "1",
-  "description": "Kleine Leiste oben links auf fremden Seiten (Spotify, später YouTube, Browser): zurück zu den Apps oder zu Heute. kuechen-display#10",
+  "description": "Kleine Leiste oben links auf fremden Seiten (Spotify, später YouTube, Browser): zurück zu den Apps oder zu Heute. Dazu fester Zoom für Spotify. kuechen-display#10",
   "content_scripts": [
     {
-      "matches": ["https://*/*"],
-      "js": ["rueckweg.js"],
+      "matches": [
+        "https://*/*"
+      ],
+      "js": [
+        "rueckweg.js"
+      ],
       "run_at": "document_end"
     }
+  ],
+  "background": {
+    "service_worker": "zoom.js"
+  },
+  "host_permissions": [
+    "https://open.spotify.com/*"
   ]
 }

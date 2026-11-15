@@ -50,6 +50,13 @@ Läuft auf dem Evoke schon Spotify vom selben Konto, zeigt der Player unten eine
 „Wiedergabe über Evoke Play“ und steuert ihn direkt. Sonst unten rechts das Geräte-Symbol antippen
 und „Evoke Play“ wählen. Wählt man „Dieser Webbrowser“, spielt das Display selbst.
 
+Der Player läuft mit 125 % Zoom (Festlegung 15.11.2026, #10). So sind Schrift und Knöpfe groß
+genug für den Finger, und der Aufbau bleibt gleich. Bei 150 % klappte die Bibliothek zu Symbolen
+zusammen, aber die Abspielleiste rutschte unten aus dem Bild. Den Wert setzt `zoom.js` in
+`pi/kiosk-rueckweg/` per `chrome.tabs.setZoom`, sobald `open.spotify.com` geladen ist. Chromium
+merkt ihn sich außerdem im Profil (`partition.per_host_zoom_levels` in
+`~/.config/chromium/Default/Preferences`). Einen anderen Wert trägt man oben in `zoom.js` ein.
+
 Tippt man in die Suche, geht unten die Bildschirmtastatur auf (`docs/kiosk-und-gesten.md`,
 „Bildschirmtastatur“). Der Player rückt dabei nach oben.
 
@@ -67,7 +74,7 @@ Die Musik läuft auf dem Evoke weiter, weil Spotify Connect sie dort hält. Komm
 Spotify, lädt der Player neu und zeigt sie wieder an.
 
 Die Leiste ist eine kleine Chromium-Erweiterung in `pi/kiosk-rueckweg/` (`manifest.json`,
-`rueckweg.js`). `pi/kiosk-start.sh` lädt sie mit `--load-extension`, `pi/push.sh` spiegelt sie nach
+`rueckweg.js`, dazu `zoom.js` für den Zoom). `pi/kiosk-start.sh` lädt sie mit `--load-extension`, `pi/push.sh` spiegelt sie nach
 `~/kuechen-display/kiosk-rueckweg/`. Sie setzt sich auf jede `https`-Seite, die Ruhebildschirm-Seite
 selbst (`http://localhost`) bleibt frei. YouTube und Browser bekommen sie also gleich mit, wenn ihre
 Kacheln eine Adresse haben. Die Leiste steckt in einem Shadow-DOM, damit die CSS der Seite sie nicht
