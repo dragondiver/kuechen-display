@@ -125,6 +125,8 @@ Regeln:
   Mitternacht stehen, mehrtägige an jedem ihrer Tage.
 - „Noch heute“ zeigt, was noch nicht vorbei ist. Ein laufender Termin bleibt bis zu seinem
   Ende. Die Seite blendet vorbei gegangene Termine jede Minute selbst aus.
+  Passen nicht alle Termine auf die Karte, rollt die Liste per Wischen nach oben und unten,
+  ein weicher unterer Rand zeigt, dass noch etwas kommt. Morgen und Woche rollen ebenso.
 - Morgen zeigt die Uhrzeit von–bis, die Woche nur den Beginn. Die Woche beginnt heute und hat
   sieben Tage, Überschrift Wochentag, Datum und Kalenderwoche.
 - Ein Termin über Mitternacht steht am Folgetag mit „bis 02:00“.
