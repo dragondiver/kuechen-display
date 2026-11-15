@@ -1,7 +1,7 @@
 import json
 from array import array
 
-from vertrag import RAHMEN_BYTES, ROH_BYTES, Leitung, kanal
+from vertrag import RAHMEN_BYTES, ROH_BYTES, Ablage, Leitung, kanal
 
 
 def arten(aktionen):
@@ -138,9 +138,6 @@ def test_getrennt_setzt_alles_zurueck():
 
 
 # --- Ablage für Apps ohne Kiosk-Seite (#70) -------------------------------------
-from vertrag import Ablage  # noqa: E402
-
-
 def test_ablage_gibt_befehl_einmal_heraus():
     a = Ablage()
     a.ablegen({"id": 1}, 10.0)

@@ -168,7 +168,9 @@ class Ablage:
         self.app_zuletzt = None
 
     def app_vorn(self, jetzt: float) -> bool:
-        return self.app_zuletzt is not None and jetzt - self.app_zuletzt < self.APP_WEG_S
+        return (
+            self.app_zuletzt is not None and jetzt - self.app_zuletzt < self.APP_WEG_S
+        )
 
     def ablegen(self, befehl: dict, jetzt: float) -> None:
         self.befehle.append((jetzt, befehl))

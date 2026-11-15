@@ -253,7 +253,9 @@ class Handler(SimpleHTTPRequestHandler):
     def diktat(self, schritt: str) -> None:
         schluessel = geheimnis("OPENAI_API_KEY", OPENAI_DATEI)
         if not schluessel:
-            return self.antworte(503, {"fehler": "Kein OpenAI-Schlüssel auf dem Display."})
+            return self.antworte(
+                503, {"fehler": "Kein OpenAI-Schlüssel auf dem Display."}
+            )
         if schritt == "start":
             with aufnahme_sperre:
                 aufnahme.start()

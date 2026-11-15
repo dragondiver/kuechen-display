@@ -40,10 +40,15 @@ def test_wav_kopf():
 
 
 def test_formular_hat_felder_und_datei():
-    rumpf, art = formular([("model", "gpt-transcribe"), ("languages[]", "de")], b"WAVDATEN")
+    rumpf, art = formular(
+        [("model", "gpt-transcribe"), ("languages[]", "de")], b"WAVDATEN"
+    )
     grenze = art.split("boundary=")[1]
     assert rumpf.startswith(f"--{grenze}\r\n".encode())
     assert rumpf.endswith(f"--{grenze}--\r\n".encode())
     assert b'name="model"\r\n\r\ngpt-transcribe\r\n' in rumpf
     assert b'name="languages[]"\r\n\r\nde\r\n' in rumpf
-    assert b'name="file"; filename="diktat.wav"\r\nContent-Type: audio/wav\r\n\r\nWAVDATEN\r\n' in rumpf
+    assert (
+        b'name="file"; filename="diktat.wav"\r\nContent-Type: audio/wav\r\n\r\nWAVDATEN\r\n'
+        in rumpf
+    )
