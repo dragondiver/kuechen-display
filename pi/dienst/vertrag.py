@@ -142,3 +142,49 @@ class Leitung:
                 )
             ]
         return []
+
+
+class Ablage:
+    """Befehle für eine App ohne Kiosk-Seite (kuechen-display#70).
+
+    Ist Spotify offen, gibt es keine Kiosk-Seite, die einen Befehl der Bridge annimmt. Die
+    Rückweg-Erweiterung fragt dann jede Sekunde `GET /lage` ab und holt ihn sich hier. Holt ihn
+    niemand innerhalb von FRIST_S, bekommt die Bridge eine Fehler-Quittung.
+    """
+
+    FRIST_S = 4.0
+    # So lange nach der letzten Abfrage gilt eine App als vorn. Die Erweiterung fragt jede
+    # Sekunde; die Kiosk-Seite meldet ihr Kommen über /ereignisse (kiosk_vorn).
+    APP_WEG_S = 2.5
+
+    def __init__(self) -> None:
+        self.befehle: list[tuple[float, dict]] = []
+        self.app_zuletzt: float | None = None
+
+    def app_meldet(self, jetzt: float) -> None:
+        self.app_zuletzt = jetzt
+
+    def kiosk_vorn(self) -> None:
+        self.app_zuletzt = None
+
+    def app_vorn(self, jetzt: float) -> bool:
+        return (
+            self.app_zuletzt is not None and jetzt - self.app_zuletzt < self.APP_WEG_S
+        )
+
+    def ablegen(self, befehl: dict, jetzt: float) -> None:
+        self.befehle.append((jetzt, befehl))
+
+    def abholen(self, jetzt: float) -> dict | None:
+        """Den ältesten Befehl, der noch nicht abgelaufen ist, oder None."""
+        for i, (zeit, befehl) in enumerate(self.befehle):
+            if jetzt - zeit < self.FRIST_S:
+                del self.befehle[i]
+                return befehl
+        return None
+
+    def abgelaufen(self, jetzt: float) -> list[dict]:
+        """Nimmt die abgelaufenen Befehle heraus; für sie geht eine Fehler-Quittung raus."""
+        alt = [b for zeit, b in self.befehle if jetzt - zeit >= self.FRIST_S]
+        self.befehle = [(z, b) for z, b in self.befehle if jetzt - z < self.FRIST_S]
+        return alt

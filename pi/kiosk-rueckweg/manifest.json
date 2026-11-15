@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Küchen-Display: Rückweg",
-  "version": "1",
-  "description": "Kleine Leiste oben links auf fremden Seiten (Spotify, später YouTube, Browser): zurück zu den Apps oder zu Heute. Dazu fester Zoom für Spotify. kuechen-display#10",
+  "version": "6",
+  "description": "Kleine Leiste oben links auf fremden Seiten (Spotify, später YouTube, Browser): zurück zu den Apps oder zu Heute, Mikro-Knopf für Elektra. Dazu fester Zoom für Spotify. kuechen-display#10, #70",
   "content_scripts": [
     {
       "matches": [
@@ -15,9 +15,10 @@
     }
   ],
   "background": {
-    "service_worker": "zoom.js"
+    "service_worker": "hintergrund.js"
   },
   "host_permissions": [
-    "https://open.spotify.com/*"
+    "https://open.spotify.com/*",
+    "http://localhost:8080/*"
   ]
 }

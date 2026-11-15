@@ -31,6 +31,18 @@ python3 -m pytest -q pi | tail -1
 rs=(rsync -rlp --checksum --itemize-changes --exclude __pycache__ --exclude '.*_cache' --exclude .benchmarks)
 [ -n "$NUR_ZEIGEN" ] && rs+=(--dry-run)
 
+# Chromium liest den Hintergrund der Rückweg-Erweiterung nur neu ein, wenn sich "version" in
+# manifest.json ändert; sonst läuft der alte Code weiter (#70, 15.11.2026: Diktat kam nie an).
+neu_version=$(grep -o '"version": *"[^"]*"' pi/kiosk-rueckweg/manifest.json)
+if ! ssh "$ZIEL" "cat $PFAD/kiosk-rueckweg/hintergrund.js" 2>/dev/null | cmp -s - pi/kiosk-rueckweg/hintergrund.js; then
+  alt_version=$(ssh "$ZIEL" "grep -o '\"version\": *\"[^\"]*\"' $PFAD/kiosk-rueckweg/manifest.json" 2>/dev/null || true)
+  if [ -n "$alt_version" ] && [ "$alt_version" = "$neu_version" ]; then
+    echo "Abbruch: hintergrund.js ist geändert, manifest.json hat aber noch $neu_version." >&2
+    echo "Version in pi/kiosk-rueckweg/manifest.json erhöhen, sonst behält Chromium den alten Hintergrund." >&2
+    exit 1
+  fi
+fi
+
 echo "→ spiegeln nach $ZIEL:$PFAD${NUR_ZEIGEN:+ (nur zeigen)}"
 # Die Zielordner legt rsync nicht von selbst an (erster Deploy).
 [ -n "$NUR_ZEIGEN" ] || ssh "$ZIEL" "mkdir -p $PFAD/kiosk/wetter $PFAD/kiosk/figur $PFAD/kiosk-rueckweg"

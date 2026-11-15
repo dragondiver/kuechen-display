@@ -52,10 +52,10 @@ und „Evoke Play“ wählen. Wählt man „Dieser Webbrowser“, spielt das Dis
 
 Der Player läuft mit 125 % Zoom (Festlegung 15.11.2026, #10). So sind Schrift und Knöpfe groß
 genug für den Finger, und der Aufbau bleibt gleich. Bei 150 % klappte die Bibliothek zu Symbolen
-zusammen, aber die Abspielleiste rutschte unten aus dem Bild. Den Wert setzt `zoom.js` in
+zusammen, aber die Abspielleiste rutschte unten aus dem Bild. Den Wert setzt `hintergrund.js` in
 `pi/kiosk-rueckweg/` per `chrome.tabs.setZoom`, sobald `open.spotify.com` geladen ist. Chromium
 merkt ihn sich außerdem im Profil (`partition.per_host_zoom_levels` in
-`~/.config/chromium/Default/Preferences`). Einen anderen Wert trägt man oben in `zoom.js` ein.
+`~/.config/chromium/Default/Preferences`). Einen anderen Wert trägt man oben in `hintergrund.js` ein.
 
 Tippt man in die Suche, geht unten die Bildschirmtastatur auf (`docs/kiosk-und-gesten.md`,
 „Bildschirmtastatur“). Der Player rückt dabei nach oben.
@@ -69,16 +69,25 @@ Im Kiosk gibt es keine Tabs und keinen Zurück-Knopf. Deshalb liegt oben links e
 |---|---|
 | Raster (vier Quadrate) | zurück auf die Apps-Seite (`http://localhost:8080/?seite=apps`) |
 | Uhr | zurück auf Heute |
+| Mikrofon | Gespräch mit Elektra, wie der Tipp aufs Mikrofon der Kiosk-Seite (#70, `docs/stimme-und-geste.md`) |
 
 Die Musik läuft auf dem Evoke weiter, weil Spotify Connect sie dort hält. Kommt man zurück zu
 Spotify, lädt der Player neu und zeigt sie wieder an.
 
 Die Leiste ist eine kleine Chromium-Erweiterung in `pi/kiosk-rueckweg/` (`manifest.json`,
-`rueckweg.js`, dazu `zoom.js` für den Zoom). `pi/kiosk-start.sh` lädt sie mit `--load-extension`, `pi/push.sh` spiegelt sie nach
+`rueckweg.js`, dazu `hintergrund.js` für den Zoom und die Abfrage beim Küchen-Dienst). `pi/kiosk-start.sh` lädt sie mit `--load-extension`, `pi/push.sh` spiegelt sie nach
 `~/kuechen-display/kiosk-rueckweg/`. Sie setzt sich auf jede `https`-Seite, die Ruhebildschirm-Seite
 selbst (`http://localhost`) bleibt frei. YouTube und Browser bekommen sie also gleich mit, wenn ihre
 Kacheln eine Adresse haben. Die Leiste steckt in einem Shadow-DOM, damit die CSS der Seite sie nicht
 verändert.
+
+**Nach jeder Änderung an `hintergrund.js` die `version` in `manifest.json` erhöhen.** Chromium liest
+den Hintergrund einer entpackten Erweiterung nur bei neuer Version neu ein; `rueckweg.js` dagegen
+kommt bei jedem Kiosk-Start frisch. Am 15.11.2026 lief deshalb noch die alte `zoom.js` weiter,
+und Mikro-Knopf und Diktat bekamen keine Antwort („The message port closed before a response was
+received“, #70). `pi/push.sh` bricht ab, wenn `hintergrund.js` neu ist und die Version nicht.
+Hilft auch das nicht: Chromium beenden, `~/.config/chromium/Default/Service Worker` wegschieben,
+Kiosk starten. Spotify bleibt dabei angemeldet.
 
 Ein Fenster, das vom Mac aus geöffnet wurde, hat die Leiste auch. Dort führt sie aber in diesem
 zweiten Fenster zum Ruhebildschirm. Schließen lässt es sich über VNC mit Strg+W oder durch einen

@@ -33,6 +33,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import websockets
+from diktat import MIN_S, Aufnahme, DiktatFehler, transkribieren
 from hass import HomeAssistant, termine_karte, wetter_karte
 from konfig import geheimnis
 from vertrag import (
@@ -41,6 +42,7 @@ from vertrag import (
     RATE,
     ROH_BYTES,
     XVF_KANAELE,
+    Ablage,
     Aktion,
     Leitung,
     kanal,
@@ -58,9 +60,10 @@ TOKEN_DATEI = Path(
     )
 )
 MIKRO = os.environ.get("MIKRO_GERAET", "hw:CARD=L16K6Ch,DEV=0")
-# Apps, die die Seite wirklich öffnen kann. Noch keine; ohne Eintrag bietet die Bridge
-# Elektra das Werkzeug app_oeffnen gar nicht erst an.
-APPS: list[str] = []
+# Apps, die die Kiosk-Seite per app_oeffnen öffnen kann; jede braucht eine Kachel mit
+# data-app=<name> in pi/kiosk/index.html (#70). Ohne Eintrag bietet die Bridge Elektra das
+# Werkzeug gar nicht erst an.
+APPS: list[str] = ["spotify"]
 RAHMEN_S = RAHMEN_PROBEN / RATE
 # Home Assistant (docs/datenweg.md). Ohne HA_TOKEN läuft der Dienst weiter, nur ohne Wetter
 # und Termine.
@@ -97,6 +100,14 @@ schleife: asyncio.AbstractEventLoop | None = None
 # Letzter Stand je Ereignisart, den eine neu geöffnete Seite sofort bekommt (z. B. "wetter").
 letzte_daten: dict[str, dict] = {}
 ws = None  # aktuelle Leitung zur Bridge oder None
+# Befehle für eine offene App ohne Kiosk-Seite; die Rückweg-Erweiterung holt sie über /lage (#70).
+ablage = Ablage()
+ablage_sperre = threading.Lock()
+# Diktat ins Suchfeld (#70), ohne Elektra; der Schlüssel kommt aus dem 1Password-Environment.
+aufnahme = Aufnahme(RATE)
+aufnahme_sperre = threading.Lock()
+DIKTAT_MODELL = os.environ.get("DIKTAT_MODELL", "gpt-transcribe")
+OPENAI_DATEI = Path(os.path.expanduser("~/.config/kuechen-display/openai-key"))
 
 
 # --- Seite --------------------------------------------------------------------
@@ -143,16 +154,34 @@ def ausfuehren(aktionen: list[Aktion]) -> None:
             art = daten.pop("ereignis")
             if art == "zustand":
                 log.info("Zustand: %s", daten["wert"])
-            if an_seite(art, daten) == 0 and art == "befehl":
-                # Ohne offene Seite kann nichts den Befehl ausführen: laut zurückmelden.
-                an_bruecke(
-                    {
-                        "type": "quittung",
-                        "id": daten["id"],
-                        "ok": False,
-                        "fehler": "Die Anzeige ist nicht offen.",
-                    }
-                )
+            if art != "befehl":
+                an_seite(art, daten)
+                continue
+            # Ist eine App vorn, hängt an /ereignisse höchstens noch die verlassene Kiosk-Seite,
+            # deren Abbruch der Dienst erst beim nächsten Schreiben merkt. Dann holt die
+            # Rückweg-Erweiterung den Befehl ab, sonst die Kiosk-Seite.
+            with ablage_sperre:
+                app_vorn = ablage.app_vorn(time.monotonic())
+            if app_vorn or an_seite(art, daten) == 0:
+                log.info("Befehl %s für die App bereitgelegt", daten.get("name"))
+                with ablage_sperre:
+                    ablage.ablegen(daten, time.monotonic())
+                threading.Timer(Ablage.FRIST_S + 0.5, ablage_aufraeumen).start()
+
+
+def ablage_aufraeumen() -> None:
+    """Befehle, die keine App abgeholt hat: laut zurückmelden."""
+    with ablage_sperre:
+        alt = ablage.abgelaufen(time.monotonic())
+    for befehl in alt:
+        an_bruecke(
+            {
+                "type": "quittung",
+                "id": befehl["id"],
+                "ok": False,
+                "fehler": "Die Anzeige ist nicht offen.",
+            }
+        )
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -160,8 +189,12 @@ class Handler(SimpleHTTPRequestHandler):
         pass
 
     def do_GET(self):
+        if self.path == "/lage":
+            return self.lage()
         if self.path != "/ereignisse":
             return super().do_GET()
+        with ablage_sperre:
+            ablage.kiosk_vorn()
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
@@ -190,6 +223,64 @@ class Handler(SimpleHTTPRequestHandler):
             with abonnenten_sperre:
                 abonnenten.remove(q)
 
+    def lage(self) -> None:
+        """Für die Rückweg-Erweiterung in einer App: Elektras Zustand und ein wartender Befehl."""
+        jetzt = time.monotonic()
+        with ablage_sperre:
+            ablage.app_meldet(jetzt)
+            befehl = ablage.abholen(jetzt)
+        if befehl:
+            log.info("Befehl %s von der App abgeholt", befehl.get("name"))
+        roh = json.dumps(
+            {"zustand": leitung.zustand, "verbunden": ws is not None, "befehl": befehl},
+            ensure_ascii=False,
+        ).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(roh)))
+        self.end_headers()
+        self.wfile.write(roh)
+
+    def antworte(self, code: int, daten: dict) -> None:
+        roh = json.dumps(daten, ensure_ascii=False).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(roh)))
+        self.end_headers()
+        self.wfile.write(roh)
+
+    def diktat(self, schritt: str) -> None:
+        schluessel = geheimnis("OPENAI_API_KEY", OPENAI_DATEI)
+        if not schluessel:
+            return self.antworte(
+                503, {"fehler": "Kein OpenAI-Schlüssel auf dem Display."}
+            )
+        if schritt == "start":
+            with aufnahme_sperre:
+                aufnahme.start()
+            log.info("Diktat: Aufnahme läuft")
+            return self.antworte(200, {})
+        with aufnahme_sperre:
+            ton = aufnahme.stopp()
+        dauer = aufnahme.sekunden(ton)
+        if dauer < MIN_S:
+            return self.antworte(200, {"text": ""})
+        beginn = time.monotonic()
+        try:
+            text = transkribieren(ton, RATE, schluessel, DIKTAT_MODELL)
+        except DiktatFehler as fehler:
+            log.warning("Diktat: %s", fehler)
+            return self.antworte(502, {"fehler": "Die Spracherkennung ging nicht."})
+        # Nur Längen ins Journal, nicht was gesucht wurde.
+        log.info(
+            "Diktat: %.1f s Ton, %.1f s Antwort, %d Zeichen",
+            dauer,
+            time.monotonic() - beginn,
+            len(text),
+        )
+        self.antworte(200, {"text": text})
+
     def do_POST(self):
         laenge = int(self.headers.get("Content-Length", 0))
         roh = self.rfile.read(laenge).decode(errors="replace")
@@ -197,6 +288,8 @@ class Handler(SimpleHTTPRequestHandler):
             daten = json.loads(roh) if roh else {}
         except json.JSONDecodeError:
             daten = {}
+        if self.path in ("/diktat/start", "/diktat/stopp"):
+            return self.diktat(self.path.rsplit("/", 1)[1])
         if self.path == "/tipp":
             with leitung_sperre:
                 ausfuehren(leitung.tipp())
@@ -326,8 +419,12 @@ def mikro_schleife() -> None:
             roh = prozess.stdout.read(ROH_BYTES)
             if len(roh) < ROH_BYTES:
                 break
+            ton = kanal(roh)
             if leitung.mikro_offen:
-                an_bruecke(kanal(roh))
+                an_bruecke(ton)
+            if aufnahme.aktiv:
+                with aufnahme_sperre:
+                    aufnahme.rahmen(ton)
         log.warning("arecord beendet (Code %s), starte neu", prozess.wait())
         time.sleep(2)
 
