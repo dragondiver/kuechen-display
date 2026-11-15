@@ -19,6 +19,14 @@ done
 # Kein --kiosk: Im Vollbild läge der Kiosk über der Bildschirmtastatur. Randlos und maximiert
 # macht ihn die labwc-Fensterregel (kiosk/labwc-rc.xml). Die beiden Wayland-IME-Flags lassen
 # Chromium mit squeekboard reden, sonst geht die Tastatur nie auf (Test 15.11.2026).
+# Kein Panel im Kiosk: Auch ausgeblendet lässt es oben einen Streifen von 5 px stehen, und seine
+# Hinweise („Updates are available“, Netzteil) lägen über dem Kiosk. Pi OS startet es über
+# /etc/xdg/labwc/autostart mit lwrespawn; labwc läuft mit -m, ein eigener Autostart kann es also
+# nicht weglassen. Deshalb hier erst lwrespawn, dann das Panel beenden. Zurück für VNC:
+#   setsid -f lwrespawn /usr/bin/wf-panel-pi
+pkill -f 'lwrespawn /usr/bin/wf-panel-pi' 2>/dev/null || true
+pkill -x wf-panel-pi 2>/dev/null || true
+
 # Rückweg-Leiste oben links auf Seiten, die aus der Apps-Seite geöffnet werden (#10, docs/spotify.md).
 RUECKWEG="$(cd "$(dirname "$0")" && pwd)/kiosk-rueckweg"
 
