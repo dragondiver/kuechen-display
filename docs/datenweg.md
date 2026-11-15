@@ -53,7 +53,7 @@ zeigt „Keine Wetterdaten“. Die Geheimnisse kommen aus dem 1Password-Environm
 |---|---|
 | `HA_TOKEN` | langlebiges Token für Home Assistant, nur dieses Gerät |
 | `RUNDFUNK_GERAETE_TOKEN` | Token der rundfunk-Bridge, derselbe Wert wie in `rundfunk/.env` |
-| `OPENAI_API_KEY` | Diktat ins Suchfeld (#70, `docs/stimme-und-geste.md`); ohne Schlüssel meldet der Knopf „Kein OpenAI-Schlüssel auf dem Display“ |
+| `OPENAI_API_KEY` | Diktat ins Suchfeld (#70, `docs/stimme-und-geste.md`): Transkription und Suchbegriff (`MODELLE.md`); ohne Schlüssel meldet der Knopf „Kein OpenAI-Schlüssel auf dem Display“ |
 
 **1. Token anlegen.** In Home Assistant: Profil (unten links) → Sicherheit →
 „Langlebige Zugangstoken“ → Token erstellen, Name `kuechen-display`. Kopieren.

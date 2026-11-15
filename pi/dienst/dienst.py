@@ -33,7 +33,15 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import websockets
-from diktat import MAX_S, MIN_S, Aufnahme, DiktatFehler, transkribieren
+from diktat import (
+    MAX_S,
+    MIN_S,
+    Aufnahme,
+    DiktatFehler,
+    braucht_modell,
+    suchbegriff,
+    transkribieren,
+)
 from hass import HomeAssistant, termine_karte, wetter_karte
 from konfig import geheimnis
 from vertrag import (
@@ -115,6 +123,7 @@ GESCHUETZT = {
 aufnahme = Aufnahme(RATE)
 aufnahme_sperre = threading.Lock()
 DIKTAT_MODELL = os.environ.get("DIKTAT_MODELL", "gpt-transcribe")
+DIKTAT_TEXT_MODELL = os.environ.get("DIKTAT_TEXT_MODELL", "gpt-6-luna")
 OPENAI_DATEI = Path(os.path.expanduser("~/.config/kuechen-display/openai-key"))
 
 
@@ -290,7 +299,7 @@ class Handler(SimpleHTTPRequestHandler):
                 nummer = aufnahme.start()
             log.info("Diktat: Aufnahme %d läuft", nummer)
             return self.antworte(200, {"id": nummer})
-        if not aufnahme.fertig.wait(timeout=MAX_S + 2):
+        if not aufnahme.fertig.wait(timeout=MAX_S + 1):
             with aufnahme_sperre:
                 aufnahme.beenden("Zeit abgelaufen")  # Mikrofon lieferte nichts mehr
         with aufnahme_sperre:
@@ -311,13 +320,31 @@ class Handler(SimpleHTTPRequestHandler):
         except DiktatFehler as fehler:
             log.warning("Diktat: %s; %s", werte, fehler)
             return self.antworte(502, {"fehler": "Die Spracherkennung ging nicht."})
+        erkannt = time.monotonic() - beginn
+        # Ein ganzer Satz („spiel mir was von Queen“) gehört nicht ins Suchfeld. Das Modell
+        # zieht den Suchbegriff heraus; geht das schief, bleibt der erkannte Text.
+        begriff, wie = text, "kurz"
+        if braucht_modell(text):
+            try:
+                begriff, wie = (
+                    suchbegriff(text, schluessel, DIKTAT_TEXT_MODELL),
+                    "Modell",
+                )
+            except DiktatFehler as fehler:
+                wie = "Modell ging nicht"
+                log.warning("Diktat: Suchbegriff: %s", fehler)
+            if wie == "Modell" and begriff == text:
+                wie = "Modell, unverändert"
         log.info(
-            "Diktat: %s, %.1f s Antwort, %d Zeichen",
+            "Diktat: %s, %.1f s Erkennung, %.1f s gesamt, %d → %d Zeichen (%s)",
             werte,
+            erkannt,
             time.monotonic() - beginn,
             len(text),
+            len(begriff),
+            wie,
         )
-        self.antworte(200, {"text": text})
+        self.antworte(200, {"text": begriff})
 
     def do_POST(self):
         laenge = int(self.headers.get("Content-Length", 0))

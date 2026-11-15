@@ -65,6 +65,12 @@ nichts sagt, hat 10 Sekunden Bedenkzeit, länger als 20 Sekunden nimmt er nie au
 Florian, 15.11.2026: 1 s Pause hätte bei „spiel was von … äh … Queen“ zu früh geschnitten). Der Text
 ersetzt den Inhalt des Feldes, ein Punkt am Ende fällt weg.
 
+Wer einen ganzen Satz sagt („spiel mir was von Queen“), bekommt nur den Suchbegriff ins Feld
+(Florian, 15.11.2026). Ab vier Wörtern fragt der Dienst `gpt-6-luna`, was davon gesucht ist. Der
+Code nimmt die Antwort nur, wenn sie kurz ist, einzeilig und mindestens ein Wort mit dem Gesagten
+teilt. Sonst, und wenn das Modell nicht antwortet, kommt der erkannte Satz ins Feld. Bis drei Wörter
+geht der Text ohne Modell durch, das ist dann schon ein Name. Die Anfrage kostet ungefähr 0,0025 Cent.
+
 Die Pause misst der Pegel: Der Boden ist das 10. Perzentil der Rahmen vor dem Sprechen. Sprache
 heißt drei Rahmen (180 ms) mindestens 15 dB über dem Boden, Ruhe heißt unter Boden + 8 dB. Die
 Werte stehen oben in `pi/dienst/diktat.py`. Zum Nachstellen schreibt der Dienst pro Diktat Dauer,
@@ -75,7 +81,7 @@ Der Küchen-Dienst nimmt dafür Kanal 0 des XVF3800 auf (`POST /diktat/start`, `
 `pi/dienst/diktat.py`) und schickt den Ton als WAV an die OpenAI-Transkription, Modell
 `gpt-transcribe` (änderbar über `DIKTAT_MODELL`), Sprachen Deutsch und Englisch. Er braucht
 `OPENAI_API_KEY` im 1Password-Environment `kuechen-display` (`docs/datenweg.md`). Ins Journal
-schreibt er nur Längen, nicht was gesucht wurde. Kosten laut OpenAI 0,0045 $ pro Minute Ton.
+schreibt er nur Längen und Zeiten, nicht was gesucht wurde. Kosten laut OpenAI 0,0045 $ pro Minute Ton.
 
 Zum Prüfen ohne Finger: `wtype` ist auf dem Pi installiert. `wtype -M ctrl k -m ctrl` öffnet in
 Spotify den Suchdialog (mit `XDG_RUNTIME_DIR` und `WAYLAND_DISPLAY=wayland-0`).

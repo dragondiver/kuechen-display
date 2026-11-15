@@ -6,8 +6,12 @@ from diktat import (
     OHNE_SPRACHE_S,
     STILLE_S,
     Aufnahme,
+    antwort_text,
+    braucht_modell,
     formular,
     pegel_db,
+    suchbegriff,
+    suchbegriff_pruefen,
     wav,
 )
 
@@ -141,3 +145,65 @@ def test_neuer_start_weckt_altes_ergebnis_und_zaehlt_weiter():
     zweite = a.start()
     assert zweite == erste + 1
     assert a.aktiv and not a.fertig.is_set()
+
+
+# Suchbegriff: das Modell urteilt, der Code prüft (suchbegriff_pruefen)
+
+
+def test_kurzer_text_braucht_kein_modell():
+    assert not braucht_modell("Queen")
+    assert not braucht_modell("Bohemian Rhapsody Queen")
+    assert braucht_modell("spiel mir was von Queen")
+
+
+def test_kurzer_text_geht_ohne_anfrage_durch():
+    # Ohne Netz und mit falschem Schlüssel: kommt keine Anfrage, kommt auch kein Fehler.
+    assert suchbegriff("Die Ärzte", "kein-schluessel") == "Die Ärzte"
+
+
+def test_begriff_aus_dem_satz_gilt():
+    assert suchbegriff_pruefen("Spiel mir was von Queen.", "Queen") == "Queen"
+
+
+def test_anfuehrungszeichen_und_punkt_fallen_weg():
+    assert suchbegriff_pruefen("such mal nach Queen", "„Queen“.") == "Queen"
+
+
+def test_leere_antwort_laesst_das_gesagte_stehen():
+    assert (
+        suchbegriff_pruefen("spiel mir was von Queen", "  ")
+        == "spiel mir was von Queen"
+    )
+
+
+def test_erfundener_begriff_laesst_das_gesagte_stehen():
+    gesagt = "spiel mir was von Queen"
+    assert suchbegriff_pruefen(gesagt, "ABBA") == gesagt
+
+
+def test_zu_lange_oder_mehrzeilige_antwort_laesst_das_gesagte_stehen():
+    gesagt = "spiel mir was von Queen"
+    assert suchbegriff_pruefen(gesagt, "Queen " * 20) == gesagt
+    assert suchbegriff_pruefen(gesagt, "Queen\nDas ist eine Band.") == gesagt
+
+
+def test_gross_und_kleinschreibung_zaehlt_beim_vergleich_nicht():
+    assert suchbegriff_pruefen("spiel was von queen", "Queen") == "Queen"
+
+
+def test_antwort_text_liest_die_nachricht():
+    antwort = {
+        "output": [
+            {"type": "reasoning", "summary": []},
+            {
+                "type": "message",
+                "content": [{"type": "output_text", "text": "Queen"}],
+            },
+        ]
+    }
+    assert antwort_text(antwort) == "Queen"
+
+
+def test_antwort_ohne_nachricht_ist_leer():
+    assert antwort_text({"output": []}) == ""
+    assert antwort_text({}) == ""

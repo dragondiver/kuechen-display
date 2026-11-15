@@ -25,6 +25,20 @@ from array import array
 
 ADRESSE = "https://api.openai.com/v1/audio/transcriptions"
 MODELL = "gpt-transcribe"
+# Suchbegriff aus einem ganzen Satz (Florian 15.11.2026: „spiel mir was von Queen“ gehört nicht
+# ins Suchfeld). Das Modell urteilt, was gesucht ist; der Code prüft das Ergebnis (suchbegriff_pruefen).
+TEXT_ADRESSE = "https://api.openai.com/v1/responses"
+TEXT_MODELL = "gpt-6-luna"
+TEXT_DENKEN = "none"  # einfache Aufgabe, jede Zehntelsekunde zählt
+KURZ_WOERTER = 3  # so kurz ist es schon ein Name; dann ohne Modell
+BEGRIFF_MAX = 80
+ANWEISUNG = (
+    "Du bekommst gesprochenen Text, der in das Suchfeld eines Musikdienstes soll. "
+    "Gib nur den Suchbegriff zurück: Künstler, Song, Album, Playlist, Podcast oder Genre. "
+    "Lass Füllwörter und Aufforderungen weg (spiel, such, ich möchte, mal, bitte). "
+    "Behalte die Schreibweise von Namen. Keine Anführungszeichen, keine Erklärung. "
+    "Ist der Text schon ein Suchbegriff, gib ihn unverändert zurück."
+)
 # Deutsch und Englisch: deutsche Ansagen, englische Band- und Songnamen.
 SPRACHEN = ("de", "en")
 MAX_S = 20.0  # danach nimmt der Dienst nichts mehr auf, auch ohne Stopp
@@ -168,8 +182,75 @@ class DiktatFehler(Exception):
     pass
 
 
+def woerter(text: str) -> list[str]:
+    return re.findall(r"\w+", text.lower())
+
+
+def braucht_modell(text: str) -> bool:
+    return len(woerter(text)) > KURZ_WOERTER
+
+
+def suchbegriff_pruefen(gesagt: str, begriff: str) -> str:
+    """Code rechnet: Das Ergebnis des Modells gilt nur, wenn es kurz, nicht leer und mit dem
+    Gesagten verwandt ist (mindestens ein gemeinsames Wort). Sonst bleibt das Gesagte stehen."""
+    begriff = begriff.strip(" \t\"'„“”‚‘’«».!?")
+    if not begriff or len(begriff) > BEGRIFF_MAX or "\n" in begriff:
+        return gesagt
+    if not set(woerter(begriff)) & set(woerter(gesagt)):
+        return gesagt
+    return begriff
+
+
+def antwort_text(antwort: dict) -> str:
+    """Den Text aus einer Antwort der Responses-API (ohne SDK, also ohne output_text)."""
+    teile = []
+    for eintrag in antwort.get("output", []):
+        if eintrag.get("type") != "message":
+            continue
+        for inhalt in eintrag.get("content", []):
+            if inhalt.get("type") == "output_text":
+                teile.append(str(inhalt.get("text", "")))
+    return "".join(teile)
+
+
+def suchbegriff(
+    text: str, schluessel: str, modell: str = TEXT_MODELL, timeout: float = 2.5
+) -> str:
+    """Suchbegriff aus dem Gesagten; bei kurzem Text, Fehler oder Unsinn das Gesagte selbst."""
+    if not braucht_modell(text):
+        return text
+    rumpf = json.dumps(
+        {
+            "model": modell,
+            "instructions": ANWEISUNG,
+            "input": text,
+            "reasoning": {"effort": TEXT_DENKEN},
+            "max_output_tokens": 60,
+            "store": False,
+        }
+    ).encode()
+    anfrage = urllib.request.Request(
+        TEXT_ADRESSE,
+        data=rumpf,
+        headers={
+            "Authorization": f"Bearer {schluessel}",
+            "Content-Type": "application/json",
+        },
+    )
+    try:
+        with urllib.request.urlopen(anfrage, timeout=timeout) as antwort:
+            begriff = antwort_text(json.load(antwort))
+    except urllib.error.HTTPError as fehler:
+        text_fehler = fehler.read().decode(errors="replace")[:300]
+        text_fehler = re.sub(r"sk-[A-Za-z0-9_*\-…]+", "sk-…", text_fehler)
+        raise DiktatFehler(f"OpenAI-Text {fehler.code}: {text_fehler}") from None
+    except (ValueError, urllib.error.URLError, TimeoutError, OSError) as fehler:
+        raise DiktatFehler(f"OpenAI-Text: {fehler}") from None
+    return suchbegriff_pruefen(text, begriff)
+
+
 def transkribieren(
-    pcm: bytes, rate: int, schluessel: str, modell: str = MODELL, timeout: float = 8
+    pcm: bytes, rate: int, schluessel: str, modell: str = MODELL, timeout: float = 6
 ) -> str:
     felder = [("model", modell), ("response_format", "json")]
     felder += [("languages[]", s) for s in SPRACHEN]
