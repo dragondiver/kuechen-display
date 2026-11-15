@@ -29,7 +29,10 @@ chrome.runtime.onMessage.addListener(function (nachricht, absender, antwort) {
   }
   if (nachricht.art === 'melde' && ERLAUBT.includes(nachricht.pfad)) {
     fetch(DIENST + nachricht.pfad, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      // text/plain statt application/json: so bleibt es eine einfache Anfrage ohne OPTIONS-Vorabfrage,
+      // die der Küchen-Dienst nicht beantwortet (POST kam am 15.11. nie an). Der Dienst liest JSON
+      // unabhängig vom Inhaltstyp.
+      method: 'POST', headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify(nachricht.daten || {}),
     }).then(function (r) {
       const json = (r.headers.get('Content-Type') || '').includes('json');
