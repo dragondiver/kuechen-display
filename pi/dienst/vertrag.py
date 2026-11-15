@@ -61,9 +61,9 @@ class Leitung:
             ]
         if self.zustand == "sprechen":
             return self.stopp()
-        # Zuhören oder Nachdenken: Gespräch am Display beenden (8.11.2026). Die Bridge kennt dafür
-        # noch keine Nachricht; ohne Ton vom Mikrofon schläft sie nach ihrer Ruhezeit ein.
-        return self.getrennt()
+        # Zuhören oder Nachdenken: Gespräch beenden (8.11.2026). Seit rundfunk#238 schließt "ende"
+        # die Live-Sitzung sofort, statt bis zur Ruhezeit der Bridge zu warten.
+        return [Aktion("senden", {"type": "ende"}), *self.getrennt()]
 
     def stopp(self) -> list[Aktion]:
         """Flache Hand oder Tipp beim Sprechen. Ohne Gespräch gibt es nichts anzuhalten."""

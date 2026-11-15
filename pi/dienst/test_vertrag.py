@@ -30,9 +30,9 @@ def test_tipp_beim_sprechen_ist_stopp():
     assert arten(l.tipp()) == ["verwerfen", "senden"]
 
 
-def test_tipp_beim_zuhoeren_beendet_gespraech_am_display():
-    # 8.11.2026: Ein zweiter Tipp schaltet Elektras Mikrofon wieder aus. Die Bridge kennt noch
-    # keine Nachricht dafür; sie hört nichts mehr und schläft nach ihrer Ruhezeit ein.
+def test_tipp_beim_zuhoeren_beendet_gespraech_auch_an_der_bridge():
+    # 8.11.2026: Ein zweiter Tipp schaltet Elektras Mikrofon wieder aus. Seit rundfunk#238 erfährt
+    # es die Bridge über "ende" und schließt Live sofort.
     l = Leitung()
     l.nachricht(json.dumps({"type": "zustand", "wert": "zuhoeren"}))
     a = l.tipp()
@@ -40,14 +40,22 @@ def test_tipp_beim_zuhoeren_beendet_gespraech_am_display():
     assert [x.daten for x in a if x.art == "anzeige"] == [
         {"ereignis": "zustand", "wert": "aus"}
     ]
-    assert [x for x in a if x.art == "senden"] == []
+    assert [x.daten for x in a if x.art == "senden"] == [{"type": "ende"}]
 
 
 def test_tipp_beim_nachdenken_beendet_auch():
     l = Leitung()
     l.nachricht(json.dumps({"type": "zustand", "wert": "nachdenken"}))
-    l.tipp()
+    a = l.tipp()
     assert not l.mikro_offen
+    assert [x.daten for x in a if x.art == "senden"] == [{"type": "ende"}]
+
+
+def test_getrennt_schickt_kein_ende():
+    # Ohne Leitung gibt es niemanden, dem man "ende" schicken könnte.
+    l = Leitung()
+    l.nachricht(json.dumps({"type": "zustand", "wert": "zuhoeren"}))
+    assert [x for x in l.getrennt() if x.art == "senden"] == []
 
 
 def test_bridge_spricht_danach_weiter_oeffnet_wieder():

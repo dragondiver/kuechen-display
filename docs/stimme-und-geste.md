@@ -52,8 +52,9 @@ Zustand und einen wartenden Befehl, führt ihn aus und quittiert. Holt ihn niema
 „Die Anzeige ist nicht offen“. Als „App vorn“ gilt: Die Leiste hat in den letzten 2,5 Sekunden
 gefragt und seitdem hat sich keine Kiosk-Seite verbunden.
 
-Beim Beenden per Tipp erfährt die Bridge nichts, weil der Vertrag keine Nachricht dafür hat. Sie
-hört keinen Ton mehr und schließt die Live-Sitzung nach ihrer Ruhezeit selbst.
+Beim Beenden per Tipp schickt das Display `{"type":"ende"}` an die Bridge (seit 15.11.2026,
+rundfunk#238). Sie schließt die Live-Sitzung sofort und antwortet mit dem Zustand „aus“. Vorher
+wartete sie bis zu ihrer Ruhezeit.
 
 ## Diktat ins Suchfeld
 
