@@ -58,7 +58,10 @@
   .termin .zeit.ganz { width: auto; min-width: 96px; font-size: 24px; }
   .eintrag .zeit.ganz { width: auto; min-width: 70px; font-size: 18px; }
   .termin.leer .titel { font-weight: 400; opacity: .45; }
-  .liste { flex: 0 1 auto; min-height: 0; overflow: hidden; }
+  /* „Noch heute“ rollt per Wischen nach oben und unten, wenn nicht alles passt (15.11.2026).
+     Nur dann wird der untere Rand weich, als Zeichen, dass noch etwas kommt. */
+  .liste { flex: 0 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none; overscroll-behavior: contain; }
+  .liste.weiter { mask-image: linear-gradient(180deg, #000 80%, transparent); }
   /* Nur die Glaskarten gleiten, das Wetterbild steht still (#15). */
   .bahn { position: absolute; top: 0; left: 0; width: 5120px; height: 800px; display: flex;
           transform: translateX(calc(var(--seite, 2) * -1280px)); transition: transform .55s cubic-bezier(.22,.8,.24,1); touch-action: pan-y; }
@@ -316,6 +319,11 @@
     z.append(el('div', 'zeit'), el('div', 'titel', text));
     return z;
   }
+  const heuteListe = document.getElementById('t-heute');
+  function weiterZeichen() {
+    heuteListe.classList.toggle('weiter', heuteListe.scrollTop + heuteListe.clientHeight < heuteListe.scrollHeight - 4);
+  }
+  heuteListe.addEventListener('scroll', weiterZeichen);
   function anzahl(n) { return n === 1 ? '1 Termin' : n + ' Termine'; }
   function zeigeTermine() {
     if (!termine) return;
@@ -323,6 +331,7 @@
     const offen = function (t) { return t.bis > jetzt; };
     const heute = termine.heute.filter(offen);
     document.getElementById('t-heute').replaceChildren(...(heute.length ? heute.map(function (t) { return terminZeile(t, false); }) : [leer('termin', 'Keine Termine mehr')]));
+    weiterZeichen();
     const morgen = termine.morgen;
     document.getElementById('t-mehr').textContent = 'Morgen ' + (morgen.length ? anzahl(morgen.length) : 'keine Termine') + ' ›';
     document.getElementById('t-morgen-kopf').textContent = morgen.length ? anzahl(morgen.length) : 'Keine Termine';
