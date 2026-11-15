@@ -16,8 +16,11 @@ while [ "$n" -lt 30 ] && ! curl -s -o /dev/null --max-time 2 http://localhost:80
   sleep 1
 done
 
+# Rückweg-Leiste oben links auf Seiten, die aus der Apps-Seite geöffnet werden (#10, docs/spotify.md).
+RUECKWEG="$(cd "$(dirname "$0")" && pwd)/kiosk-rueckweg"
+
 exec chromium --kiosk --noerrdialogs --disable-infobars --no-first-run \
   --password-store=basic --ozone-platform=wayland --touch-events=enabled \
   --overscroll-history-navigation=0 --lang=de-DE --disable-features=Translate \
-  --autoplay-policy=no-user-gesture-required \
+  --autoplay-policy=no-user-gesture-required --load-extension="$RUECKWEG" \
   "--app=http://localhost:8080/${1:-}"
