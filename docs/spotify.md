@@ -50,6 +50,9 @@ Läuft auf dem Evoke schon Spotify vom selben Konto, zeigt der Player unten eine
 „Wiedergabe über Evoke Play“ und steuert ihn direkt. Sonst unten rechts das Geräte-Symbol antippen
 und „Evoke Play“ wählen. Wählt man „Dieser Webbrowser“, spielt das Display selbst.
 
+Tippt man in die Suche, geht unten die Bildschirmtastatur auf (`docs/kiosk-und-gesten.md`,
+„Bildschirmtastatur“). Der Player rückt dabei nach oben.
+
 ## Zurück zum Ruhebildschirm
 
 Im Kiosk gibt es keine Tabs und keinen Zurück-Knopf. Deshalb liegt oben links eine kleine Leiste

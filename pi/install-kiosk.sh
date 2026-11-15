@@ -26,6 +26,18 @@ sudo systemctl restart kuechen-dienst.service
 # Kamera nur beim Testen (8.11.2026): kein enable, und ein früheres enable zurücknehmen.
 sudo systemctl disable kuechen-gesten.service 2>/dev/null || true
 
+# Fenster und Tastatur (docs/kiosk-und-gesten.md, „Bildschirmtastatur“): labwc maximiert Chromium
+# randlos, das Panel blendet sich aus. Beim ersten Mal bleibt die alte Datei als *.vor-kiosk liegen.
+setze() {  # setze <quelle> <ziel> <befehl, wenn geändert>
+  cmp -s "$1" "$2" && return 0
+  [ -f "$2" ] && [ ! -f "$2.vor-kiosk" ] && cp -p "$2" "$2.vor-kiosk"
+  install -D -m 644 "$1" "$2"
+  echo "neu: $2"
+  sh -c "$3" || true
+}
+setze "$d/kiosk/labwc-rc.xml" ~/.config/labwc/rc.xml 'pgrep -x labwc >/dev/null && kill -HUP $(pgrep -x labwc)'
+setze "$d/kiosk/wf-panel-pi.ini" ~/.config/wf-panel-pi/wf-panel-pi.ini 'pkill -x wf-panel-pi'
+
 install -d ~/.config/autostart
 install -m 644 "$d/kiosk/kiosk.desktop" ~/.config/autostart/kiosk.desktop
 echo "Fertig. Kamera für Gesten: sudo systemctl start kuechen-gesten (und stop danach)."
