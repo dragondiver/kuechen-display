@@ -18,9 +18,10 @@ chrome.tabs.onUpdated.addListener(function (tabId, info, tab) {
 // Brücke zum Küchen-Dienst für rueckweg.js (#70). Die Leiste läuft in der https-Seite der App und
 // darf http://localhost nicht selbst abfragen; der Hintergrund darf es über host_permissions.
 const DIENST = 'http://localhost:8080';
-const ERLAUBT = ['/tipp', '/quittung', '/diktat/start', '/diktat/stopp'];
+const ERLAUBT = ['/tipp', '/quittung', '/diktat/start', '/diktat/stopp', '/diktat/ergebnis'];
+// Hierher schreiben nur eigene Inhaltsskripte; Webseiten und fremde Erweiterungen kämen nur über
+// externally_connectable bzw. onMessageExternal, und die gibt es nicht. Erlaubt sind nur die Pfade in ERLAUBT.
 chrome.runtime.onMessage.addListener(function (nachricht, absender, antwort) {
-  if (absender.id !== chrome.runtime.id) return;
   if (nachricht.art === 'lage') {
     fetch(DIENST + '/lage', { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
@@ -36,7 +37,7 @@ chrome.runtime.onMessage.addListener(function (nachricht, absender, antwort) {
       // text/plain statt application/json: eine einfache Anfrage ohne OPTIONS-Vorabfrage, die der
       // Küchen-Dienst nicht beantworten könnte. Ob Chromium aus der Erweiterung vorab fragen würde, ist
       // nicht geprüft. Der Dienst liest JSON unabhängig vom Inhaltstyp.
-      method: 'POST', headers: { 'Content-Type': 'text/plain' },
+      method: 'POST', headers: { 'Content-Type': 'text/plain', 'X-Kuechen': '1' },
       body: JSON.stringify(nachricht.daten || {}),
     }).then(function (r) {
       const json = (r.headers.get('Content-Type') || '').includes('json');

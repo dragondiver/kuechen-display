@@ -52,21 +52,37 @@ Zustand und einen wartenden Befehl, führt ihn aus und quittiert. Holt ihn niema
 „Die Anzeige ist nicht offen“. Als „App vorn“ gilt: Die Leiste hat in den letzten 2,5 Sekunden
 gefragt und seitdem hat sich keine Kiosk-Seite verbunden.
 
-Beim Beenden per Tipp erfährt die Bridge nichts, weil der Vertrag keine Nachricht dafür hat. Sie
-hört keinen Ton mehr und schließt die Live-Sitzung nach ihrer Ruhezeit selbst.
+Beim Beenden per Tipp schickt das Display `{"type":"ende"}` an die Bridge (seit 15.11.2026,
+rundfunk#238). Sie schließt die Live-Sitzung sofort und antwortet mit dem Zustand „aus“. Vorher
+wartete sie bis zu ihrer Ruhezeit.
 
 ## Diktat ins Suchfeld
 
 Ohne Elektra (#70, Festlegung 15.11.2026). Bekommt in einer App ein Textfeld den Fokus, zum Beispiel
-Spotifys Suche „Was möchtest du wiedergeben?“, erscheint darunter der Knopf „Sprechen“. Tippen,
-sprechen, noch mal tippen; nach zehn Sekunden hört er von selbst auf. Der Text ersetzt den Inhalt
-des Feldes, ein Punkt am Ende fällt weg.
+Spotifys Suche „Was möchtest du wiedergeben?“, erscheint darunter der Knopf „Sprechen“. Tippen und
+sprechen. Nach zwei Sekunden Pause hört er von selbst auf; noch mal tippen beendet sofort. Wer
+nichts sagt, hat 10 Sekunden Bedenkzeit, länger als 20 Sekunden nimmt er nie auf (alle drei Werte
+Florian, 15.11.2026: 1 s Pause hätte bei „spiel was von … äh … Queen“ zu früh geschnitten). Der Text
+ersetzt den Inhalt des Feldes, ein Punkt am Ende fällt weg.
 
-Der Küchen-Dienst nimmt dafür Kanal 0 des XVF3800 auf (`POST /diktat/start`, `/diktat/stopp`,
+Wer einen ganzen Satz sagt („spiel mir was von Queen“), bekommt nur den Suchbegriff ins Feld
+(Florian, 15.11.2026). Ab vier Wörtern fragt der Dienst `gpt-6-luna`, was davon gesucht ist. Der
+Code nimmt die Antwort nur, wenn sie kurz ist, einzeilig und mindestens ein Wort mit dem Gesagten
+teilt. Sonst, und wenn das Modell nicht antwortet, kommt der erkannte Satz ins Feld. Bis drei Wörter
+geht der Text ohne Modell durch, das ist dann schon ein Name. Die Anfrage läuft über OpenAIs Priority-Stufe, weil die Standardstufe
+bei Messungen vom Pi bis 4,3 s brauchte, Priority höchstens 1,1 s. Sie kostet ungefähr 0,005 Cent.
+
+Die Pause misst der Pegel: Der Boden ist das 10. Perzentil der Rahmen vor dem Sprechen. Sprache
+heißt drei Rahmen (180 ms) mindestens 15 dB über dem Boden, Ruhe heißt unter Boden + 8 dB. Die
+Werte stehen oben in `pi/dienst/diktat.py`. Zum Nachstellen schreibt der Dienst pro Diktat Dauer,
+Grund fürs Ende, Boden und Spitze ins Journal:
+`journalctl -u kuechen-dienst | grep Diktat`.
+
+Der Küchen-Dienst nimmt dafür Kanal 0 des XVF3800 auf (`POST /diktat/start`, `/diktat/stopp`, `/diktat/ergebnis`,
 `pi/dienst/diktat.py`) und schickt den Ton als WAV an die OpenAI-Transkription, Modell
 `gpt-transcribe` (änderbar über `DIKTAT_MODELL`), Sprachen Deutsch und Englisch. Er braucht
 `OPENAI_API_KEY` im 1Password-Environment `kuechen-display` (`docs/datenweg.md`). Ins Journal
-schreibt er nur Längen, nicht was gesucht wurde. Kosten laut OpenAI 0,0045 $ pro Minute Ton.
+schreibt er nur Längen und Zeiten, nicht was gesucht wurde. Kosten laut OpenAI 0,0045 $ pro Minute Ton.
 
 Zum Prüfen ohne Finger: `wtype` ist auf dem Pi installiert. `wtype -M ctrl k -m ctrl` öffnet in
 Spotify den Suchdialog (mit `XDG_RUNTIME_DIR` und `WAYLAND_DISPLAY=wayland-0`).

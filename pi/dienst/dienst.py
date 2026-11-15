@@ -33,7 +33,15 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import websockets
-from diktat import MIN_S, Aufnahme, DiktatFehler, transkribieren
+from diktat import (
+    MAX_S,
+    MIN_S,
+    Aufnahme,
+    DiktatFehler,
+    braucht_modell,
+    suchbegriff,
+    transkribieren,
+)
 from hass import HomeAssistant, termine_karte, wetter_karte
 from konfig import geheimnis
 from vertrag import (
@@ -103,10 +111,19 @@ ws = None  # aktuelle Leitung zur Bridge oder None
 # Befehle für eine offene App ohne Kiosk-Seite; die Rückweg-Erweiterung holt sie über /lage (#70).
 ablage = Ablage()
 ablage_sperre = threading.Lock()
+GESCHUETZT = {
+    "/tipp",
+    "/stopp",
+    "/quittung",
+    "/diktat/start",
+    "/diktat/stopp",
+    "/diktat/ergebnis",
+}
 # Diktat ins Suchfeld (#70), ohne Elektra; der Schlüssel kommt aus dem 1Password-Environment.
 aufnahme = Aufnahme(RATE)
 aufnahme_sperre = threading.Lock()
 DIKTAT_MODELL = os.environ.get("DIKTAT_MODELL", "gpt-transcribe")
+DIKTAT_TEXT_MODELL = os.environ.get("DIKTAT_TEXT_MODELL", "gpt-6-luna")
 OPENAI_DATEI = Path(os.path.expanduser("~/.config/kuechen-display/openai-key"))
 
 
@@ -166,13 +183,19 @@ def ausfuehren(aktionen: list[Aktion]) -> None:
                 log.info("Befehl %s für die App bereitgelegt", daten.get("name"))
                 with ablage_sperre:
                     ablage.ablegen(daten, time.monotonic())
-                threading.Timer(Ablage.FRIST_S + 0.5, ablage_aufraeumen).start()
+                zeitgeber = threading.Timer(Ablage.FRIST_S + 0.5, ablage_aufraeumen)
+                zeitgeber.daemon = True
+                zeitgeber.start()
 
 
 def ablage_aufraeumen() -> None:
     """Befehle, die keine App abgeholt hat: laut zurückmelden."""
-    with ablage_sperre:
-        alt = ablage.abgelaufen(time.monotonic())
+    try:
+        with ablage_sperre:
+            alt = ablage.abgelaufen(time.monotonic())
+    except Exception:
+        log.exception("Ablage aufräumen")
+        return
     for befehl in alt:
         an_bruecke(
             {
@@ -194,7 +217,7 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path != "/ereignisse":
             return super().do_GET()
         with ablage_sperre:
-            ablage.kiosk_vorn()
+            offen = ablage.kiosk_vorn(time.monotonic())
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
@@ -205,6 +228,9 @@ class Handler(SimpleHTTPRequestHandler):
         # Neue Seite: gleich den aktuellen Stand, damit nach einem Neuladen nichts falsch steht.
         q.put(("verbindung", {"da": ws is not None}))
         q.put(("zustand", {"wert": leitung.zustand}))
+        for befehl in offen:
+            log.info("Befehl %s an die neue Kiosk-Seite", befehl.get("name"))
+            q.put(("befehl", befehl))
         for art, e in list(letzte_daten.items()):
             q.put((art, e))
         try:
@@ -232,7 +258,12 @@ class Handler(SimpleHTTPRequestHandler):
         if befehl:
             log.info("Befehl %s von der App abgeholt", befehl.get("name"))
         roh = json.dumps(
-            {"zustand": leitung.zustand, "verbunden": ws is not None, "befehl": befehl},
+            {
+                "zustand": leitung.zustand,
+                "verbunden": ws is not None,
+                "befehl": befehl,
+                "diktat": aufnahme.aktiv,
+            },
             ensure_ascii=False,
         ).encode()
         self.send_response(200)
@@ -250,7 +281,14 @@ class Handler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(roh)
 
-    def diktat(self, schritt: str) -> None:
+    def diktat(self, schritt: str, daten: dict) -> None:
+        """start: Aufnahme an, Antwort mit ihrer Nummer. stopp: Aufnahme aus (Tipp).
+        ergebnis {id}: wartet, bis diese Aufnahme endet (Ruhe, Tipp, Frist), und gibt den
+        erkannten Text zurück; für eine veraltete Nummer sofort leeren Text."""
+        if schritt == "stopp":
+            with aufnahme_sperre:
+                aufnahme.beenden("Tipp")
+            return self.antworte(200, {})
         schluessel = geheimnis("OPENAI_API_KEY", OPENAI_DATEI)
         if not schluessel:
             return self.antworte(
@@ -258,28 +296,55 @@ class Handler(SimpleHTTPRequestHandler):
             )
         if schritt == "start":
             with aufnahme_sperre:
-                aufnahme.start()
-            log.info("Diktat: Aufnahme läuft")
-            return self.antworte(200, {})
+                nummer = aufnahme.start()
+            log.info("Diktat: Aufnahme %d läuft", nummer)
+            return self.antworte(200, {"id": nummer})
+        if not aufnahme.fertig.wait(timeout=MAX_S + 1):
+            with aufnahme_sperre:
+                aufnahme.beenden("Zeit abgelaufen")  # Mikrofon lieferte nichts mehr
         with aufnahme_sperre:
-            ton = aufnahme.stopp()
+            if daten.get("id") != aufnahme.nummer:
+                return self.antworte(200, {"text": ""})
+            ton = aufnahme.nehmen()
+            grund, boden, spitze = aufnahme.grund, aufnahme.boden_db, aufnahme.spitze()
         dauer = aufnahme.sekunden(ton)
+        # Nur Längen und Pegel ins Journal, nicht was gesucht wurde. Die Pegel sind zum
+        # Nachstellen der Schwellen in diktat.py.
+        werte = f"{dauer:.1f} s Ton, Ende: {grund}, Boden {boden:.0f} dB, Spitze {spitze:.0f} dB"
         if dauer < MIN_S:
+            log.info("Diktat: %s, zu kurz", werte)
             return self.antworte(200, {"text": ""})
         beginn = time.monotonic()
         try:
             text = transkribieren(ton, RATE, schluessel, DIKTAT_MODELL)
         except DiktatFehler as fehler:
-            log.warning("Diktat: %s", fehler)
+            log.warning("Diktat: %s; %s", werte, fehler)
             return self.antworte(502, {"fehler": "Die Spracherkennung ging nicht."})
-        # Nur Längen ins Journal, nicht was gesucht wurde.
+        erkannt = time.monotonic() - beginn
+        # Ein ganzer Satz („spiel mir was von Queen“) gehört nicht ins Suchfeld. Das Modell
+        # zieht den Suchbegriff heraus; geht das schief, bleibt der erkannte Text.
+        begriff, wie = text, "kurz"
+        if braucht_modell(text):
+            try:
+                begriff, wie = (
+                    suchbegriff(text, schluessel, DIKTAT_TEXT_MODELL),
+                    "Modell",
+                )
+            except DiktatFehler as fehler:
+                wie = "Modell ging nicht"
+                log.warning("Diktat: Suchbegriff: %s", fehler)
+            if wie == "Modell" and begriff == text:
+                wie = "Modell, unverändert"
         log.info(
-            "Diktat: %.1f s Ton, %.1f s Antwort, %d Zeichen",
-            dauer,
+            "Diktat: %s, %.1f s Erkennung, %.1f s gesamt, %d → %d Zeichen (%s)",
+            werte,
+            erkannt,
             time.monotonic() - beginn,
             len(text),
+            len(begriff),
+            wie,
         )
-        self.antworte(200, {"text": text})
+        self.antworte(200, {"text": begriff})
 
     def do_POST(self):
         laenge = int(self.headers.get("Content-Length", 0))
@@ -288,8 +353,21 @@ class Handler(SimpleHTTPRequestHandler):
             daten = json.loads(roh) if roh else {}
         except json.JSONDecodeError:
             daten = {}
-        if self.path in ("/diktat/start", "/diktat/stopp"):
-            return self.diktat(self.path.rsplit("/", 1)[1])
+        # Was Mikrofon oder Elektra auslöst, nur mit eigenem Header. Eine fremde Webseite im Kiosk
+        # kann ihn nicht ohne Vorabfrage (OPTIONS, beantwortet der Dienst nicht) mitschicken;
+        # ohne ihn könnte sie per no-cors-POST das Mikrofon öffnen (verifier zu #71).
+        if self.path in GESCHUETZT and self.headers.get("X-Kuechen") != "1":
+            self.send_error(403)
+            return
+        if self.path == "/weg":
+            # sendBeacon der Kiosk-Seite beim Verlassen (kein eigener Header möglich)
+            with ablage_sperre:
+                ablage.kiosk_geht()
+            self.send_response(204)
+            self.end_headers()
+            return
+        if self.path in ("/diktat/start", "/diktat/stopp", "/diktat/ergebnis"):
+            return self.diktat(self.path.rsplit("/", 1)[1], daten)
         if self.path == "/tipp":
             with leitung_sperre:
                 ausfuehren(leitung.tipp())

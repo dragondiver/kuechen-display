@@ -49,6 +49,7 @@
   document.documentElement.append(wirt);
 
   const leiste = schatten.querySelector('.leiste');
+  let diktatLage = function () {};  // wird unten vom Diktat gesetzt
   const SEITEN = ['heute', 'morgen', 'apps'];
   const APPS = { spotify: 'https://open.spotify.com/' };  // wie data-app in pi/kiosk/index.html
   function melde(pfad, daten) {
@@ -84,6 +85,7 @@
         leiste.dataset.zustand = lage.zustand;
         leiste.dataset.verbunden = lage.verbunden ? 'ja' : 'nein';
         if (lage.befehl) ausfuehren(lage.befehl);
+        diktatLage(!!lage.diktat);
       });
     } catch (e) { leiste.dataset.verbunden = 'nein'; }
   }
@@ -121,7 +123,7 @@
   document.documentElement.append(diktatWirt);
   const knopf = ds.querySelector('button'), schrift = ds.querySelector('span');
   const BEREIT = 'Sprechen';
-  let feld = null, stand = 'bereit', ende = null;
+  let feld = null, stand = 'bereit';
 
   function textfeld(el) {
     return !!el && ((el.tagName === 'INPUT' && ['text', 'search', ''].includes(el.type)) || el.tagName === 'TEXTAREA');
@@ -162,22 +164,36 @@
     setze('denkt', 'Moment …');
     melde('/diktat/start').then(function (a) {
       if (!a.ok) return fehler(a.daten.fehler || 'Diktat geht gerade nicht.');
-      setze('hoert', 'Hört zu … tippen, wenn fertig');
-      ende = setTimeout(stoppen, 10000);  // so lange nimmt der Dienst höchstens auf
+      setze('hoert', 'Hört zu …');
+      // Der Dienst beendet die Aufnahme selbst nach einer Pause (oder auf Tipp) und antwortet
+      // dann erst mit dem Text.
+      hoertSeit = Date.now();
+      melde('/diktat/ergebnis', { id: a.daten.id }).then(function (e) {
+        if (!e.ok) return fehler(e.daten.fehler || 'Die Spracherkennung ging nicht.');
+        einsetzen(e.daten.text || '');
+        setze('bereit', BEREIT);
+      });
     });
   }
   function stoppen() {
-    clearTimeout(ende);
     setze('denkt', 'Erkenne …');
-    melde('/diktat/stopp').then(function (a) {
-      if (!a.ok) return fehler(a.daten.fehler || 'Die Spracherkennung ging nicht.');
-      einsetzen(a.daten.text || '');
-      setze('bereit', BEREIT);
-    });
+    melde('/diktat/stopp');
   }
+  // Aus /lage: Hat der Dienst die Aufnahme beendet, läuft die Erkennung.
+  // Eine /lage-Antwort, die vor dem Start abgeschickt wurde, sagt noch „läuft nicht“: erst nach
+  // anderthalb Sekunden glauben.
+  let hoertSeit = 0;
+  diktatLage = function (laeuft) {
+    if (stand === 'hoert' && !laeuft && Date.now() - hoertSeit > 1500) setze('denkt', 'Erkenne …');
+  };
   function einsetzen(text) {
     text = text.trim().replace(/[.!?]+$/, '');
-    if (!text || !feld) return;
+    if (!text) return;
+    if (!feld || !feld.isConnected) {
+      // Spotify hat die Suche inzwischen zugemacht: über die Such-Adresse statt ins Leere.
+      if (location.host === 'open.spotify.com') location.href = 'https://open.spotify.com/search/' + encodeURIComponent(text);
+      return;
+    }
     feld.focus();
     // Über den Setter des Prototyps, damit React (Spotify) die Änderung als Eingabe bemerkt.
     const proto = feld.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
