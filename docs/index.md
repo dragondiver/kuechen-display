@@ -24,5 +24,6 @@ Braun-Stil, für die offene Küche. Es spricht als Elektra (Repo
 - [Tischtest XVF3800](tischtest-xvf3800.html): Aufbau, Fotos und Messwerte
 - [Stimme auf dem Display](stimme-und-geste.html): Gespräch mit Elektra, Einrichtung, Kamera beim Testen
 - [Kiosk und Gesten](kiosk-und-gesten.html): Ruhebildschirm, Gestenregeln und Messwerte
+- [Datenweg](datenweg.html): Wetter aus Home Assistant, Token einrichten, Termine noch offen
 - [Code auf das Display bringen](deploy.html): `pi/push.sh`, Probelauf und Ablauf
 - [Läufe der Bild-API](bild-laeufe.html) mit Kosten
