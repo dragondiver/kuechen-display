@@ -55,6 +55,22 @@ gefragt und seitdem hat sich keine Kiosk-Seite verbunden.
 Beim Beenden per Tipp erfährt die Bridge nichts, weil der Vertrag keine Nachricht dafür hat. Sie
 hört keinen Ton mehr und schließt die Live-Sitzung nach ihrer Ruhezeit selbst.
 
+## Diktat ins Suchfeld
+
+Ohne Elektra (#70, Festlegung 15.11.2026). Bekommt in einer App ein Textfeld den Fokus, zum Beispiel
+Spotifys Suche „Was möchtest du wiedergeben?“, erscheint darunter der Knopf „Sprechen“. Tippen,
+sprechen, noch mal tippen; nach zehn Sekunden hört er von selbst auf. Der Text ersetzt den Inhalt
+des Feldes, ein Punkt am Ende fällt weg.
+
+Der Küchen-Dienst nimmt dafür Kanal 0 des XVF3800 auf (`POST /diktat/start`, `/diktat/stopp`,
+`pi/dienst/diktat.py`) und schickt den Ton als WAV an die OpenAI-Transkription, Modell
+`gpt-transcribe` (änderbar über `DIKTAT_MODELL`), Sprachen Deutsch und Englisch. Er braucht
+`OPENAI_API_KEY` im 1Password-Environment `kuechen-display` (`docs/datenweg.md`). Ins Journal
+schreibt er nur Längen, nicht was gesucht wurde. Kosten laut OpenAI 0,0045 $ pro Minute Ton.
+
+Zum Prüfen ohne Finger: `wtype` ist auf dem Pi installiert. `wtype -M ctrl k -m ctrl` öffnet in
+Spotify den Suchdialog (mit `XDG_RUNTIME_DIR` und `WAYLAND_DISPLAY=wayland-0`).
+
 ## Einrichten
 
 Alles vom Mac aus, im Checkout von `kuechen-display`.
