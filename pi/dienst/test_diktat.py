@@ -44,7 +44,7 @@ def test_aufnahme_nimmt_nur_auf_wenn_aktiv():
     assert a.nehmen() == b""
 
 
-def test_endet_nach_sprache_und_einer_sekunde_ruhe():
+def test_endet_nach_sprache_und_der_pause():
     a = Aufnahme(RATE)
     a.start()
     fuettern(a, LEISE, 0.5)
@@ -61,7 +61,7 @@ def test_kurze_pause_mitten_im_satz_beendet_nicht():
     a.start()
     fuettern(a, LEISE, 0.5)
     fuettern(a, LAUT, 0.6)
-    fuettern(a, LEISE, 0.6)
+    fuettern(a, LEISE, STILLE_S - 0.5)  # Stocken mitten im Satz
     fuettern(a, LAUT, 0.6)
     assert a.aktiv
 

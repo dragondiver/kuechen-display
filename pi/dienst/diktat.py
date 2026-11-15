@@ -28,7 +28,7 @@ MODELL = "gpt-transcribe"
 SPRACHEN = ("de", "en")
 MAX_S = 20.0  # danach nimmt der Dienst nichts mehr auf, auch ohne Stopp
 MIN_S = 0.3  # kürzer ist ein Fehltipp, dafür geht nichts an OpenAI
-STILLE_S = 1.0  # so lange Ruhe nach Sprache beendet das Diktat
+STILLE_S = 2.0  # so lange Ruhe nach Sprache beendet das Diktat (Florian 15.11.)
 OHNE_SPRACHE_S = (
     10.0  # Bedenkzeit; ohne erkannte Sprache bis hierhin: Ende (Florian 15.11.)
 )

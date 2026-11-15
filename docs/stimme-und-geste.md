@@ -60,8 +60,9 @@ wartete sie bis zu ihrer Ruhezeit.
 
 Ohne Elektra (#70, Festlegung 15.11.2026). Bekommt in einer App ein Textfeld den Fokus, zum Beispiel
 Spotifys Suche „Was möchtest du wiedergeben?“, erscheint darunter der Knopf „Sprechen“. Tippen und
-sprechen. Nach einer Pause hört er von selbst auf; noch mal tippen beendet sofort. Wer nichts sagt,
-hat 10 Sekunden Bedenkzeit (Florian, 15.11.2026), länger als 20 Sekunden nimmt er nie auf. Der Text
+sprechen. Nach zwei Sekunden Pause hört er von selbst auf; noch mal tippen beendet sofort. Wer
+nichts sagt, hat 10 Sekunden Bedenkzeit, länger als 20 Sekunden nimmt er nie auf (alle drei Werte
+Florian, 15.11.2026: 1 s Pause hätte bei „spiel was von … äh … Queen“ zu früh geschnitten). Der Text
 ersetzt den Inhalt des Feldes, ein Punkt am Ende fällt weg.
 
 Die Pause misst der Pegel: Der Boden ist das 10. Perzentil der Rahmen vor dem Sprechen. Sprache
