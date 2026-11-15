@@ -81,8 +81,20 @@ Von Hand ein- und ausblenden (zum Prüfen ohne Finger):
 ssh kuechen-display.local 'DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus busctl --user call sm.puri.OSK0 /sm/puri/OSK0 sm.puri.OSK0 SetVisible b true'
 ```
 
-Bekannt: Oben bleibt ein Streifen von etwa 5 px vom ausgeblendeten Panel sichtbar. Berührt man
-ihn, fährt das Panel herunter.
+Das Panel (Taskleiste) läuft im Kiosk nicht. Auch ausgeblendet ließ es oben einen Streifen von
+etwa 5 px stehen, und seine Hinweise (Updates, „power supply not capable …“) erschienen über dem
+Kiosk. `pi/kiosk-start.sh` beendet es deshalb bei jedem Start. Pi OS startet es über
+`/etc/xdg/labwc/autostart`, und labwc läuft mit `-m` (eigene und System-Konfiguration werden
+zusammengeführt), ein eigener Autostart kann es also nicht weglassen. Folgen: Über VNC gibt es
+keine Taskleiste, und die Akku-Anzeige (`batteryTray.py`, ein Symbol im Panel) ist nicht zu sehen.
+Den Akku-Wächter betrifft das nicht. Panel für eine VNC-Sitzung zurückholen:
+
+```bash
+ssh kuechen-display.local 'WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 setsid -f lwrespawn /usr/bin/wf-panel-pi'
+```
+
+Ein Neustart des Kiosks beendet es wieder. `pi/kiosk/wf-panel-pi.ini` (`autohide=true`) bleibt,
+damit ein von Hand gestartetes Panel nicht über dem Kiosk steht.
 
 ## Kiosk sofort neu starten
 
