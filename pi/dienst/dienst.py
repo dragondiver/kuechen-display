@@ -83,7 +83,9 @@ KALENDER = [
     if k.strip()
 ]
 ZONE = ZoneInfo(os.environ.get("ZEITZONE", "Europe/Berlin"))
-DATEN_TAKT_S = 600
+# Termine alle zwei Minuten (Wunsch 15.11.2026), das Wetter weiter alle zehn.
+TERMINE_TAKT_S = 120
+WETTER_TAKT_S = 600
 
 log = logging.getLogger("dienst")
 leitung = Leitung()
@@ -354,7 +356,8 @@ class Abruf:
 
 
 def daten_schleife() -> None:
-    """Holt alle zehn Minuten Wetter und Termine und schickt sie der Seite."""
+    """Holt alle zwei Minuten die Termine und alle zehn Minuten das Wetter und schickt beides
+    der Seite."""
     token = geheimnis("HA_TOKEN", HA_TOKEN_DATEI)
     if token is None:
         log.warning(
@@ -365,10 +368,14 @@ def daten_schleife() -> None:
     wetter_abruf, termine_abruf = Abruf("Wetter"), Abruf("Termine")
     gemeldet = None
     fehlt_gemeldet: list[str] = []
+    wetter_zuletzt = None
     while True:
-        karte = wetter_abruf(
-            lambda: wetter_karte(ha, WETTER_ENTITAET, TEMPERATUR_SENSOR, ORT)
-        )
+        karte = None
+        if wetter_zuletzt is None or time.monotonic() - wetter_zuletzt >= WETTER_TAKT_S:
+            wetter_zuletzt = time.monotonic()
+            karte = wetter_abruf(
+                lambda: wetter_karte(ha, WETTER_ENTITAET, TEMPERATUR_SENSOR, ORT)
+            )
         if karte is not None:
             if karte["unbekannt"] and karte["zustand"] != gemeldet:
                 log.warning(
@@ -403,7 +410,7 @@ def daten_schleife() -> None:
                 )
             letzte_daten["termine"] = termine
             an_seite("termine", termine)
-        time.sleep(DATEN_TAKT_S)
+        time.sleep(TERMINE_TAKT_S)
 
 
 # --- Bridge -------------------------------------------------------------------
