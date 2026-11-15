@@ -30,6 +30,28 @@ damit Bluetooth wach bleibt; sonst fehlt am Anfang etwa eine Sekunde.
 | Tipp, während sie zuhört oder nachdenkt | Gespräch am Display beendet, Mikrofon zu |
 | flache Hand vor der Kamera, während sie spricht | wie Tipp beim Sprechen (Kamera nur beim Testen) |
 
+Das Mikrofon sitzt auf der Seite „Heute“ an der Figur. In einer App wie Spotify ist die Kiosk-Seite
+weg; dort ist der Mikro-Knopf ganz rechts in der Rückweg-Leiste oben links (#70). Er wirkt wie der
+Tipp aufs Mikrofon und leuchtet orange, solange Elektra dran ist.
+
+## Was Elektra am Display kann
+
+| Werkzeug | Beispiel | Wirkung |
+|---|---|---|
+| `seite_zeigen` | „zeig mir morgen“, „zurück zu heute“, „zeig die Apps“ | wechselt die Seite, aus einer App heraus zurück zum Kiosk |
+| `app_oeffnen` | „öffne Spotify“ | öffnet die App; bietet die Bridge nur an, weil der Dienst `APPS = ["spotify"]` meldet |
+| `rezeptschritt` | „nächster Schritt“ | noch ohne Rezept-App, Elektra hört „Es ist kein Rezept offen“ |
+
+Eine neue App braucht drei Stellen: den Namen in `APPS` (`pi/dienst/dienst.py`), `data-app` an ihrer
+Kachel (`pi/kiosk/index.html`) und den Eintrag in `APPS` von `pi/kiosk-rueckweg/rueckweg.js`.
+
+**Befehle in einer App.** Ist eine App vorn, hält der Küchen-Dienst einen Befehl der Bridge vier
+Sekunden bereit. Die Rückweg-Leiste fragt jede Sekunde `GET http://localhost:8080/lage` ab (über
+`hintergrund.js`, weil die https-Seite localhost nicht selbst fragen darf), bekommt Elektras
+Zustand und einen wartenden Befehl, führt ihn aus und quittiert. Holt ihn niemand ab, hört Elektra
+„Die Anzeige ist nicht offen“. Als „App vorn“ gilt: Die Leiste hat in den letzten 2,5 Sekunden
+gefragt und seitdem hat sich keine Kiosk-Seite verbunden.
+
 Beim Beenden per Tipp erfährt die Bridge nichts, weil der Vertrag keine Nachricht dafür hat. Sie
 hört keinen Ton mehr und schließt die Live-Sitzung nach ihrer Ruhezeit selbst.
 
