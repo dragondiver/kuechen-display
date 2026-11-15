@@ -34,21 +34,21 @@ Festlegung vom 18.9.2026).
   steht oben in `pi/dienst/daten.py` (`LAGEN`).
 - Steht die Sonne unter dem Horizont, ersetzt das Nachtbild die trockenen Bilder. Regen und
   Schnee bleiben, davon gibt es kein Nachtbild.
-- Zweite Zeile: tagsüber „Nacht 5°“ (Tiefstwert heute), nachts „Morgen 12°“ (Höchstwert
-  morgen). Ohne Vorhersage bleibt sie leer.
+- Zweite Zeile: immer „Nacht 5°“, der Tiefstwert aus der Tagesvorhersage, tags wie nachts.
+  Ohne Vorhersage bleibt sie leer.
 - Eine Lage, die die Tabelle nicht kennt, steht im Klartext auf der Karte, bekommt das Bild
   „gedämpft“ und eine Warnung im Journal.
 - Antwortet Home Assistant nicht, behält die Seite den letzten Stand. Ist er älter als eine
   Stunde, wird die Wetterkarte blass. Ohne jeden Stand steht dort „Keine Wetterdaten“.
 
-Die zweite Zeile bei Nacht und das Verblassen nach einer Stunde sind Annahmen aus dem Bau,
-keine Festlegungen (#15, #50).
+Zweite Zeile, Nachtbild und Verblassen nach einer Stunde hat Florian am 15.11.2026 so
+festgelegt (#15).
 
 ## Einrichten
 
 Der Dienst braucht ein eigenes Token für Home Assistant. Ohne `HA_TOKEN` läuft er weiter und
 zeigt „Keine Wetterdaten“. Die Geheimnisse kommen aus dem 1Password-Environment
-`kuechen-display/.env`, wie bei den anderen Repos (heim-agent#87).
+`kuechen-display`, wie bei den anderen Repos (heim-agent#87).
 
 | Name | Wofür |
 |---|---|
@@ -59,7 +59,7 @@ zeigt „Keine Wetterdaten“. Die Geheimnisse kommen aus dem 1Password-Environm
 „Langlebige Zugangstoken“ → Token erstellen, Name `kuechen-display`. Kopieren.
 
 **2. In 1Password eintragen.** In der App unter Developer → View Environments das Environment
-`kuechen-display/.env` anlegen oder öffnen und beide Namen mit Wert eintragen. Dann als
+`kuechen-display` anlegen oder öffnen und beide Namen mit Wert eintragen. Dann als
 `~/Development/kuechen-display/.env` einhängen.
 
 **3. Auf den Pi bringen.** Erst ohne `--ja` laufen lassen und die Namen lesen:

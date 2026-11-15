@@ -74,8 +74,8 @@ def test_nachts_bleiben_regen_und_schnee():
     )
 
 
-def test_nachts_steht_der_hoechstwert_von_morgen():
-    assert karte(sonne="below_horizon")["zeile"] == "Morgen 9°"
+def test_nachts_steht_ebenfalls_der_tiefstwert():
+    assert karte(sonne="below_horizon")["zeile"] == "Nacht 5°"
 
 
 def test_ohne_vorhersage_bleibt_die_zeile_leer():

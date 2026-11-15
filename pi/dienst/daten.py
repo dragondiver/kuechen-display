@@ -87,16 +87,10 @@ def wetter_aufbereiten(
     if temp is None:
         temp = zahl(attribute.get("temperature"))
 
-    # Zweite Zeile: tagsüber die Tiefsttemperatur der kommenden Nacht, nachts der
-    # Höchstwert von morgen. Fehlt die Vorhersage, bleibt die Zeile leer.
+    # Zweite Zeile: der Tiefstwert aus der Tagesvorhersage, tags wie nachts (Festlegung
+    # 15.11.2026 in #15). Fehlt die Vorhersage, bleibt die Zeile leer.
     zeile = ""
-    if (
-        nacht
-        and len(vorhersage) > 1
-        and zahl(vorhersage[1].get("temperature")) is not None
-    ):
-        zeile = f"Morgen {grad(vorhersage[1]['temperature'])}"
-    elif not nacht and vorhersage and zahl(vorhersage[0].get("templow")) is not None:
+    if vorhersage and zahl(vorhersage[0].get("templow")) is not None:
         zeile = f"Nacht {grad(vorhersage[0]['templow'])}"
 
     return {
