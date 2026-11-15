@@ -103,7 +103,7 @@ Geheimnisse und gehören nicht in 1Password: ändern über einen Drop-in der Uni
 
 Die Termine kommen aus dem Familienkalender bei Apple über die CalDAV-Integration von Home
 Assistant (Festlegung 15.11.2026 in #15). Der Küchen-Dienst fragt sie mit demselben Token ab
-wie das Wetter, im selben Takt von zehn Minuten.
+wie das Wetter, alle zwei Minuten (das Wetter alle zehn).
 
 ```
 iCloud ──CalDAV──▶ Home Assistant  calendar.family, calendar.abfall
