@@ -115,7 +115,7 @@
     <p>Helle, einfarbige Fläche<span>Kein Wetterbild, keine Glaskarten. Orange ist nur Akzent.</span></p>
     <p>Ein Schritt pro Bildschirm<span>Die Skala unten zeigt, wo man steht.</span></p>
     <p>Reiter je Komponente<span>Jeder Reiter merkt sich seinen Schritt und zeigt einen laufenden Timer.</span></p>
-    <p>Benötigte Zutaten rücken nach oben<span>Nur wenn eine sonst unter dem Rand läge. Gescrollt wird nie.</span></p>
+    <p>Benötigte Zutaten stehen oben<span>In jedem Schritt, in der Reihenfolge des Rezepts. Gescrollt wird nie.</span></p>
     <p>Dunkel ist vorbereitet<span>Ob und wann umgeschaltet wird, ist offen.</span></p>
     <p>Der Timer hier ist nur Muster<span>Am Display kommt er vom Timer des Geräts.</span></p>
   </div>
@@ -173,8 +173,8 @@
     $("von").textContent = "von " + k.schritte.length;
     $("text").textContent = s.t;
 
-    let folge = k.zutaten.map((_, i) => i);
-    if (s.z.some((i) => i >= ZEILEN)) folge = s.z.concat(folge.filter((i) => !s.z.includes(i)));
+    const alle = k.zutaten.map((_, i) => i);
+    const folge = alle.filter((i) => s.z.includes(i)).concat(alle.filter((i) => !s.z.includes(i)));
     $("zutaten").replaceChildren(...folge.slice(0, ZEILEN).map((i) => {
       const zeile = document.createElement("div");
       zeile.className = "zutat" + (s.z.includes(i) ? " jetzt" : "");
