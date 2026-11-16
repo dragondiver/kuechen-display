@@ -1,0 +1,25 @@
+[Unit]
+Description=Küchen-Display: Display nach Ruhe ausschalten, beim Tippen wecken (kuechen-display#48)
+After=kuechen-dienst.service
+
+[Service]
+Type=simple
+User=florian
+# input: Touch-Gerät lesen und sperren; video: Beleuchtung unter /sys/class/backlight schreiben.
+SupplementaryGroups=input video
+# wlopm und swayidle sprechen mit labwc; der Wächter wartet, bis dessen Socket da ist.
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=WAYLAND_DISPLAY=wayland-0
+# /run/kuechen-schlafen/helligkeit: die Helligkeit vor dem Ausschalten. Bleibt über einen
+# Neustart des Dienstes erhalten, damit ein abgestürzter Wächter sie zurückgeben kann.
+RuntimeDirectory=kuechen-schlafen
+RuntimeDirectoryPreserve=yes
+ExecStart=/usr/bin/python3 -u /home/florian/kuechen-display/schlafen/schlafwaechter.py
+# Stirbt der Wächter (auch mit kill -9), geht das Display wieder an. Das Minus: ein Fehlschlag
+# hier (kein Wayland beim Herunterfahren) soll den Dienst nicht als gescheitert zeichnen.
+ExecStopPost=-/usr/bin/python3 /home/florian/kuechen-display/schlafen/schlafwaechter.py --an
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
