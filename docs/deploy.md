@@ -31,10 +31,11 @@ Der Ablauf:
    nicht `origin/main` ist. Gespiegelt wird immer der lokale Checkout, also vorher
    `git pull`, wenn `main` auf den Pi soll.
 2. Lässt die Tests laufen und bricht ab, wenn einer fehlschlägt.
-3. Spiegelt `pi/dienst`, `pi/gesten`, `pi/werkzeuge`, `pi/kiosk`, dazu die Wetterbilder aus
+3. Spiegelt `pi/dienst`, `pi/gesten`, `pi/schlafen`, `pi/werkzeuge`, `pi/kiosk`, dazu die Wetterbilder aus
    `docs/entwuerfe/wetter/flach/` und die Figur aus `docs/entwuerfe/figur/*-klein.png`.
    Verglichen wird nach Inhalt, nicht nach Zeitstempel.
-4. Ruft auf dem Pi `install-kiosk.sh` auf: venvs, Units, Neustart von `kuechen-dienst`.
+4. Ruft auf dem Pi `install-kiosk.sh` auf: venvs, Units, Neustart von `kuechen-dienst` und `kuechen-schlafen`
+   (Display nach Ruhe aus, `docs/schlafen.md`).
    `kuechen-gesten` bleibt aus.
 5. Beendet Chromium und startet ihn mit `kiosk-start.sh` neu.
 6. Zeigt, ob der Dienst läuft, die letzten Zeilen aus dem Journal und ob Chromium läuft.
@@ -62,7 +63,8 @@ Chromium startet.
 - Den Akku-Wächter (`pi/ups/`). Er läuft als root und ändert sich selten: `docs/akku-waechter.md`.
 - Die Gerätewerte der Bridge auf raspi-agent (`pi/bruecke/geraete.conf`): `docs/stimme-und-geste.md`.
 - Die `.env` mit den Geheimnissen. Die bringt `heim-agent/deploy/pi-env-push.sh kuechen-display`.
-- Das Display einschalten. Ist es per `wlr-randr` aus, bleibt es aus.
+- Das Display einschalten. Ist es per `wlr-randr` aus, bleibt es aus. (Was `kuechen-schlafen` ausschaltet, schaltet
+  es selbst wieder ein, auch bei `push.sh`; Notausgang in `docs/schlafen.md`.)
 
 ## Anderes Ziel
 

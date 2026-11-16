@@ -93,6 +93,40 @@
   frage();
   setInterval(frage, 1000);
 
+  // --- Läuft ein Video? (#48) -----------------------------------------------------------------
+  // Das Display geht nach Ruhe aus, außer ein Video läuft. Die Leiste meldet dem Küchen-Dienst alle
+  // 5 s, was die <video>-Elemente der Seite tun; ob es ein „laufendes Video“ ist, entscheidet der
+  // Dienst (pi/dienst/wach.py). Gemeldet wird nur, solange eins spielt, und einmal danach, damit der
+  // Dienst nicht bis zur Frist wartet. Videos in eingebetteten Frames und in Shadow-DOM sieht das nicht.
+  let videoGemeldet = false, videoWarnung = false;
+  function videoFakten() {
+    const fenster = innerWidth * innerHeight;
+    return Array.from(document.querySelectorAll('video')).map(function (v) {
+      const r = v.getBoundingClientRect();
+      const breite = Math.max(0, Math.min(r.right, innerWidth) - Math.max(r.left, 0));
+      const hoehe = Math.max(0, Math.min(r.bottom, innerHeight) - Math.max(r.top, 0));
+      return {
+        spielt: !v.paused && !v.ended && v.readyState >= 3,
+        bild: v.videoWidth > 0 && v.videoHeight > 0,
+        schleife: v.loop,
+        flaeche: fenster > 0 ? (breite * hoehe) / fenster : 0,
+      };
+    });
+  }
+  function meldeVideo() {
+    const fakten = videoFakten();
+    const spielt = fakten.some(function (f) { return f.spielt; });
+    if (!spielt && !videoGemeldet) return;
+    videoGemeldet = spielt;
+    melde('/video', { videos: fakten }).then(function (a) {
+      if (!a.ok && !videoWarnung) {
+        videoWarnung = true;
+        console.warn('Küchen-Display: Video-Meldung ans Schlafen ging nicht:', a.daten.fehler || a);
+      }
+    });
+  }
+  setInterval(meldeVideo, 5000);
+
   // --- Diktat ins Suchfeld (#70), ohne Elektra ------------------------------------------------
   // Hat ein Textfeld den Fokus (Spotify: „Was möchtest du wiedergeben?“), erscheint darunter ein
   // Knopf „Sprechen“. Der Küchen-Dienst nimmt auf und schickt den Ton an die OpenAI-Transkription;

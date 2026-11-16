@@ -17,6 +17,7 @@ blättert die Seiten um. Uhr, Datum und Wetter sind echt (`docs/datenweg.md`), d
 | Rückweg-Leiste auf App-Seiten mit Mikro-Knopf (#10, #70) | `pi/kiosk-rueckweg/` | `~/kuechen-display/kiosk-rueckweg/`, siehe `docs/spotify.md` |
 | Fensterregel und Panel (Bildschirmtastatur) | `pi/kiosk/labwc-rc.xml`, `pi/kiosk/wf-panel-pi.ini` | `~/.config/labwc/rc.xml`, `~/.config/wf-panel-pi/wf-panel-pi.ini` |
 | Chromium-Autostart | `pi/kiosk/kiosk.desktop`, `pi/kiosk-start.sh` | `~/.config/autostart/kiosk.desktop`, `~/kuechen-display/kiosk-start.sh` |
+| Display nach Ruhe aus (#48) | `pi/schlafen/` | Dienst `kuechen-schlafen`, siehe `docs/schlafen.md` |
 | Deploy vom Mac | `pi/push.sh` | – |
 | Einrichtung | `pi/install-kiosk.sh` | `~/kuechen-display/install-kiosk.sh` |
 

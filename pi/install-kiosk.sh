@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Auf dem Pi: bash ~/kuechen-display/install-kiosk.sh   (idempotent, fragt sudo für die Dienste)
 # Vom Mac aus ruft pi/push.sh dieses Skript auf (docs/deploy.md).
-# Richtet Küchen-Dienst, Kameradienst und Chromium-Kiosk ein.
+# Richtet Küchen-Dienst, Schlafwächter, Kameradienst und Chromium-Kiosk ein.
 # Anleitung: docs/stimme-und-geste.md und docs/kiosk-und-gesten.md
 set -euo pipefail
 d=$(cd "$(dirname "$0")" && pwd)   # ~/kuechen-display, per rsync vom Mac befüllt
@@ -20,9 +20,17 @@ d=$(cd "$(dirname "$0")" && pwd)   # ~/kuechen-display, per rsync vom Mac befül
 
 sudo install -m 644 "$d/dienst/kuechen-dienst.service" /etc/systemd/system/kuechen-dienst.service
 sudo install -m 644 "$d/gesten/kuechen-gesten.service" /etc/systemd/system/kuechen-gesten.service
+# Schlafen (docs/schlafen.md, #48): swayidle meldet Ruhe, wlopm schaltet den Ausgang. Beides ist auf dem
+# Pi 5 vorinstalliert gewesen (16.11.2026); fehlt eins, kommt es hier dazu.
+for paket in swayidle wlopm; do
+  command -v "$paket" >/dev/null || sudo apt-get install -y "$paket"
+done
+sudo install -m 644 "$d/schlafen/kuechen-schlafen.service" /etc/systemd/system/kuechen-schlafen.service
 sudo systemctl daemon-reload
 sudo systemctl enable kuechen-dienst.service
 sudo systemctl restart kuechen-dienst.service
+sudo systemctl enable kuechen-schlafen.service
+sudo systemctl restart kuechen-schlafen.service
 # Kamera nur beim Testen (8.11.2026): kein enable, und ein früheres enable zurücknehmen.
 sudo systemctl disable kuechen-gesten.service 2>/dev/null || true
 

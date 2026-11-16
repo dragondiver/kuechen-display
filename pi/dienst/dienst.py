@@ -55,6 +55,7 @@ from vertrag import (
     Leitung,
     kanal,
 )
+from wach import Wach
 
 PORT = 8080
 SEITE = os.environ.get(
@@ -118,7 +119,11 @@ GESCHUETZT = {
     "/diktat/start",
     "/diktat/stopp",
     "/diktat/ergebnis",
+    "/video",
 }
+# Was das Display wach hält (#48): Elektra und Video; der Schlafwächter fragt über GET /wach.
+wach = Wach()
+wach_sperre = threading.Lock()
 # Diktat ins Suchfeld (#70), ohne Elektra; der Schlüssel kommt aus dem 1Password-Environment.
 aufnahme = Aufnahme(RATE)
 aufnahme_sperre = threading.Lock()
@@ -214,6 +219,8 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/lage":
             return self.lage()
+        if self.path == "/wach":
+            return self.wach_lage()
         if self.path != "/ereignisse":
             return super().do_GET()
         with ablage_sperre:
@@ -266,6 +273,18 @@ class Handler(SimpleHTTPRequestHandler):
             },
             ensure_ascii=False,
         ).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(roh)))
+        self.end_headers()
+        self.wfile.write(roh)
+
+    def wach_lage(self) -> None:
+        """Für den Schlafwächter (pi/schlafen): Darf das Display ausgehen?"""
+        with wach_sperre:
+            gruende = wach.gruende(leitung.zustand, time.monotonic())
+        roh = json.dumps({"haelt": bool(gruende), "gruende": gruende}).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Cache-Control", "no-store")
@@ -363,6 +382,21 @@ class Handler(SimpleHTTPRequestHandler):
             # sendBeacon der Kiosk-Seite beim Verlassen (kein eigener Header möglich)
             with ablage_sperre:
                 ablage.kiosk_geht()
+            self.send_response(204)
+            self.end_headers()
+            return
+        if self.path == "/video":
+            # Die Rückweg-Erweiterung meldet die <video>-Elemente der offenen Seite (#48).
+            with wach_sperre:
+                vorher = wach.video_laeuft(time.monotonic())
+                probleme = wach.video_melden(daten.get("videos"), time.monotonic())
+                jetzt_an = wach.video_laeuft(time.monotonic())
+            for problem in probleme:
+                log.warning("Video-Meldung: %s", problem)
+            if jetzt_an != vorher:
+                log.info(
+                    "Video: %s", "läuft, hält das Display wach" if jetzt_an else "aus"
+                )
             self.send_response(204)
             self.end_headers()
             return
