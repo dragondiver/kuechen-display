@@ -94,7 +94,9 @@ class Ruhe:
     - ruhig(t): swayidle meldet, dass seit IDLE_SCHRITT_S nichts mehr kam
     - beruehrt(t): der Wächter selbst hat bei ausgeschaltetem Display eine Berührung gelesen
     - halt(t, haelt): Küchen-Dienst sagt, ob Video oder Elektra wach halten (True auch, wenn
-      er nicht antwortet: im Zweifel an)
+      er nicht antwortet: im Zweifel an). Das verhindert das Einschlafen, weckt aber ein
+      schlafendes Display nicht (Festlegung 16.11.2026: Elektra, auch mit Erinnerung, lässt es
+      dunkel; nur Berührung oder andere Eingabe wecken)
     - eingeschlafen(t) / aufgewacht(t): der Wächter hat das Display aus- bzw. eingeschaltet
     - tick(t): alle Sekunde; sagt SCHLAFEN, WECKEN oder NICHTS
 
@@ -132,13 +134,12 @@ class Ruhe:
         self.eingabe_laeuft = True
         return WECKEN if self.schlaeft else NICHTS
 
-    def halt(self, jetzt: float, haelt: bool) -> str:
+    def halt(self, jetzt: float, haelt: bool) -> None:
         # Der Halt endet irgendwann zwischen zwei Abfragen; als Ende gilt die spätere, damit
         # die Ruhezeit eher zu lang als zu kurz ausfällt.
         if haelt or self.haelt:
             self.letzter_halt = jetzt
         self.haelt = haelt
-        return WECKEN if haelt and self.schlaeft else NICHTS
 
     def eingeschlafen(self) -> None:
         self.schlaeft = True
@@ -152,7 +153,7 @@ class Ruhe:
 
     def tick(self, jetzt: float) -> str:
         if self.schlaeft:
-            return WECKEN if self.haelt or self.eingabe_laeuft else NICHTS
+            return WECKEN if self.eingabe_laeuft else NICHTS
         if self.haelt or self.eingabe_laeuft or jetzt < self.nicht_vor:
             return NICHTS
         letzte = self.letzte_eingabe

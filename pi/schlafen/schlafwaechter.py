@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import http.client
 import json
 import logging
 import os
@@ -205,6 +206,7 @@ class Touch:
     def __init__(self, geraete_text: str | None = None) -> None:
         self.fd: int | None = None
         self.rest = b""
+        self.kaputt = False  # Lesen schlug fehl (z. B. Gerät weg): Wächter muss wecken
         self.geraete_text = geraete_text
 
     def sperren(self) -> bool:
@@ -230,6 +232,7 @@ class Touch:
             return False
         self.fd = fd
         self.rest = b""
+        self.kaputt = False
         return True
 
     def lesen(self) -> list[tuple[int, int, int]]:
@@ -240,7 +243,10 @@ class Touch:
         except BlockingIOError:
             return []
         except OSError as fehler:
-            log.error("Touch: Lesen schlug fehl: %s", fehler)
+            # Ein toter fd (ENODEV) bliebe im Selector dauernd lesbar. Also schließen und melden.
+            log.error("Touch: Lesen schlug fehl, Touch wird freigegeben: %s", fehler)
+            self.freigeben()
+            self.kaputt = True
             return []
         ereignisse, self.rest = ereignisse_zerlegen(self.rest + roh)
         return ereignisse
@@ -264,7 +270,7 @@ def wach_fragen(url: str = WACH_URL) -> tuple[bool, list[str]]:
             raise TypeError(f"unerwartete Antwort: {str(daten)[:100]}")
         gruende = [str(g) for g in daten.get("gruende", [])]
         return daten["haelt"], gruende
-    except (OSError, ValueError, TypeError) as fehler:
+    except (OSError, ValueError, TypeError, http.client.HTTPException) as fehler:
         return True, [f"dienst: {fehler}"]
 
 
@@ -304,6 +310,7 @@ class Waechter:
             self.ruhe.schlafen_misslungen(jetzt)
             return
         self.touch, self.tipp = touch, WeckTipp()
+        self.an_offen = False  # ein altes, gescheitertes Einschalten ist erledigt: Das Display ist jetzt aus
         self.ruhe.eingeschlafen()
         log.info("Display aus nach %d s Ruhe", self.konfig.ruhe_s)
 
@@ -319,7 +326,7 @@ class Waechter:
         self.ruhe.aufgewacht(jetzt)
         log.info("Display an: %s", grund)
         # Den Touch erst freigeben, wenn der Finger oben ist (touch_lesen). Gab es keine
-        # Berührung (Elektra, Eingabe von VNC), gibt es nichts zu verschlucken.
+        # Berührung (Eingabe von VNC), gibt es nichts zu verschlucken.
         if self.tipp is None or self.tipp.beginn is None:
             self.touch_freigeben()
 
@@ -332,7 +339,13 @@ class Waechter:
     def touch_lesen(self, jetzt: float) -> None:
         if self.touch is None or self.tipp is None:
             return
-        for art, code, wert in self.touch.lesen():
+        ereignisse = self.touch.lesen()
+        if getattr(self.touch, "kaputt", False):
+            if self.ruhe.schlaeft:
+                self.wecken(jetzt, "Touch-Gerät nicht lesbar")
+            self.touch_freigeben()
+            return
+        for art, code, wert in ereignisse:
             ergebnis = self.tipp.ereignis(art, code, wert, jetzt)
             if ergebnis.weck and self.ruhe.schlaeft:
                 self.ruhe.beruehrt(jetzt)
@@ -355,8 +368,7 @@ class Waechter:
                 log.error("Einschalten weiter ohne Erfolg")
         aktion = self.ruhe.tick(jetzt)
         if aktion == WECKEN:
-            grund = "Eingabe" if self.ruhe.eingabe_laeuft else "etwas hält wach"
-            self.ausfuehren(WECKEN, jetzt, grund)
+            self.ausfuehren(WECKEN, jetzt, "Eingabe")
         else:
             self.ausfuehren(aktion, jetzt)
 
@@ -369,9 +381,9 @@ class Waechter:
         else:
             log.warning("Unerwartete Zeile von swayidle: %r", zeile[:100])
 
-    def wach_antwort(self, haelt: bool, jetzt: float, gruende: list[str]) -> None:
-        if self.ruhe.halt(jetzt, haelt) == WECKEN:
-            self.ausfuehren(WECKEN, jetzt, "hält wach: " + ", ".join(gruende))
+    def wach_antwort(self, haelt: bool, jetzt: float) -> None:
+        # Hält etwas wach, wird nicht eingeschlafen; ein schlafendes Display weckt es nicht.
+        self.ruhe.halt(jetzt, haelt)
 
     def swayidle_fehlt(self, jetzt: float) -> None:
         if self.ruhe.eingabe_unbekannt() == WECKEN:
@@ -471,7 +483,7 @@ def lauf(konfig: Konfig) -> None:
                         "Wach halten: %s", ", ".join(gruende) if haelt else "nichts"
                     )
                     wach_stand = stand
-                w.wach_antwort(haelt, jetzt, gruende)
+                w.wach_antwort(haelt, jetzt)
             w.takt(jetzt)
     finally:
         log.info("Beende: Display einschalten")

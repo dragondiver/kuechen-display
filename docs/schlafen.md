@@ -50,8 +50,10 @@ stattdessen den Touch, bevor das Display ausgeht: Er öffnet das Goodix-Gerät (
 die Sperre steht, bekommt labwc nichts vom Touch. Der Wächter liest ihn selbst. Beim Aufsetzen des Fingers
 schaltet er das Display an und gibt den Touch erst frei, wenn der Finger wieder oben ist, spätestens nach
 5 Sekunden. So kommt weder das Aufsetzen noch das Loslassen in einem Fenster an. Eingaben, die nicht vom
-Touch kommen (VNC, eine Tastatur), wecken ebenfalls, ohne dass es etwas zu verschlucken gibt. Auch Elektra
-weckt das Display, wenn sie von sich aus zu sprechen beginnt.
+Touch kommen (VNC, eine Tastatur), wecken ebenfalls, ohne dass es etwas zu verschlucken gibt. Elektra weckt
+das Display nicht: Spricht sie bei dunklem Display von sich aus (eine Erinnerung), bleibt es dunkel und sie
+kommt nur als Ton. Wach halten verhindert das Einschlafen, aufwecken kann es nichts. Läuft beim Wecken per
+Tipp noch ein Gespräch oder ein Video, beginnen die 5 Minuten erst nach dessen Ende.
 
 ### Wenn etwas ausfällt
 
@@ -127,8 +129,9 @@ unten). Am Gerät mit Florian durchgehen, in dieser Reihenfolge:
    (`curl -s localhost:8080/wach` zeigt `elektra (zuhoeren)`), nach Ende des Gesprächs geht es nach der
    Ruhezeit aus.
 6. Video: ein Video abspielen, das mindestens ein Fünftel des Bildschirms füllt (ein Video in Kachelgröße zählt
-   nicht), zum Beispiel über SSH
-   `WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 nohup chromium --ozone-platform=wayland "$VIDEO_URL" >/dev/null 2>&1 &`
+   nicht), zum Beispiel über SSH (die
+   Adresse eines Videos vorher einsetzen):
+   `ssh kuechen-display.local 'WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1000 nohup chromium --ozone-platform=wayland "https://VIDEO-ADRESSE" >/dev/null 2>&1 &'`
    (das Fenster geht im laufenden Chromium auf, die Erweiterung ist also dabei; steht danach kein `Video: läuft`
    im Journal des Küchen-Dienstes, stimmt das nicht, dann gilt die Prüfung per `curl` unten). Das Display bleibt über die Ruhezeit hinaus an,
    `curl -s localhost:8080/wach` zeigt `video`. Pausieren oder Fenster schließen: Nach 20 Sekunden und der

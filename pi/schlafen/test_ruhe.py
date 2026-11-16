@@ -154,14 +154,41 @@ def test_eingabe_von_swayidle_weckt():
     assert r.tick(401.0) == WECKEN  # bleibt Anlass, bis der Wächter aufgewacht() meldet
 
 
-def test_elektra_weckt_das_schlafende_display():
+def test_elektra_weckt_das_schlafende_display_nicht():
+    """Festlegung 16.11.2026: Elektra, auch mit Erinnerung, lässt ein schlafendes Display dunkel."""
     r = eingeschlafene_ruhe()
-    assert r.halt(400.0, True) == WECKEN
+    r.halt(400.0, True)
+    assert r.tick(400.0) == NICHTS
+    assert r.tick(9999.0) == NICHTS
+
+
+def test_halt_waehrend_des_schlafs_zaehlt_nach_dem_wecken_per_tipp_weiter():
+    """Läuft der Halt beim Aufwachen noch, beginnen die 5 Minuten erst nach seinem Ende."""
+    r = eingeschlafene_ruhe()
+    r.halt(400.0, True)
+    r.beruehrt(500.0)
+    r.aufgewacht(500.0)
+    r.halt(505.0, True)
+    assert r.tick(5000.0) == NICHTS
+    r.halt(5000.0, False)
+    assert r.tick(5299.0) == NICHTS
+    assert r.tick(5300.0) == SCHLAFEN
+
+
+def test_halt_der_vor_dem_wecken_endete_laesst_die_zeit_ab_dem_tipp_laufen():
+    r = eingeschlafene_ruhe()
+    r.halt(400.0, True)
+    r.halt(410.0, False)
+    r.beruehrt(1000.0)
+    r.aufgewacht(1000.0)
+    assert r.tick(1299.0) == NICHTS
+    assert r.tick(1300.0) == SCHLAFEN
 
 
 def test_kein_halt_weckt_nicht():
     r = eingeschlafene_ruhe()
-    assert r.halt(400.0, False) == NICHTS
+    r.halt(400.0, False)
+    assert r.tick(401.0) == NICHTS
 
 
 def test_swayidle_weg_weckt():

@@ -1,4 +1,8 @@
+import errno
+import http.client
 import logging
+import os
+import urllib.request
 from types import SimpleNamespace
 
 from ruhe import BTN_TOUCH, EV_KEY, Konfig, WeckTipp
@@ -290,19 +294,37 @@ def test_eingabe_ohne_touch_weckt_und_gibt_den_touch_sofort_frei():
     assert anz.aufrufe == ["aus", "an"] and not touch.gesperrt
 
 
-def test_elektra_weckt_das_schlafende_display_und_gibt_den_touch_frei():
+def test_elektra_weckt_das_schlafende_display_nicht():
     w, touch, anz = waechter()
     w.takt(300.0)
-    w.wach_antwort(True, 600.0, ["elektra (zuhoeren)"])
-    assert anz.aufrufe == ["aus", "an"] and not touch.gesperrt
+    w.wach_antwort(True, 600.0)
+    w.takt(601.0)
+    assert anz.aufrufe == ["aus"] and touch.gesperrt and w.ruhe.schlaeft
+
+
+def test_tipp_bei_laufendem_halt_weckt_und_die_ruhezeit_beginnt_nach_dem_halt():
+    touch = FalscherTouch()
+    w, _, anz = waechter(touch=touch)
+    w.takt(300.0)
+    w.wach_antwort(True, 600.0)  # Elektra spricht, das Display bleibt dunkel
+    touch.ereignisse = [(EV_KEY, BTN_TOUCH, 1), (EV_KEY, BTN_TOUCH, 0)]
+    w.touch_lesen(700.0)
+    w.wach_antwort(True, 705.0)
+    w.takt(5000.0)
+    assert anz.aufrufe == ["aus", "an"]
+    w.wach_antwort(False, 5000.0)
+    w.takt(5299.0)
+    assert anz.aufrufe == ["aus", "an"]
+    w.takt(5300.0)
+    assert anz.aufrufe == ["aus", "an", "aus"]
 
 
 def test_haelt_etwas_wach_wird_nicht_geschlafen():
     w, _, anz = waechter()
-    w.wach_antwort(True, 250.0, ["video"])
+    w.wach_antwort(True, 250.0)
     w.takt(400.0)
     assert anz.aufrufe == []
-    w.wach_antwort(False, 405.0, [])
+    w.wach_antwort(False, 405.0)
     w.takt(704.0)
     assert anz.aufrufe == []
     w.takt(705.0)
@@ -340,3 +362,65 @@ def test_unbekannte_zeile_von_swayidle_ist_laut(caplog):
     with caplog.at_level(logging.WARNING):
         w.swayidle_zeile("quatsch", 5.0)
     assert "Unerwartete Zeile" in caplog.text
+
+
+def test_gescheitertes_einschalten_wird_nach_neuem_einschlafen_nicht_wiederholt():
+    """Sonst käme ein wlopm --on, während der Wächter schläft und den Touch hält."""
+    anz = FalscheAnzeige(an=False)
+    w, _, _ = waechter(anz=anz)
+    w.takt(300.0)
+    w.swayidle_zeile("AKTIV", 400.0)
+    w.takt(400.0)
+    assert w.an_offen
+    w.swayidle_zeile("IDLE", 401.0)
+    w.takt(700.0)  # schläft wieder
+    assert w.ruhe.schlaeft
+    w.takt(704.0)
+    assert anz.aufrufe[-1] == "aus"
+    assert not w.an_offen
+
+
+def test_wach_fragen_faengt_abgebrochene_antwort(monkeypatch):
+    def kaputt(*a, **kw):
+        raise http.client.IncompleteRead(b"{")
+
+    monkeypatch.setattr(urllib.request, "urlopen", kaputt)
+    haelt, gruende = wach_fragen("http://x/wach")
+    assert haelt is True
+    assert gruende[0].startswith("dienst:")
+
+
+def test_touch_lesefehler_gibt_frei_und_meldet_kaputt(monkeypatch, caplog):
+    lese, schreibe = os.pipe()
+    os.close(schreibe)
+    t = Touch()
+    t.fd = lese
+
+    def tot(fd, n):
+        raise OSError(errno.ENODEV, "No such device")
+
+    monkeypatch.setattr(os, "read", tot)
+    with caplog.at_level(logging.ERROR):
+        assert t.lesen() == []
+    assert t.fd is None and t.kaputt
+    assert "Lesen schlug fehl" in caplog.text
+
+
+def test_touch_ohne_daten_ist_kein_fehler(monkeypatch):
+    def nichts(fd, n):
+        raise BlockingIOError
+
+    monkeypatch.setattr(os, "read", nichts)
+    t = Touch()
+    t.fd = 99
+    assert t.lesen() == [] and t.fd == 99 and not t.kaputt
+
+
+def test_toter_touch_weckt_das_display_und_gibt_frei(caplog):
+    touch = FalscherTouch()
+    w, _, anz = waechter(touch=touch)
+    w.takt(300.0)
+    touch.kaputt = True
+    w.touch_lesen(310.0)
+    assert anz.aufrufe == ["aus", "an"]
+    assert not w.ruhe.schlaeft and w.touch is None and not touch.gesperrt
