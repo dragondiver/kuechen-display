@@ -28,7 +28,7 @@ import threading
 import time
 from datetime import datetime
 from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -44,6 +44,7 @@ from diktat import (
 )
 from hass import HomeAssistant, termine_karte, wetter_karte
 from konfig import geheimnis
+from statisch import StatischOhneCache
 from vertrag import (
     RAHMEN_BYTES,
     RAHMEN_PROBEN,
@@ -212,7 +213,7 @@ def ablage_aufraeumen() -> None:
         )
 
 
-class Handler(SimpleHTTPRequestHandler):
+class Handler(StatischOhneCache):
     def log_message(self, format, *args):
         pass
 
