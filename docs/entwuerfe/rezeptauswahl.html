@@ -63,7 +63,7 @@
   .kd .zwei .heute .titel { font-size: 30px; }
   .kd .zwei .heute .daten { font-size: 24px; margin-bottom: 0; }
   .kd .suche { display: flex; align-items: center; gap: 20px; height: 88px; padding: 0 28px 0 60px; border-bottom: 1px solid var(--ln); flex: none; }
-  .kd .suche input { flex: 1; min-width: 0; height: 64px; font: inherit; font-size: 30px; color: var(--fg); background: none; border: 0; outline: 0; padding: 0; }
+  .kd .suche input { flex: 1; min-width: 0; height: 64px; font: inherit; font-size: 28px; color: var(--fg); background: none; border: 0; outline: 0; padding: 0; }
   .kd .suche input::placeholder { color: var(--mu); }
   .kd .leeren { width: 64px; height: 64px; font-size: 36px; color: var(--mu); text-align: center !important; }
   .kd .leeren[hidden] { display: none; }
@@ -81,10 +81,10 @@
   .kd .fav { display: grid; grid-template-columns: 120px 1fr; gap: 22px; align-items: center; border-top: 1px solid var(--ln); scroll-snap-align: start; min-width: 0; }
   .kd .fav .bild { width: 120px; height: 120px; }
   .kd .fav b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 28px; font-weight: 500; line-height: 1.2; }
-  .kd .fav small { display: block; font-size: 22px; color: var(--mu); margin-top: 6px; }
+  .kd .fav small { display: block; font-size: 24px; color: var(--mu); margin-top: 6px; }
   .kd .nichts { grid-column: 1 / -1; font-size: 32px; color: var(--mu); padding-top: 24px; }
   .kd .lauf { position: absolute; right: 22px; top: 152px; width: 4px; height: 620px; background: var(--ln); border-radius: 2px; }
-  .kd .lauf i { position: absolute; left: -1px; width: 6px; border-radius: 3px; background: var(--ac); }
+  .kd .lauf i { position: absolute; left: -1px; width: 6px; border-radius: 3px; background: var(--mu); }
   .kd .lauf[hidden] { display: none; }
   .kd .voll { grid-template-columns: 1fr; }
   .kd .voll > .links { display: none; }
@@ -97,12 +97,12 @@
                           display: grid; place-items: center; text-align: center; }
   .kd .portionen div { flex: 1; text-align: center; }
   .kd .portionen strong { display: block; font-size: 56px; font-weight: 200; line-height: 1; font-variant-numeric: tabular-nums; }
-  .kd .portionen span { font-size: 22px; color: var(--mu); }
-  .kd .herkunft { font-size: 22px; color: var(--mu); margin-top: 14px; text-align: center; }
+  .kd .portionen span { font-size: 24px; color: var(--mu); }
+  .kd .herkunft { font-size: 24px; color: var(--mu); margin-top: 14px; text-align: center; }
   .kd .kopfzeile { display: flex; align-items: center; height: 88px; padding-left: 60px; border-bottom: 1px solid var(--ln); font-size: 28px; flex: none; }
   .kd .bereit { columns: 2; column-gap: 48px; column-fill: auto; height: 520px; padding: 30px 52px 0 60px; }
   .kd .bereit .marke { break-after: avoid; margin: 0; padding-top: 6px; height: 44px; display: flex; align-items: center; }
-  .kd .bereit .zeile { display: flex; align-items: center; gap: 14px; height: 46px; font-size: 25px; border-top: 1px solid var(--ln); break-inside: avoid; }
+  .kd .bereit .zeile { display: flex; align-items: center; gap: 14px; height: 46px; font-size: 24px; border-top: 1px solid var(--ln); break-inside: avoid; }
   .kd .bereit .zeile b { font-weight: 400; width: 104px; flex: none; font-variant-numeric: tabular-nums; }
   .kd .bereit .zeile span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .kd .losleiste { position: absolute; left: 60px; right: 52px; bottom: 36px; display: flex; align-items: center; justify-content: space-between; }
@@ -355,7 +355,7 @@
     const q = anfrage.trim().toLowerCase();
     const treffer = q ? R.filter((r) => r.titel.toLowerCase().includes(q) || r.teile.some((t) => t.z.some(([, n]) => n.toLowerCase().includes(q))))
                       : R.filter((r) => r.fav);
-    $("listenname").textContent = (q ? "Treffer · " : "Favoriten · ") + treffer.length;
+    $("listenname").textContent = q ? "Treffer" : "Favoriten";
     $("leeren").hidden = !anfrage;
     $("liste").replaceChildren(...(treffer.length ? treffer.map((r) => {
       const b = neu("button", "fav"), t = neu("div");
