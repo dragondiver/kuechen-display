@@ -243,7 +243,7 @@
     else if (stand === 'hoert') stoppen();
   });
   // Seiten mit eigenem Mikrofon-Knopf markieren ihn mit data-kd-diktat="<id des Textfelds>". Ein Tipp
-  // darauf startet das Diktat sofort, ohne dass man den eingeblendeten Knopf „Sprechen“ drücken muss;
+  // darauf (ohne das Feld zu fokussieren) startet das Diktat sofort, ohne dass man den eingeblendeten Knopf „Sprechen“ drücken muss;
   // der zweite Tipp beendet es. Gilt nur auf der eigenen Seite (mise-en-place, KOCH_ANSICHT.host) und
   // nur für echte Tipps: Sonst könnte jede Seite per el.click() das Mikrofon starten und mitlesen.
   function diktatKnopfDerSeite(e) {
@@ -252,16 +252,20 @@
       return el.nodeType === 1 && el.hasAttribute('data-kd-diktat');
     });
   }
-  // Der Fokus soll im Feld bleiben (sonst blendet focusout den Knopf „Sprechen“ aus, bevor der Klick ankommt).
+  // Der Tipp soll keinen Fokus verschieben (weder weg vom Feld noch auf den Knopf).
   document.addEventListener('mousedown', function (e) { if (diktatKnopfDerSeite(e)) e.preventDefault(); }, true);
   document.addEventListener('click', function (e) {
     const el = diktatKnopfDerSeite(e);
     if (!el) return;
-    if (stand !== 'bereit' && stand !== 'hoert') return;  // denkt, fehler: nichts tun
     try {
       const ziel = document.getElementById(el.getAttribute('data-kd-diktat'));
       if (!textfeld(ziel)) return;  // dann fokussiert die Seite selbst
-      ziel.focus();
+      // Nicht fokussieren: Der Fokus holt die Bildschirmtastatur hoch (Display, 17.11.2026: Fensterhöhe 484
+      // statt 800). Anzeige und Einsetzen brauchen ihn nicht. Auch der Klick der Seite selbst (mise-en-place
+      // fokussiert dort das Feld) darf nicht ankommen, sonst steht die Tastatur doch; das gilt auch in den
+      // Ständen „denkt“ und „fehler“, in denen ein Tipp sonst nichts tut.
+      e.stopPropagation();
+      if (stand !== 'bereit' && stand !== 'hoert') return;
       feld = ziel;
       aktualisieren();
       if (stand === 'bereit') starten();
@@ -306,7 +310,8 @@
       if (location.host === 'open.spotify.com') location.href = 'https://open.spotify.com/search/' + encodeURIComponent(text);
       return;
     }
-    feld.focus();
+    // Auf dem Weg über den Seitenknopf nicht fokussieren (Bildschirmtastatur); sonst (Spotify) wie bisher.
+    if (!seitenKnopf()) feld.focus();
     // Über den Setter des Prototyps, damit React (Spotify) die Änderung als Eingabe bemerkt.
     const proto = feld.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
     Object.getOwnPropertyDescriptor(proto, 'value').set.call(feld, text);

@@ -67,13 +67,13 @@ ersetzt den Inhalt des Feldes, ein Punkt am Ende fällt weg.
 
 Die Rezeptauswahl von mise-en-place (mise-en-place#223) hat einen eigenen Mikrofon-Knopf und markiert ihn mit
 `data-kd-diktat="<id des Textfelds>"`, etwa `<button data-kd-diktat="kd-suche">` neben
-`<input id="kd-suche" type="search">`. Ein Tipp darauf fokussiert das Feld und startet das Diktat sofort,
-der nächste Tipp während „Hört zu …“ beendet es; der Knopf „Sprechen“ erscheint dabei unter dem Feld und
-zeigt den Stand. Das Attribut wirkt nur auf `mise-en-place.fhuber.com` (`KOCH_ANSICHT.host` in `rueckweg.js`)
+`<input id="kd-suche" type="search">`. Ein Tipp darauf startet das Diktat sofort, ohne das Feld zu fokussieren (der Fokus würde die Bildschirmtastatur hochholen; hat das Feld ihn schon, bleibt er),
+der nächste Tipp während „Hört zu …“ beendet es; der Knopf „Sprechen“ zeigt dabei den Stand (nächster Absatz). Das Attribut wirkt nur auf `mise-en-place.fhuber.com` (`KOCH_ANSICHT.host` in `rueckweg.js`)
 und nur bei echten Tipps (`isTrusted`); ein Skript mit `el.click()` startet nichts, und auf jedem anderen
-Host bleibt es ohne Wirkung. Gibt es die id nicht oder ist es kein Textfeld, passiert nichts, die Seite
-fokussiert dann selbst. Während „Erkenne …“ und bei Fehlern tut der Tipp ebenfalls nichts.
-Hat die Seite für das fokussierte Feld einen eigenen Knopf, blendet die Erweiterung ihren Knopf „Sprechen“ im
+Host bleibt es ohne Wirkung. Behandelt die Erweiterung den Tipp, kommt er bei der Seite nicht mehr an (ein eigener
+`onClick`, der das Feld fokussiert, würde sonst die Tastatur hochholen). Gibt es die id nicht oder ist es kein
+Textfeld, passiert nichts, die Seite bekommt den Tipp dann und fokussiert selbst. Während „Erkenne …“ und bei Fehlern tut der Tipp ebenfalls nichts.
+Hat die Seite für das Feld einen eigenen Knopf, blendet die Erweiterung ihren Knopf „Sprechen“ im
 Ruhezustand gar nicht erst ein. Während „Moment …“, „Hört zu …“, „Erkenne …“ und bei Fehlern erscheint er als
 Anzeige in der Suchzeile, rechtsbündig an der linken Kante des Seitenknopfs und senkrecht mittig zu ihm, damit er
 keinen Treffer verdeckt; ein Tipp darauf beendet die Aufnahme wie sonst. Endet das Diktat ohne Text, geht der
