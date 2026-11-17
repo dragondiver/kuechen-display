@@ -65,6 +65,13 @@ nichts sagt, hat 10 Sekunden Bedenkzeit, länger als 20 Sekunden nimmt er nie au
 Florian, 15.11.2026: 1 s Pause hätte bei „spiel was von … äh … Queen“ zu früh geschnitten). Der Text
 ersetzt den Inhalt des Feldes, ein Punkt am Ende fällt weg.
 
+Seiten mit eigenem Mikrofon-Knopf (mise-en-place#223, Rezeptauswahl) markieren ihn mit
+`data-kd-diktat="<id des Textfelds>"`, etwa `<button data-kd-diktat="kd-suche">` neben
+`<input id="kd-suche" type="search">`. Ein Tipp darauf fokussiert das Feld und startet das Diktat sofort,
+der nächste Tipp während „Hört zu …“ beendet es. Der Knopf „Sprechen“ erscheint dabei unter dem Feld und
+zeigt den Stand. Gibt es die id nicht oder ist es kein Textfeld, passiert nichts, die Seite macht dann
+ihr eigenes Ding. Der Rest der Seite braucht dafür keinen Code, nur das Attribut.
+
 Wer einen ganzen Satz sagt („spiel mir was von Queen“), bekommt nur den Suchbegriff ins Feld
 (Florian, 15.11.2026). Ab vier Wörtern fragt der Dienst `gpt-6-luna`, was davon gesucht ist. Der
 Code nimmt die Antwort nur, wenn sie kurz ist, einzeilig und mindestens ein Wort mit dem Gesagten

@@ -198,6 +198,30 @@
     if (stand === 'bereit') starten();
     else if (stand === 'hoert') stoppen();
   });
+  // Seiten mit eigenem Mikrofon-Knopf (mise-en-place#223) markieren ihn mit
+  // data-kd-diktat="<id des Textfelds>". Ein Tipp darauf startet das Diktat sofort, ohne dass man
+  // den eingeblendeten Knopf „Sprechen“ drücken muss; der zweite Tipp beendet es.
+  function diktatKnopfDerSeite(e) {
+    return e.composedPath().find(function (el) {
+      return el.nodeType === 1 && el.hasAttribute('data-kd-diktat');
+    });
+  }
+  // Der Fokus soll im Feld bleiben (sonst blendet focusout den Knopf „Sprechen“ aus, bevor der Klick ankommt).
+  document.addEventListener('mousedown', function (e) { if (diktatKnopfDerSeite(e)) e.preventDefault(); }, true);
+  document.addEventListener('click', function (e) {
+    const el = diktatKnopfDerSeite(e);
+    if (!el) return;
+    try {
+      const ziel = document.getElementById(el.getAttribute('data-kd-diktat'));
+      if (!textfeld(ziel)) return;  // dann fokussiert die Seite selbst
+      ziel.focus();
+      feld = ziel;
+      platzieren();
+      diktatWirt.classList.add('an');
+      if (stand === 'bereit') starten();
+      else if (stand === 'hoert') stoppen();
+    } catch (err) { console.warn('Küchen-Display: Diktat-Knopf der Seite:', err); }
+  }, true);
   function fehler(text) {
     setze('fehler', text);
     setTimeout(function () { setze('bereit', BEREIT); }, 8000);
