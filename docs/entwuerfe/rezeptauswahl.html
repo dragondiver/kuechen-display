@@ -58,6 +58,13 @@
   .kd .heute { display: block; width: 100%; }
   .kd .heute .bild { width: 356px; height: 420px; margin-bottom: 26px; }
   .kd .heute .titel { font-size: 42px; line-height: 1.15; }
+  .kd .weiter { display: block; width: 100%; padding-bottom: 24px; margin-bottom: 26px; border-bottom: 1px solid var(--ln); }
+  .kd .weiter .titel { display: flex; align-items: center; gap: 16px; }
+  .kd .weiter .titel::before { content: ""; width: 14px; height: 14px; border-radius: 50%; background: var(--ac); flex: none; }
+  .kd .weiter .daten { margin: 6px 0 0 30px; }
+  .kd .mitweiter .heute .bild { height: 270px; }
+  .kd .mitweiter.zwei .heute .bild { height: 110px; }
+  .kd .mitweiter.zwei .heute + .heute { margin-top: 20px; padding-top: 18px; }
   .kd .heute + .heute { margin-top: 30px; padding-top: 26px; border-top: 1px solid var(--ln); }
   .kd .zwei .heute .bild { height: 190px; margin-bottom: 16px; }
   .kd .zwei .heute .titel { font-size: 30px; }
@@ -78,8 +85,8 @@
                display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: 155px; column-gap: 40px; align-content: start; }
   .kd .liste::-webkit-scrollbar { display: none; }
   .kd .voll .liste { grid-template-columns: 1fr 1fr 1fr; }
-  .kd .fav { display: grid; grid-template-columns: 120px 1fr; gap: 22px; align-items: center; border-top: 1px solid var(--ln); scroll-snap-align: start; min-width: 0; }
-  .kd .fav .bild { width: 120px; height: 120px; }
+  .kd .fav { display: grid; grid-template-columns: 104px 1fr; gap: 18px; align-items: center; border-top: 1px solid var(--ln); scroll-snap-align: start; min-width: 0; }
+  .kd .fav .bild { width: 104px; height: 104px; }
   .kd .fav b { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 28px; font-weight: 500; line-height: 1.2; }
   .kd .fav small { display: block; font-size: 24px; color: var(--mu); margin-top: 6px; }
   .kd .nichts { grid-column: 1 / -1; font-size: 32px; color: var(--mu); padding-top: 24px; }
@@ -228,14 +235,16 @@
     <p>Übersicht vor Schritt 1<span>Bild, Portionen und alle Zutaten zum Bereitstellen, nach Teilen getrennt. „Los“ öffnet Schritt 1.</span></p>
     <p>Portionen ändern rechnet um<span>Vorbelegt aus dem Wochenplan. Die Mengen in der Übersicht und in allen Schritten folgen.</span></p>
     <p>Zurück links oben<span>„‹ Rezepte“ in Übersicht und Koch-Ansicht führt zur Auswahl.</span></p>
+    <p>Weiterkochen<span>Das Display merkt sich Rezept, Portionen und Schritt. In der Auswahl steht es links oben, ein Tipp führt zurück in den Schritt.</span></p>
+    <p>Mittag und Abend<span>Sind beide geplant, stehen beide links übereinander.</span></p>
+    <p>Heute ohne eigenes Zeichen<span>Das große Bild ist die Tippfläche, kein zusätzlicher Knopf.</span></p>
+    <p>Suche in Titel und Zutaten<span>„Kürbis“ findet auch Rezepte, in denen Kürbis nur Zutat ist.</span></p>
+    <p>Umgerechnete Mengen ohne Farbe<span>Die Zeile „Wochenplan 2 · Rezept 4“ unter den Portionen reicht. „Prise“ und „etwas“ bleiben, wie sie sind.</span></p>
   </div>
 
   <h2>Noch offen</h2>
   <div class="festgelegt">
-    <p>Mittag und Abend zugleich?<span>Vorschlag: Beide stehen links übereinander, kleiner.</span></p>
-    <p>Suche auch nach Zutaten?<span>Vorschlag: „Kürbis“ findet auch Rezepte, in denen Kürbis nur Zutat ist.</span></p>
-    <p>Umgerechnete Mengen markieren?<span>Vorschlag: nein. Die Zeile unter den Portionen („Wochenplan 2 · Rezept 4“) sagt genug, Orange bleibt Akzent.</span></p>
-    <p>„Prise“ und „etwas“<span>Vorschlag: Solche Mengen bleiben beim Umrechnen, wie sie sind.</span></p>
+    <p>Wann verschwindet „Weiterkochen“?<span>Vorschlag: sobald ein anderes Rezept mit „Los“ gestartet wird, spätestens am nächsten Morgen.</span></p>
   </div>
 </main>
 <script>
@@ -315,7 +324,7 @@
   const $ = (id) => document.getElementById(id);
   const neu = (tag, klasse, text) => { const e = document.createElement(tag); if (klasse) e.className = klasse; if (text != null) e.textContent = text; return e; };
   const finde = (id) => R.find((r) => r.id === id);
-  let plan = "abend", anfrage = "", rezept = null, portionen = 4, planPortionen = null, teil = 0, stand = [];
+  let laufend = null, plan = "abend", anfrage = "", rezept = null, portionen = 4, planPortionen = null, teil = 0, stand = [];
 
   function bild(r, klasse) {
     const b = neu("div", "bild " + (klasse || ""));
@@ -341,9 +350,17 @@
   // ===== Auswahl =====
   function zeichneAuswahl() {
     const eintraege = PLAN[plan];
-    $("auswahl").classList.toggle("voll", eintraege.length === 0);
-    $("heute").className = "links" + (eintraege.length > 1 ? " zwei" : "");
-    $("heute").replaceChildren(...eintraege.map(([wann, id, p]) => {
+    $("auswahl").classList.toggle("voll", eintraege.length === 0 && !laufend);
+    $("heute").className = "links" + (eintraege.length > 1 ? " zwei" : "") + (laufend ? " mitweiter" : "");
+    const oben = [];
+    if (laufend) {
+      const l = laufend, t = l.r.teile[l.teil], b = neu("button", "weiter");
+      b.append(neu("div", "marke", "Weiterkochen"), neu("div", "titel", l.r.titel),
+               neu("div", "daten", (t.name ? t.name + " · " : "") + "Schritt " + (l.stand[l.teil] + 1) + " von " + t.s.length));
+      b.onclick = () => { rezept = l.r; portionen = l.portionen; teil = l.teil; stand = l.stand; zeige("kochen"); };
+      oben.push(b);
+    }
+    $("heute").replaceChildren(...oben, ...eintraege.map(([wann, id, p]) => {
       const r = finde(id), b = neu("button", "heute");
       b.append(neu("div", "marke", wann), bild(r), neu("div", "titel", r.titel), neu("div", "daten", p + " Portionen · " + zeit(r.min)));
       b.onclick = () => oeffne(r, p);
@@ -439,7 +456,7 @@
     $("k-reiter").replaceChildren(...r.teile.map((x, i) => {
       const b = neu("button", i === teil ? "an" : "", x.name + " ");
       b.append(neu("small", "", (stand[i] + 1) + "/" + x.s.length));
-      b.onclick = () => { teil = i; zeichneKochen(); };
+      b.onclick = () => { teil = i; laufend.teil = i; zeichneKochen(); };
       return b;
     }));
     $("k-nummer").textContent = nr + 1;
@@ -462,7 +479,7 @@
     ["auswahl", "uebersicht", "kochen"].forEach((a) => $(a).hidden = a !== name);
     if (name === "auswahl") zeichneAuswahl();
     if (name === "uebersicht") zeichneUebersicht();
-    if (name === "kochen") zeichneKochen();
+    if (name === "kochen") { laufend = { r: rezept, portionen, teil, stand }; zeichneKochen(); }
   }
   document.querySelectorAll("[data-zurueck]").forEach((b) => b.onclick = () => zeige("auswahl"));
   document.addEventListener("keydown", (e) => {
