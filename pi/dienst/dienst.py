@@ -72,7 +72,7 @@ MIKRO = os.environ.get("MIKRO_GERAET", "hw:CARD=L16K6Ch,DEV=0")
 # Apps, die die Kiosk-Seite per app_oeffnen öffnen kann; jede braucht eine Kachel mit
 # data-app=<name> in pi/kiosk/index.html (#70). Ohne Eintrag bietet die Bridge Elektra das
 # Werkzeug gar nicht erst an.
-APPS: list[str] = ["spotify"]
+APPS: list[str] = ["spotify", "rezepte"]
 RAHMEN_S = RAHMEN_PROBEN / RATE
 # Home Assistant (docs/datenweg.md). Ohne HA_TOKEN läuft der Dienst weiter, nur ohne Wetter
 # und Termine.

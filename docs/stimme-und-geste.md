@@ -39,8 +39,8 @@ Tipp aufs Mikrofon und leuchtet orange, solange Elektra dran ist.
 | Werkzeug | Beispiel | Wirkung |
 |---|---|---|
 | `seite_zeigen` | „zeig mir morgen“, „zurück zu heute“, „zeig die Apps“ | wechselt die Seite, aus einer App heraus zurück zum Kiosk |
-| `app_oeffnen` | „öffne Spotify“ | öffnet die App; bietet die Bridge nur an, weil der Dienst `APPS = ["spotify"]` meldet |
-| `rezeptschritt` | „nächster Schritt“ | in der Koch-Ansicht von mise-en-place (`mise-en-place.fhuber.com/<locale>/kd/recipes/<id>`): `richtung` `vor` oder `zurueck` löst Pfeil rechts bzw. links aus, die Ansicht blättert. Sonst hört Elektra „Es ist kein Rezept offen“ |
+| `app_oeffnen` | „öffne Spotify“, „öffne Rezepte“ | öffnet die App; bietet die Bridge nur an, weil der Dienst `APPS = ["spotify", "rezepte"]` meldet |
+| `rezeptschritt` | „nächster Schritt“ | in der Koch-Ansicht von mise-en-place (`mise-en-place.fhuber.com/<locale>/kd/recipes/<id>`): `richtung` `vor` oder `zurueck` löst Pfeil rechts bzw. links aus, die Ansicht blättert. Auf der Rezeptauswahl (`/<locale>/kd/recipes`, ohne id) lösen `vor` und `zurueck` Pfeil runter bzw. hoch aus, die Liste blättert um eine Bildschirmhöhe. Sonst, auch auf der Übersicht, hört Elektra „Es ist kein Rezept offen“ |
 
 Eine neue App braucht drei Stellen: den Namen in `APPS` (`pi/dienst/dienst.py`), `data-app` an ihrer
 Kachel (`pi/kiosk/index.html`) und den Eintrag in `APPS` von `pi/kiosk-rueckweg/rueckweg.js`.
