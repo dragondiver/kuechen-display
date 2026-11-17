@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Küchen-Display: Rückweg",
-  "version": "10",
-  "description": "Kleine Leiste oben links auf fremden Seiten (Spotify, später YouTube, Browser): zurück zu den Apps oder zu Heute, Mikro-Knopf für Elektra. Dazu fester Zoom für Spotify und die Meldung „Video läuft“ ans Schlafen. kuechen-display#10, #70, #48",
+  "version": "11",
+  "description": "Kleine Leiste oben links auf fremden Seiten (Spotify, später YouTube, Browser): zurück zu den Apps oder zu Heute, Mikro-Knopf für Elektra. Dazu fester Zoom für Spotify und die Meldung „Video läuft“ ans Schlafen. kuechen-display#10, #70, #48, #75",
   "content_scripts": [
     {
       "matches": [

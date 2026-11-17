@@ -52,6 +52,10 @@
   let diktatLage = function () {};  // wird unten vom Diktat gesetzt
   const SEITEN = ['heute', 'morgen', 'apps'];
   const APPS = { spotify: 'https://open.spotify.com/' };  // wie data-app in pi/kiosk/index.html
+  // Koch-Ansicht von mise-en-place (kuechen-display#75): /<locale>/kd/recipes/<id>, z. B. /de/kd/recipes/42.
+  // Sie hört auf keydown an window (ArrowRight = nächster Schritt, ArrowLeft = vorheriger).
+  const KOCH_ANSICHT = { host: 'mise-en-place.fhuber.com', pfad: /^\/[a-z]{2}(?:-[A-Za-z]+)?\/kd\/recipes\/[^/]+\/?$/ };
+  const SCHRITT_TASTE = { vor: 'ArrowRight', zurueck: 'ArrowLeft' };  // Werte laut rundfunk-Werkzeug rezeptschritt
   function melde(pfad, daten) {
     return new Promise(function (fertig) {
       function nichts(grund) { return { ok: false, daten: { fehler: grund } }; }
@@ -73,6 +77,10 @@
     } else if (b.name === 'app_oeffnen' && APPS[arg.name]) {
       const ziel = APPS[arg.name];
       quittiere(b.id, null, function () { if (new URL(ziel).host !== location.host) location.href = ziel; });
+    } else if (b.name === 'rezeptschritt' && location.host === KOCH_ANSICHT.host && KOCH_ANSICHT.pfad.test(location.pathname)) {
+      const taste = SCHRITT_TASTE[arg.richtung];
+      if (!taste) quittiere(b.id, 'Unbekannte Richtung: ' + arg.richtung);
+      else quittiere(b.id, null, function () { window.dispatchEvent(new KeyboardEvent('keydown', { key: taste, bubbles: true })); });
     } else {
       quittiere(b.id, b.name === 'rezeptschritt' ? 'Es ist kein Rezept offen.' : 'Das geht in dieser App nicht: ' + b.name);
     }
