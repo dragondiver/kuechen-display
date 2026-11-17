@@ -13,6 +13,8 @@ Braun-Stil, für die offene Küche. Es spricht als Elektra (Repo
   Seiten mit Apps, Figur und Wetterbilder, alles mit Knöpfen zum Ausprobieren
 - [Koch-Ansicht](entwuerfe/koch-ansicht.html): Rezept Schritt für Schritt, mit Reitern für
   Komponenten, zum Durchtippen
+- [Rezeptauswahl](entwuerfe/rezeptauswahl.html): heute Geplantes, Favoriten, Suche per Diktat
+  und die Übersicht vor dem ersten Schritt
 - [Gehäuse: Entwurfsgeschichte](entwuerfe/geschichte/index.html), von Entwurf C bis N
 - [Gehäuse: Galerie der Kameravarianten](entwuerfe/galerie/index.html)
 - [Hardware-Auswahl](entwuerfe/hardware-auswahl.html), Stückliste in Phasen
