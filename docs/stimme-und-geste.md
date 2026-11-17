@@ -40,7 +40,7 @@ Tipp aufs Mikrofon und leuchtet orange, solange Elektra dran ist.
 |---|---|---|
 | `seite_zeigen` | „zeig mir morgen“, „zurück zu heute“, „zeig die Apps“ | wechselt die Seite, aus einer App heraus zurück zum Kiosk |
 | `app_oeffnen` | „öffne Spotify“, „öffne Rezepte“ | öffnet die App; bietet die Bridge nur an, weil der Dienst `APPS = ["spotify", "rezepte"]` meldet |
-| `rezeptschritt` | „nächster Schritt“ | in der Koch-Ansicht von mise-en-place (`mise-en-place.fhuber.com/<locale>/kd/recipes/<id>`): `richtung` `vor` oder `zurueck` löst Pfeil rechts bzw. links aus, die Ansicht blättert. Auf der Rezeptauswahl (`/<locale>/kd/recipes`, ohne id) lösen `vor` und `zurueck` Pfeil runter bzw. hoch aus, die Liste blättert um eine Bildschirmhöhe. Sonst, auch auf der Übersicht, hört Elektra „Es ist kein Rezept offen“ |
+| `rezeptschritt` | „nächster Schritt“ | in der Koch-Ansicht von mise-en-place (`mise-en-place.fhuber.com/<locale>/kd/recipes/<id>`): `richtung` `vor` oder `zurueck` löst Pfeil rechts bzw. links aus, die Ansicht blättert. Auf der Rezeptauswahl (`/<locale>/kd/recipes`, ohne id) lösen `vor` und `zurueck` Pfeil runter bzw. hoch aus, die Liste blättert um eine Bildschirmhöhe. Auf der Übersicht eines Rezepts (`/<locale>/kd/recipes/<id>/overview`) löst `vor` Pfeil rechts aus (die Übersicht startet damit das Kochen), `zurueck` gibt dort eine kurze Fehlermeldung. Sonst hört Elektra „Es ist kein Rezept offen“ |
 
 Eine neue App braucht drei Stellen: den Namen in `APPS` (`pi/dienst/dienst.py`), `data-app` an ihrer
 Kachel (`pi/kiosk/index.html`) und den Eintrag in `APPS` von `pi/kiosk-rueckweg/rueckweg.js`.
@@ -73,6 +73,11 @@ zeigt den Stand. Das Attribut wirkt nur auf `mise-en-place.fhuber.com` (`KOCH_AN
 und nur bei echten Tipps (`isTrusted`); ein Skript mit `el.click()` startet nichts, und auf jedem anderen
 Host bleibt es ohne Wirkung. Gibt es die id nicht oder ist es kein Textfeld, passiert nichts, die Seite
 fokussiert dann selbst. Während „Erkenne …“ und bei Fehlern tut der Tipp ebenfalls nichts.
+Hat die Seite für das fokussierte Feld einen eigenen Knopf, blendet die Erweiterung ihren Knopf „Sprechen“ im
+Ruhezustand gar nicht erst ein. Während „Moment …“, „Hört zu …“, „Erkenne …“ und bei Fehlern erscheint er als
+Anzeige in der Suchzeile, rechtsbündig an der linken Kante des Seitenknopfs und senkrecht mittig zu ihm, damit er
+keinen Treffer verdeckt; ein Tipp darauf beendet die Aufnahme wie sonst. Endet das Diktat ohne Text, geht der
+Stand auf „bereit“ zurück und der Knopf verschwindet. Auf anderen Seiten (Spotify) bleibt alles beim Alten.
 
 Wer einen ganzen Satz sagt („spiel mir was von Queen“), bekommt nur den Suchbegriff ins Feld
 (Florian, 15.11.2026). Ab vier Wörtern fragt der Dienst `gpt-6-luna`, was davon gesucht ist. Der

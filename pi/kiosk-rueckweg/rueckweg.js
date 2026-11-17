@@ -59,6 +59,16 @@
   // Rezeptauswahl (mise-en-place#223): /<locale>/kd/recipes ohne id. Sie blättert ihre Liste mit ArrowDown/ArrowUp um eine Bildschirmhöhe.
   const AUSWAHL_PFAD = /^\/[a-z]{2}(?:-[A-Za-z]+)?\/kd\/recipes\/?$/;
   const AUSWAHL_TASTE = { vor: 'ArrowDown', zurueck: 'ArrowUp' };
+  // Übersicht eines Rezepts: /<locale>/kd/recipes/<id>/overview. „vor“ startet das Kochen (ArrowRight), „zurück“ gibt es dort nicht.
+  const UEBERSICHT_PFAD = /^\/[a-z]{2}(?:-[A-Za-z]+)?\/kd\/recipes\/[^/]+\/overview\/?$/;
+  const UEBERSICHT_TASTE = { vor: 'ArrowRight' };
+  function schrittTasten() {
+    if (location.host !== KOCH_ANSICHT.host) return null;
+    if (KOCH_ANSICHT.pfad.test(location.pathname)) return SCHRITT_TASTE;
+    if (AUSWAHL_PFAD.test(location.pathname)) return AUSWAHL_TASTE;
+    if (UEBERSICHT_PFAD.test(location.pathname)) return UEBERSICHT_TASTE;
+    return null;
+  }
   function melde(pfad, daten) {
     return new Promise(function (fertig) {
       function nichts(grund) { return { ok: false, daten: { fehler: grund } }; }
@@ -87,10 +97,9 @@
         // offene Suche verloren).
         else if (arg.name === 'rezepte' && location.pathname.replace(/\/$/, '') !== u.pathname.replace(/\/$/, '')) location.href = ziel;
       });
-    } else if (b.name === 'rezeptschritt' && location.host === KOCH_ANSICHT.host
-               && (KOCH_ANSICHT.pfad.test(location.pathname) || AUSWAHL_PFAD.test(location.pathname))) {
-      const taste = (AUSWAHL_PFAD.test(location.pathname) ? AUSWAHL_TASTE : SCHRITT_TASTE)[arg.richtung];
-      if (!taste) quittiere(b.id, 'Unbekannte Richtung: ' + arg.richtung);
+    } else if (b.name === 'rezeptschritt' && schrittTasten()) {
+      const taste = schrittTasten()[arg.richtung];
+      if (!taste) quittiere(b.id, SCHRITT_TASTE[arg.richtung] ? 'Hier geht es nur vor.' : 'Unbekannte Richtung: ' + arg.richtung);
       else quittiere(b.id, null, function () { window.dispatchEvent(new KeyboardEvent('keydown', { key: taste, bubbles: true })); });
     } else {
       quittiere(b.id, b.name === 'rezeptschritt' ? 'Es ist kein Rezept offen.' : 'Das geht in dieser App nicht: ' + b.name);
@@ -181,23 +190,47 @@
   function textfeld(el) {
     return !!el && ((el.tagName === 'INPUT' && ['text', 'search', ''].includes(el.type)) || el.tagName === 'TEXTAREA');
   }
+  // Der eigene Mikrofon-Knopf der Seite für das fokussierte Feld (data-kd-diktat, nur auf mise-en-place).
+  function seitenKnopf() {
+    if (location.host !== KOCH_ANSICHT.host || !feld || !feld.id) return null;
+    return document.querySelector('[data-kd-diktat="' + CSS.escape(feld.id) + '"]');
+  }
   function platzieren() {
     if (!feld) return;
+    const sk = seitenKnopf();
+    if (sk) {
+      // In die Suchzeile, links neben den Knopf der Seite und senkrecht mittig zu ihm: kein Treffer wird verdeckt.
+      const k = sk.getBoundingClientRect();
+      diktatWirt.style.top = (k.top + k.height / 2) + 'px';
+      diktatWirt.style.right = (innerWidth - k.left + 12) + 'px';
+      diktatWirt.style.transform = 'translateY(-50%)';
+      return;
+    }
     const r = feld.getBoundingClientRect();
     diktatWirt.style.top = (r.bottom + 10) + 'px';
     diktatWirt.style.right = Math.max(8, innerWidth - r.right) + 'px';
+    diktatWirt.style.transform = '';
   }
-  function setze(s, text) { stand = s; knopf.dataset.stand = s; schrift.textContent = text; }
+  // Hat die Seite einen eigenen Knopf, zeigt die Erweiterung ihren nur als Anzeige (Moment, Hört zu,
+  // Erkenne, Fehler), im Stand „bereit“ nicht. Sonst (Spotify) bleibt das Einblenden bei focusin/focusout.
+  function aktualisieren() {
+    if (!seitenKnopf()) return;
+    diktatWirt.classList.toggle('an', stand !== 'bereit');
+    platzieren();
+  }
+  function setze(s, text) { stand = s; knopf.dataset.stand = s; schrift.textContent = text; aktualisieren(); }
   document.addEventListener('focusin', function (e) {
     const el = e.composedPath()[0];
     if (!textfeld(el)) return;
     feld = el;
     platzieren();
     diktatWirt.classList.add('an');
+    aktualisieren();
   }, true);
   document.addEventListener('focusout', function () {
     setTimeout(function () {
       if (stand === 'bereit' && !textfeld(document.activeElement)) diktatWirt.classList.remove('an');
+      aktualisieren();
     }, 200);
   }, true);
   addEventListener('resize', platzieren);
@@ -230,8 +263,7 @@
       if (!textfeld(ziel)) return;  // dann fokussiert die Seite selbst
       ziel.focus();
       feld = ziel;
-      platzieren();
-      diktatWirt.classList.add('an');
+      aktualisieren();
       if (stand === 'bereit') starten();
       else stoppen();
     } catch (err) { console.warn('Küchen-Display: Diktat-Knopf der Seite:', err); }
