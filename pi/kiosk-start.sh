@@ -50,6 +50,24 @@ if [ "$SUMME" != "$(cat "$SUMME_DATEI" 2>/dev/null)" ]; then
   fi
 fi
 
+# Einmalig den HTTP-Cache von Chromium leeren (17.11.2026): Der Küchen-Dienst schickte die Kiosk-Seite
+# bisher ohne Cache-Control (jetzt no-cache, pi/dienst/statisch.py). Chromium hielt die alte
+# Startseite deshalb auch nach einem Neustart für frisch, und dieser Eintrag bleibt es, bis er
+# abläuft. Nur ~/.cache/chromium/Default/Cache: Anmeldungen (Cookies, Local Storage) liegen unter
+# ~/.config/chromium und bleiben. Die Marke zählt hoch, wenn das noch einmal nötig wird.
+CACHE_MARKE="$HOME/.cache/kuechen-display/http-cache.marke"
+if [ "$(cat "$CACHE_MARKE" 2>/dev/null)" != "1" ]; then
+  for _ in $(seq 20); do pgrep -x chromium >/dev/null || break; sleep 0.5; done
+  if ! pgrep -x chromium >/dev/null; then
+    rm -rf "$HOME/.cache/chromium/Default/Cache"
+    mkdir -p "$(dirname "$CACHE_MARKE")"
+    echo 1 >"$CACHE_MARKE"
+    echo "HTTP-Cache von Chromium geleert"
+  else
+    echo "Chromium läuft noch, HTTP-Cache nicht geleert" >&2
+  fi
+fi
+
 exec chromium --noerrdialogs --disable-infobars --no-first-run \
   --password-store=basic --ozone-platform=wayland --touch-events=enabled \
   --overscroll-history-navigation=0 --lang=de-DE --disable-features=Translate \

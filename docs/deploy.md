@@ -42,6 +42,11 @@ Der Ablauf:
 
 Ein laufendes Gespräch mit Elektra am Display bricht beim Neustart ab.
 
+Der Küchen-Dienst liefert die Kiosk-Dateien mit `Cache-Control: no-cache` aus, Chromium fragt also bei jedem Laden nach
+und holt nach einem Deploy die neue Seite (bei unveränderter Datei kommt ein 304). Ohne den Header zeigte der Kiosk
+am 17.11.2026 auch nach einem Neustart die alte Startseite aus dem Plattencache; deshalb leert `kiosk-start.sh` einmalig
+`~/.cache/chromium/Default/Cache` (nur den HTTP-Cache, keine Anmeldungen), erkennbar an `~/.cache/kuechen-display/http-cache.marke`.
+
 ## Kiosk mit Debug-Zeile
 
 ```bash
