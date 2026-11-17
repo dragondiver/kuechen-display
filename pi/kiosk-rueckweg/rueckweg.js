@@ -79,7 +79,14 @@
       quittiere(b.id, null, function () { location.href = RUHE + (arg.seite === 'heute' ? '' : '?seite=' + arg.seite); });
     } else if (b.name === 'app_oeffnen' && APPS[arg.name]) {
       const ziel = APPS[arg.name];
-      quittiere(b.id, null, function () { if (new URL(ziel).host !== location.host) location.href = ziel; });
+      quittiere(b.id, null, function () {
+        const u = new URL(ziel);
+        if (u.host !== location.host) location.href = ziel;
+        // Nur für Rezepte: Ist schon eine Seite von mise-en-place offen (Koch-Ansicht, Übersicht), führt
+        // „öffne Rezepte“ zur Auswahl. Bei Spotify bleibt es dabei, nichts zu tun (sonst ginge eine
+        // offene Suche verloren).
+        else if (arg.name === 'rezepte' && location.pathname.replace(/\/$/, '') !== u.pathname.replace(/\/$/, '')) location.href = ziel;
+      });
     } else if (b.name === 'rezeptschritt' && location.host === KOCH_ANSICHT.host
                && (KOCH_ANSICHT.pfad.test(location.pathname) || AUSWAHL_PFAD.test(location.pathname))) {
       const taste = (AUSWAHL_PFAD.test(location.pathname) ? AUSWAHL_TASTE : SCHRITT_TASTE)[arg.richtung];
