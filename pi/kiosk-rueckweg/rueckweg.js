@@ -51,11 +51,14 @@
   const leiste = schatten.querySelector('.leiste');
   let diktatLage = function () {};  // wird unten vom Diktat gesetzt
   const SEITEN = ['heute', 'morgen', 'apps'];
-  const APPS = { spotify: 'https://open.spotify.com/' };  // wie data-app in pi/kiosk/index.html
+  const APPS = { spotify: 'https://open.spotify.com/', rezepte: 'https://mise-en-place.fhuber.com/de/kd/recipes' };  // wie data-app in pi/kiosk/index.html
   // Koch-Ansicht von mise-en-place (kuechen-display#75): /<locale>/kd/recipes/<id>, z. B. /de/kd/recipes/42.
   // Sie hört auf keydown an window (ArrowRight = nächster Schritt, ArrowLeft = vorheriger).
   const KOCH_ANSICHT = { host: 'mise-en-place.fhuber.com', pfad: /^\/[a-z]{2}(?:-[A-Za-z]+)?\/kd\/recipes\/[^/]+\/?$/ };
   const SCHRITT_TASTE = { vor: 'ArrowRight', zurueck: 'ArrowLeft' };  // Werte laut rundfunk-Werkzeug rezeptschritt
+  // Rezeptauswahl (mise-en-place#223): /<locale>/kd/recipes ohne id. Sie blättert ihre Liste mit ArrowDown/ArrowUp um eine Bildschirmhöhe.
+  const AUSWAHL_PFAD = /^\/[a-z]{2}(?:-[A-Za-z]+)?\/kd\/recipes\/?$/;
+  const AUSWAHL_TASTE = { vor: 'ArrowDown', zurueck: 'ArrowUp' };
   function melde(pfad, daten) {
     return new Promise(function (fertig) {
       function nichts(grund) { return { ok: false, daten: { fehler: grund } }; }
@@ -76,9 +79,17 @@
       quittiere(b.id, null, function () { location.href = RUHE + (arg.seite === 'heute' ? '' : '?seite=' + arg.seite); });
     } else if (b.name === 'app_oeffnen' && APPS[arg.name]) {
       const ziel = APPS[arg.name];
-      quittiere(b.id, null, function () { if (new URL(ziel).host !== location.host) location.href = ziel; });
-    } else if (b.name === 'rezeptschritt' && location.host === KOCH_ANSICHT.host && KOCH_ANSICHT.pfad.test(location.pathname)) {
-      const taste = SCHRITT_TASTE[arg.richtung];
+      quittiere(b.id, null, function () {
+        const u = new URL(ziel);
+        if (u.host !== location.host) location.href = ziel;
+        // Nur für Rezepte: Ist schon eine Seite von mise-en-place offen (Koch-Ansicht, Übersicht), führt
+        // „öffne Rezepte“ zur Auswahl. Bei Spotify bleibt es dabei, nichts zu tun (sonst ginge eine
+        // offene Suche verloren).
+        else if (arg.name === 'rezepte' && location.pathname.replace(/\/$/, '') !== u.pathname.replace(/\/$/, '')) location.href = ziel;
+      });
+    } else if (b.name === 'rezeptschritt' && location.host === KOCH_ANSICHT.host
+               && (KOCH_ANSICHT.pfad.test(location.pathname) || AUSWAHL_PFAD.test(location.pathname))) {
+      const taste = (AUSWAHL_PFAD.test(location.pathname) ? AUSWAHL_TASTE : SCHRITT_TASTE)[arg.richtung];
       if (!taste) quittiere(b.id, 'Unbekannte Richtung: ' + arg.richtung);
       else quittiere(b.id, null, function () { window.dispatchEvent(new KeyboardEvent('keydown', { key: taste, bubbles: true })); });
     } else {
