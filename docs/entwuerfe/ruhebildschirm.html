@@ -172,6 +172,10 @@
   .scr .termin.gleich .zeit { font-size: 34px; opacity: 1; }
   .scr .marke { display:inline-block; font-size: 22px; font-weight: 500; padding: 6px 16px; border-radius: 999px; background: rgba(255,255,255,.22); margin-left: 16px; vertical-align: middle; }
   .scr .termin.leise { opacity: .45; }
+  /* C5: Termine gesperrt (#82) */
+  .scr .sperre { display:flex; align-items:center; gap:18px; padding:16px 0; border-top: 1px solid rgba(255,255,255,.14); }
+  .scr .sperre svg { width:40px; height:40px; flex:none; opacity:.75; }
+  .scr .sperre .titel { font-size:26px; font-weight:400; opacity:.65; }
 
   /* ===== Neu: Morgen und Woche, in der Formensprache von C1 ===== */
   .scr .termin .zeit.spanne { width: 190px; }
@@ -508,6 +512,30 @@
         </div>
           </div>
         <div class="punkte"><i></i><i></i><i class="an"></i><i></i></div>
+      </div></div>
+    </section>
+    <section class="entwurf" data-entwurf="gesperrt" data-name="C5 · Termine gesperrt" aria-labelledby="gesperrt-h">
+      <div class="entwurf-text">
+        <h3 id="gesperrt-h"><span class="buchstabe">C5</span> Termine gesperrt</h3>
+        <p>Kommt Besuch, drückt man etwa eine Sekunde lang auf die Terminkarte. Die Termine verschwinden, an ihrer Stelle steht ein Schloss mit „Termine ausgeblendet“, auf Heute genauso wie auf Morgen und Woche. Keine Zahl, kein Hinweis, was dahinter steht. Entsperrt wird nur übers Handy, am Display gibt es keinen Weg zurück; um 6 Uhr morgens entsperrt Home Assistant von selbst (#82).</p>
+        <p class="gezeigt">Gezeigt: Sonntag 17:42, klar, Termine gesperrt</p>
+        <div class="knoepfe"><button class="knopf" type="button" data-oeffne="gesperrt">Groß ansehen</button></div>
+      </div>
+      <div class="bildschirm" data-oeffne="gesperrt" aria-hidden="true"><div class="scr sky-abend">
+        <div class="hills warm"></div>
+        <div class="glas" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px;">
+          <div class="uhr" style="font-size:92px;">17:42</div>
+          <div class="datum">Sonntag, 18. Oktober</div>
+          <div class="kopf" style="margin-top:40px;">Noch heute</div>
+          <div class="sperre"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="28" width="36" height="26" rx="6"/><path d="M22 28v-7a10 10 0 0 1 20 0v7"/><path d="M32 38v7"/></svg><div class="titel">Termine ausgeblendet</div></div>
+          <div class="mehr">Morgen ›</div>
+        </div>
+        <div class="glas" style="position:absolute;right:48px;top:48px;width:460px;padding:40px 44px;">
+          <div class="ort">Kornwestheim</div>
+          <div class="temp" style="font-size:150px;">11°</div>
+          <div class="zustand">Klar</div>
+          <div class="hoch">Nacht 5°</div>
+        </div>
       </div></div>
     </section>
   </section>

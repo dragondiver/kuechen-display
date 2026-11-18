@@ -46,6 +46,7 @@ from diktat import (
 from hass import HomeAssistant, termine_karte, wetter_karte
 from konfig import geheimnis
 from netz import Netz, hat_route
+from sperre import HINWEIS_FEHLER, Sperre
 from statisch import StatischOhneCache
 from vertrag import (
     RAHMEN_BYTES,
@@ -104,6 +105,8 @@ KALENDER = [
     for k in os.environ.get("KALENDER", "calendar.family,calendar.abfall").split(",")
     if k.strip()
 ]
+# Helfer, der die Termine sperrt ("on" = gesperrt, #82); leer = Sperre aus, langes Drücken tut nichts.
+SPERRE_ENTITAET = os.environ.get("SPERRE_ENTITAET", "input_boolean.termine_privat")
 ZONE = ZoneInfo(os.environ.get("ZEITZONE", "Europe/Berlin"))
 # Termine alle zwei Minuten (Wunsch 15.11.2026), das Wetter weiter alle zehn.
 TERMINE_TAKT_S = 120
@@ -119,6 +122,8 @@ wiedergabe: queue.Queue[bytes] = queue.Queue()
 schleife: asyncio.AbstractEventLoop | None = None
 # Letzter Stand je Ereignisart, den eine neu geöffnete Seite sofort bekommt (z. B. "wetter").
 letzte_daten: dict[str, dict] = {}
+sperre = Sperre(SPERRE_ENTITAET)
+ha_verbindung: HomeAssistant | None = None  # gesetzt, sobald der Dienst ein Token hat
 ws = None  # aktuelle Leitung zur Bridge oder None
 # Befehle für eine offene App ohne Kiosk-Seite; die Rückweg-Erweiterung holt sie über /lage (#70).
 ablage = Ablage()
@@ -132,6 +137,7 @@ GESCHUETZT = {
     "/diktat/ergebnis",
     "/video",
     "/rezept",
+    "/sperren",
 }
 # Was das Display wach hält (#48): Elektra und Video; der Schlafwächter fragt über GET /wach.
 wach = Wach()
@@ -490,6 +496,21 @@ class Handler(StatischOhneCache):
         elif self.path == "/hinweis":
             # Text in der Zeile der Seite, z. B. Anweisungen beim Messen der Gesten.
             an_seite("text", {"rolle": "hinweis", "text": str(daten.get("text", ""))})
+        elif self.path == "/sperren":
+            # Langes Drücken auf die Terminkarte (#82). Die Sperre gilt erst, wenn Home Assistant sie hat.
+            if not sperre.aktiv:
+                self.send_error(404)
+                return
+            if ha_verbindung is None:
+                log.warning("Sperre: kein Home-Assistant-Zugang (HA_TOKEN fehlt)")
+                an_seite("hinweis", {"text": HINWEIS_FEHLER})
+            else:
+                sperre.sperren(
+                    ha_verbindung,
+                    letzte_daten,
+                    an_seite,
+                    lambda text: an_seite("hinweis", {"text": text}),
+                )
         elif self.path == "/hand":
             an_seite("hand", daten)
         elif self.path == "/messung":
@@ -717,7 +738,8 @@ def daten_schleife() -> None:
             "Kein Wetter, keine Termine: HA_TOKEN fehlt (siehe docs/datenweg.md)"
         )
         return
-    ha = HomeAssistant(HA_URL, token)
+    global ha_verbindung
+    ha = ha_verbindung = HomeAssistant(HA_URL, token)
     wetter_abruf, termine_abruf = Abruf("Wetter"), Abruf("Termine")
     gemeldet = None
     fehlt_gemeldet: list[str] = []
@@ -749,22 +771,35 @@ def daten_schleife() -> None:
             letzte_daten["wetter"] = karte
             an_seite("wetter", karte)
 
-        termine = termine_abruf(lambda: termine_karte(ha, KALENDER, datetime.now(ZONE)))
-        if termine is not None:
-            fehlt = termine.pop("fehlt")
-            if fehlt and fehlt != fehlt_gemeldet:
-                log.warning("Termine: Home Assistant kennt %s nicht", ", ".join(fehlt))
-            fehlt_gemeldet = fehlt
-            alt = letzte_daten.get("termine", {})
-            if {**termine, "stand": 0} != {**alt, "stand": 0}:
-                log.info(
-                    "Termine: heute %d, morgen %d, Woche %d",
-                    len(termine["heute"]),
-                    len(termine["morgen"]),
-                    sum(len(t["termine"]) for t in termine["woche"]),
-                )
-            letzte_daten["termine"] = termine
-            an_seite("termine", termine)
+        # Erst der Helfer, dann (nur wenn nicht gesperrt) die Termine; gesperrt wird nichts abgerufen.
+        alt = {
+            k: v
+            for k, v in letzte_daten.get("termine", {}).items()
+            if k not in ("gesperrt", "sperrbar")
+        }
+
+        def termine_holen():
+            nonlocal fehlt_gemeldet
+            karte = termine_abruf(
+                lambda: termine_karte(ha, KALENDER, datetime.now(ZONE))
+            )
+            if karte is not None:
+                fehlt = karte.pop("fehlt")
+                if fehlt and fehlt != fehlt_gemeldet:
+                    log.warning(
+                        "Termine: Home Assistant kennt %s nicht", ", ".join(fehlt)
+                    )
+                fehlt_gemeldet = fehlt
+            return karte
+
+        termine = sperre.zyklus(ha, termine_holen, letzte_daten, an_seite)
+        if termine is not None and {**termine, "stand": 0} != {**alt, "stand": 0}:
+            log.info(
+                "Termine: heute %d, morgen %d, Woche %d",
+                len(termine["heute"]),
+                len(termine["morgen"]),
+                sum(len(t["termine"]) for t in termine["woche"]),
+            )
         time.sleep(TERMINE_TAKT_S)
 
 
