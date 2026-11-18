@@ -242,3 +242,30 @@ def test_wetterkarte_traegt_die_warnung():
         karte(warnung={"text": "x", "farbe": "#ff9900", "mehr": 0})["warnung"]["text"]
         == "x"
     )
+
+
+def test_warnung_schwarz_gilt_als_keine_farbe():
+    k = warnung_aufbereiten(sensor(warn(color="#000000")), JETZT)
+    assert k["farbe"] == "#ff9900"
+
+
+def test_warnung_unendliche_oder_keine_zahlen_werfen_nicht():
+    assert (
+        warnung_aufbereiten(
+            {"state": "2", "attributes": {"warning_count": "inf"}}, JETZT
+        )
+        is None
+    )
+    assert (
+        warnung_aufbereiten(
+            {"state": "2", "attributes": {"warning_count": "nan"}}, JETZT
+        )
+        is None
+    )
+    k = warnung_aufbereiten(
+        sensor(
+            warn(level="inf"), warn(level="nan"), warn(level="hoch"), warn("Wind", 2)
+        ),
+        JETZT,
+    )
+    assert (k["text"], k["mehr"]) == ("Wind bis 18 Uhr", 0)

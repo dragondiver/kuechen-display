@@ -7,6 +7,7 @@ Tests: test_daten.py. Anleitung: docs/datenweg.md
 
 from __future__ import annotations
 
+import math
 import re
 from datetime import date, datetime, time, timedelta
 
@@ -157,19 +158,20 @@ def warnung_aufbereiten(sensor: dict | None, jetzt: datetime) -> dict | None:
         return None
     attribute = sensor.get("attributes") or {}
     anzahl = zahl(attribute.get("warning_count"))
-    if anzahl is None:
+    if anzahl is None or not math.isfinite(anzahl):
         return None
     aktiv = []
     for n in range(1, min(int(anzahl), WARNUNG_MAX) + 1):
         stufe = zahl(attribute.get(f"warning_{n}_level"))
         name = str(attribute.get(f"warning_{n}_name") or "").strip()
         ende = _warn_ende(attribute.get(f"warning_{n}_end"), jetzt.tzinfo)
-        if stufe is None or not name or ende is None:
+        if stufe is None or not math.isfinite(stufe) or not name or ende is None:
             continue
         if stufe < WARNUNG_AB_STUFE or ende <= jetzt:
             continue
         farbe = str(attribute.get(f"warning_{n}_color") or "")
-        if not _HEX.fullmatch(farbe):
+        # #000000 setzt die Integration, wenn die DWD keine Farbe liefert.
+        if not _HEX.fullmatch(farbe) or farbe == "#000000":
             farbe = WARNUNG_FARBEN.get(int(stufe), WARNUNG_FARBEN[4])
         aktiv.append((-stufe, ende, n, name, farbe))
     if not aktiv:

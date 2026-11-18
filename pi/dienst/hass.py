@@ -7,6 +7,7 @@ auf dem Pi bei `websockets` bleibt. Die Antworten bereitet daten.py auf.
 from __future__ import annotations
 
 import json
+import logging
 import time
 import urllib.error
 import urllib.request
@@ -14,6 +15,8 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from daten import termine_aufbereiten, warnung_aufbereiten, wetter_aufbereiten
+
+log = logging.getLogger("dienst")
 
 
 class HomeAssistant:
@@ -87,13 +90,19 @@ def wetter_karte(
     zone: ZoneInfo | None = None,
 ) -> dict:
     """Vier Abrufe, fünf mit Warnsensor, eine Wetterkarte. Netzfehler gehen als Ausnahme an
-    den Aufrufer. Kennt HA den Warnsensor nicht, fehlt nur die Warnzeile."""
+    den Aufrufer, außer beim Warnsensor: Ist er unbekannt oder nicht lesbar, fehlt nur die Warnzeile."""
     wetter = ha.entitaet(entitaet)
     stand = int(time.time())
     warnung = None
     if warnung_sensor:
         jetzt = datetime.fromtimestamp(stand, zone or ZoneInfo("Europe/Berlin"))
-        warnung = warnung_aufbereiten(ha.entitaet(warnung_sensor), jetzt)
+        # Die Warnung ist Beiwerk: Scheitert sie, kommt das Wetter trotzdem.
+        try:
+            warnung = warnung_aufbereiten(ha.entitaet(warnung_sensor), jetzt)
+        except Exception as fehler:  # noqa: BLE001
+            log.warning(
+                "Wetter: Warnung von %s nicht lesbar: %s", warnung_sensor, fehler
+            )
     return wetter_aufbereiten(
         wetter,
         ha.vorhersage(entitaet) if wetter else [],

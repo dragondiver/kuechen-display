@@ -116,3 +116,26 @@ def test_wetter_karte_ohne_warnsensor_oder_unbekanntem_sensor_keine_warnung():
     assert not any("warnung" in a[1] for a in ha.anfragen)
     karte = wetter_karte(ha, "weather.kueche", None, "K", "sensor.gibt_es_nicht")
     assert karte["warnung"] is None and karte["zustand"] == "Regen"
+
+
+@pytest.mark.parametrize(
+    "fehler",
+    [
+        TimeoutError("zu langsam"),
+        urllib.error.HTTPError("/x", 503, "Unavailable", {}, io.BytesIO()),
+        json.JSONDecodeError("kaputt", "", 0),
+    ],
+)
+def test_warnsensor_scheitert_wetter_kommt_trotzdem(fehler, caplog):
+    class Kaputt(FakeHA):
+        def _anfrage(self, methode, pfad, body=None):
+            if pfad == "/api/states/sensor.warnung":
+                raise fehler
+            return super()._anfrage(methode, pfad, body)
+
+    karte = wetter_karte(
+        Kaputt(ANTWORTEN), "weather.kueche", "sensor.aussen", "K", "sensor.warnung"
+    )
+    assert karte["warnung"] is None
+    assert (karte["zustand"], karte["temperatur"]) == ("Regen", "7°")
+    assert "sensor.warnung" in caplog.text
