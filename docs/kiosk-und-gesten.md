@@ -100,8 +100,10 @@ damit ein von Hand gestartetes Panel nicht über dem Kiosk steht.
 ## Kiosk sofort neu starten
 
 ```bash
-ssh kuechen-display.local "pkill -o -x chromium; i=0; while pgrep -x chromium >/dev/null && [ $i -lt 20 ]; do sleep 0.5; i=$((i+1)); done; if pgrep -x chromium >/dev/null; then pkill -x chromium; sleep 2; pkill -9 -x chromium; fi; setsid -f sh kuechen-display/kiosk-start.sh '?debug=1' </dev/null >/tmp/kiosk.log 2>&1"
+ssh kuechen-display.local "pkill -o -x chromium; i=0; while pgrep -x chromium >/dev/null && [ \$i -lt 20 ]; do sleep 0.5; i=\$((i+1)); done; if pgrep -x chromium >/dev/null; then pkill -x chromium; sleep 2; pkill -9 -x chromium; fi; setsid -f sh kuechen-display/kiosk-start.sh '?debug=1' </dev/null >/tmp/kiosk.log 2>&1"
 ```
+
+Die Backslashes vor `$i` und `$((i+1))` stehen da, weil die Zeile in doppelten Anführungszeichen steht: Ohne sie würde schon der Mac die Variable ersetzen, und die Warteschleife bräche sofort ab.
 
 `pkill -o -x chromium` trifft nur den ältesten Chromium-Prozess, den Hauptprozess, und lässt ihn
 sauber herunterfahren, damit frische Cookies auf die Platte kommen. Die Schleife wartet bis zu
