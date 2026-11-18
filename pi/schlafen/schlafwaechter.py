@@ -3,7 +3,9 @@
 
 Ein Prozess, als Dienst `kuechen-schlafen` (Python-Standardbibliothek, kein venv):
 - swayidle meldet, ob labwc Eingaben sieht (Touch, Tastatur, VNC). Das ist die Quelle für „Ruhe“.
-- Der Küchen-Dienst (GET /wach) sagt, ob ein Video oder Elektra wach hält.
+- Der Küchen-Dienst (GET /wach) sagt, ob ein Video oder Elektra wach hält. Der Wächter meldet dabei,
+  ob das Display dunkel ist (?dunkel=0|1), und der Dienst meldet zurück, wenn ein Weckwort („Weiter“,
+  „Zurück“ bei offenem Rezept, #89) das Display wecken soll. Dann fragt der Wächter jede Sekunde.
 - Die Entscheidung trifft ruhe.py (reine Logik, getestet). Hier steht nur, was am Gerät passiert.
 
 Ausschalten: Helligkeit merken, Beleuchtung auf 0 und/oder Ausgang aus (wlopm), und den Touch
@@ -33,6 +35,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from ruhe import (
@@ -42,6 +45,7 @@ from ruhe import (
     Konfig,
     Ruhe,
     WeckTipp,
+    WeckZaehler,
     ereignisse_zerlegen,
     konfig_lesen,
     touch_geraet_finden,
@@ -62,6 +66,7 @@ WACH_URL = os.environ.get("WACH_URL", "http://127.0.0.1:8080/wach")
 GERAETELISTE = Path("/proc/bus/input/devices")
 EVIOCGRAB = 0x40044590  # _IOW('E', 0x90, int)
 WACH_TAKT_S = 5.0
+DUNKEL_TAKT_S = 1.0  # bei dunklem Display: ein Weckwort soll nicht bis zu 5 s warten
 NEU_VERSUCH_S = 3.0  # Einschalten, das nicht klappte, alle 3 s wiederholen
 SWAYIDLE_PAUSE_S = 5.0
 
@@ -261,17 +266,39 @@ class Touch:
 
 
 # --- Küchen-Dienst fragen ----------------------------------------------------------------
-def wach_fragen(url: str = WACH_URL) -> tuple[bool, list[str]]:
-    """Hält etwas wach? Antwortet der Dienst nicht oder unlesbar, gilt: ja (im Zweifel an)."""
+@dataclass
+class WachAntwort:
+    haelt: bool
+    gruende: list[str] = field(default_factory=list)
+    start: object = (
+        None  # Kennung des Küchen-Dienst-Starts (nur zusammen mit `wecken` sinnvoll)
+    )
+    wecken: object = None  # Zähler der Weckwörter seit diesem Start
+
+
+def wach_abfragen(url: str = WACH_URL, dunkel: bool | None = None) -> WachAntwort:
+    """Hält etwas wach, und gibt es ein neues Weckwort? Mit `dunkel` meldet der Wächter dem Dienst,
+    ob das Display dunkel ist. Antwortet der Dienst nicht oder unlesbar, gilt: hält wach (im
+    Zweifel an), und es gibt kein Weckwort."""
+    if dunkel is not None:
+        url += f"?dunkel={int(dunkel)}"
     try:
         with urllib.request.urlopen(url, timeout=2) as antwort:
             daten = json.load(antwort)
         if not isinstance(daten, dict) or not isinstance(daten.get("haelt"), bool):
             raise TypeError(f"unerwartete Antwort: {str(daten)[:100]}")
         gruende = [str(g) for g in daten.get("gruende", [])]
-        return daten["haelt"], gruende
+        return WachAntwort(
+            daten["haelt"], gruende, daten.get("start"), daten.get("wecken")
+        )
     except (OSError, ValueError, TypeError, http.client.HTTPException) as fehler:
-        return True, [f"dienst: {fehler}"]
+        return WachAntwort(True, [f"dienst: {fehler}"])
+
+
+def wach_fragen(url: str = WACH_URL) -> tuple[bool, list[str]]:
+    """Kurzform von wach_abfragen: nur, ob etwas wach hält und warum."""
+    antwort = wach_abfragen(url)
+    return antwort.haelt, antwort.gruende
 
 
 # --- Zusammenspiel -----------------------------------------------------------------------
@@ -279,7 +306,9 @@ class Waechter:
     """Verbindet Ruhe (Entscheidung) mit Anzeige und Touch (Wirkung). Ohne Schleife, damit die
     Schritte mit Attrappen getestet werden können (test_schlafwaechter.py)."""
 
-    def __init__(self, konfig: Konfig, anzeige, touch_neu, jetzt: float) -> None:
+    def __init__(
+        self, konfig: Konfig, anzeige, touch_neu, jetzt: float, dunkel_melden=None
+    ) -> None:
         self.konfig = konfig
         self.anzeige = anzeige
         self.touch_neu = touch_neu  # () -> Touch-Objekt mit sperren/lesen/freigeben
@@ -288,6 +317,15 @@ class Waechter:
         self.tipp: WeckTipp | None = None
         self.an_offen = False  # Einschalten ist nicht gelungen und wird wiederholt
         self.an_versuch = 0.0
+        # (bool) -> None: sagt dem Küchen-Dienst sofort, ob das Display dunkel ist, damit er nicht bis
+        # zur nächsten Frage ein dunkles Display für hell hält und blättert (#89).
+        self.dunkel_melden = dunkel_melden or (lambda dunkel: None)
+        self.weck_zaehler = WeckZaehler()
+
+    @property
+    def dunkel(self) -> bool:
+        """Ist das Display dunkel oder soll es an sein und ist es womöglich noch nicht?"""
+        return self.ruhe.schlaeft or self.an_offen
 
     # Aktionen aus der Entscheidung
     def ausfuehren(self, aktion: str, jetzt: float, grund: str = "") -> None:
@@ -304,9 +342,13 @@ class Waechter:
             )
             self.ruhe.schlafen_misslungen(jetzt)
             return
+        # Zuerst melden, dann ausschalten: Von dem Moment an, in dem es dunkel sein kann, blättert der
+        # Dienst nicht mehr.
+        self.dunkel_melden(True)
         if not self.anzeige.aus():
             touch.freigeben()
             log.error("Display bleibt an: Ausschalten ist nicht gelungen")
+            self.dunkel_melden(self.an_offen)
             self.ruhe.schlafen_misslungen(jetzt)
             return
         self.touch, self.tipp = touch, WeckTipp()
@@ -324,6 +366,7 @@ class Waechter:
                 "Einschalten nicht gelungen, nächster Versuch in %.0f s", NEU_VERSUCH_S
             )
         self.ruhe.aufgewacht(jetzt)
+        self.dunkel_melden(self.an_offen)
         log.info("Display an: %s", grund)
         # Den Touch erst freigeben, wenn der Finger oben ist (touch_lesen). Gab es keine
         # Berührung (Eingabe von VNC), gibt es nichts zu verschlucken.
@@ -366,6 +409,8 @@ class Waechter:
             self.an_offen = not self.anzeige.an()
             if self.an_offen:
                 log.error("Einschalten weiter ohne Erfolg")
+            else:
+                self.dunkel_melden(False)
         aktion = self.ruhe.tick(jetzt)
         if aktion == WECKEN:
             self.ausfuehren(WECKEN, jetzt, "Eingabe")
@@ -384,6 +429,16 @@ class Waechter:
     def wach_antwort(self, haelt: bool, jetzt: float) -> None:
         # Hält etwas wach, wird nicht eingeschlafen; ein schlafendes Display weckt es nicht.
         self.ruhe.halt(jetzt, haelt)
+
+    def weckwort(self, start, zaehler, jetzt: float) -> None:
+        """Der Küchen-Dienst meldet seinen Weckwort-Zähler. Steigt er, weckt das ein schlafendes
+        Display; eine Berührung gab es nicht, also wird auch keine verschluckt."""
+        if not self.weck_zaehler.neu(start, zaehler):
+            return
+        if self.ruhe.weckwort(jetzt) == WECKEN:
+            self.ausfuehren(WECKEN, jetzt, "Weckwort")
+        else:
+            log.info("Weckwort bei hellem Display: nichts zu schalten")
 
     def swayidle_fehlt(self, jetzt: float) -> None:
         if self.ruhe.eingabe_unbekannt() == WECKEN:
@@ -421,7 +476,13 @@ def lauf(konfig: Konfig) -> None:
     if not anzeige.an():
         log.error("Beim Start war das Einschalten nicht ganz gelungen")
 
-    w = Waechter(konfig, anzeige, Touch, time.monotonic())
+    w = Waechter(
+        konfig,
+        anzeige,
+        Touch,
+        time.monotonic(),
+        dunkel_melden=lambda dunkel: wach_abfragen(dunkel=dunkel),
+    )
     sel = selectors.DefaultSelector()
     idle: subprocess.Popen | None = None
     idle_puffer = b""
@@ -474,9 +535,10 @@ def lauf(konfig: Konfig) -> None:
                     w.touch_lesen(jetzt)
 
             jetzt = time.monotonic()
-            if jetzt - wach_zuletzt >= WACH_TAKT_S:
+            if jetzt - wach_zuletzt >= (DUNKEL_TAKT_S if w.dunkel else WACH_TAKT_S):
                 wach_zuletzt = jetzt
-                haelt, gruende = wach_fragen()
+                antwort = wach_abfragen(dunkel=w.dunkel)
+                haelt, gruende = antwort.haelt, antwort.gruende
                 stand = (haelt, tuple(gruende))
                 if stand != wach_stand:
                     log.info(
@@ -484,6 +546,7 @@ def lauf(konfig: Konfig) -> None:
                     )
                     wach_stand = stand
                 w.wach_antwort(haelt, jetzt)
+                w.weckwort(antwort.start, antwort.wecken, jetzt)
             w.takt(jetzt)
     finally:
         log.info("Beende: Display einschalten")

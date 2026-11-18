@@ -210,3 +210,71 @@ def test_neue_kiosk_seite_bekommt_wartende_befehle():
     assert a.kiosk_vorn(10.0 + Ablage.FRIST_S + 1) == [{"id": 2}]
     assert a.abholen(10.0 + Ablage.FRIST_S + 1) is None
     assert a.abgelaufen(100.0) == [{"id": 1}]
+
+
+# --- Lokale Befehle (Weckwort, #89) ----------------------------------------------
+def lokal(nummer=1, richtung="vor"):
+    return {
+        "id": f"lokal-{nummer}",
+        "name": "rezeptschritt",
+        "argumente": {"richtung": richtung},
+    }
+
+
+def test_ist_lokal_erkennt_nur_eigene_kennungen():
+    from vertrag import ist_lokal
+
+    assert ist_lokal("lokal-3")
+    assert not ist_lokal(3)
+    assert not ist_lokal(None)
+    assert not ist_lokal("3")
+
+
+def test_quittung_der_bridge_geht_weiter_an_die_bridge():
+    from vertrag import quittung_leiten
+
+    nachricht, zeile = quittung_leiten({"id": 7, "ok": True, "fremd": 1})
+    assert nachricht == {"type": "quittung", "id": 7, "ok": True}
+    assert zeile is None
+
+
+def test_quittung_eines_lokalen_befehls_geht_nicht_an_die_bridge():
+    from vertrag import quittung_leiten
+
+    nachricht, zeile = quittung_leiten({"id": "lokal-4", "ok": True})
+    assert nachricht is None
+    assert "lokal-4" in zeile and "ausgeführt" in zeile
+
+
+def test_fehlerquittung_eines_lokalen_befehls_steht_im_journal_nicht_bei_der_bridge():
+    from vertrag import quittung_leiten
+
+    nachricht, zeile = quittung_leiten(
+        {"id": "lokal-5", "ok": False, "fehler": "Hier geht es nur vor."}
+    )
+    assert nachricht is None
+    assert "ohne Wirkung" in zeile and "Hier geht es nur vor." in zeile
+
+
+def test_abgelaufener_lokaler_befehl_geht_nicht_an_die_bridge():
+    from vertrag import abgelaufene_melden
+
+    bridge, journal = abgelaufene_melden([lokal(1), {"id": 9, "name": "x"}])
+    assert [n["id"] for n in bridge] == [9]
+    assert bridge[0]["ok"] is False
+    assert len(journal) == 1 and "lokal-1" in journal[0]
+
+
+def test_lokaler_befehl_wird_von_der_app_abgeholt():
+    a = Ablage()
+    a.ablegen(lokal(2, "zurueck"), 10.0)
+    assert a.abholen(10.5)["argumente"] == {"richtung": "zurueck"}
+
+
+def test_kiosk_seite_bekommt_keinen_lokalen_befehl():
+    a = Ablage()
+    a.ablegen(lokal(1), 10.0)
+    a.ablegen({"id": 3, "name": "seite_zeigen"}, 10.1)
+    offen = a.kiosk_vorn(10.5)
+    assert [b["id"] for b in offen] == [3]
+    assert a.abgelaufen(100.0) == []  # auch nicht als „abgelaufen“ übrig

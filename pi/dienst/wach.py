@@ -7,6 +7,9 @@ ausschalten darf. Zwei Dinge halten es wach:
 - Ein Video: Die Rückweg-Erweiterung (pi/kiosk-rueckweg) meldet alle 5 s, was die `<video>`-Elemente
   der offenen Seite tun. Hier wird entschieden, ob das „ein laufendes Video“ ist.
 
+- Ein Weckwort („Weiter“, „Zurück“, #89): Wer per Zuruf blättert, fasst das Display nicht an. Das
+  Wort hält so lange wach, dass es der Schlafwächter bei seiner nächsten Frage sieht.
+
 Musik allein (Spotify spielt auf dem Evoke) hält nicht wach. Reine Logik ohne Netz und Uhr
 (test_wach.py).
 """
@@ -20,6 +23,8 @@ MIN_FLAECHE = 0.2
 # Meldet die Seite nichts mehr (Seite zu, Erweiterung weg), zählt das Video nach so vielen
 # Sekunden nicht mehr. Die Erweiterung meldet alle 5 s.
 VIDEO_FRIST_S = 20.0
+# Der Wächter fragt bei hellem Display alle 5 s; das Wort muss länger gelten.
+WORT_HALT_S = 6.0
 
 
 def video_spielt(videos) -> tuple[bool, list[str]]:
@@ -57,6 +62,10 @@ def video_spielt(videos) -> tuple[bool, list[str]]:
 class Wach:
     def __init__(self) -> None:
         self.video_bis: float | None = None
+        self.wort_bis: float | None = None
+
+    def wort_gehoert(self, jetzt: float) -> None:
+        self.wort_bis = jetzt + WORT_HALT_S
 
     def video_melden(self, videos, jetzt: float) -> list[str]:
         """Nimmt eine Meldung der Erweiterung an. Gibt Beanstandungen zurück."""
@@ -73,4 +82,6 @@ class Wach:
             gruende.append(f"elektra ({elektra_zustand})")
         if self.video_laeuft(jetzt):
             gruende.append("video")
+        if self.wort_bis is not None and jetzt < self.wort_bis:
+            gruende.append("weckwort")
         return gruende

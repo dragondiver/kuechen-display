@@ -1,12 +1,13 @@
 import errno
 import http.client
+import json
 import logging
 import os
 import urllib.request
 from types import SimpleNamespace
 
 from ruhe import BTN_TOUCH, EV_KEY, Konfig, WeckTipp
-from schlafwaechter import Anzeige, Touch, Waechter, wach_fragen
+from schlafwaechter import Anzeige, Touch, Waechter, wach_abfragen, wach_fragen
 
 
 # --- Anzeige ---------------------------------------------------------------------------
@@ -424,3 +425,151 @@ def test_toter_touch_weckt_das_display_und_gibt_frei(caplog):
     w.touch_lesen(310.0)
     assert anz.aufrufe == ["aus", "an"]
     assert not w.ruhe.schlaeft and w.touch is None and not touch.gesperrt
+
+
+# --- Weckwort (#89) --------------------------------------------------------------------
+class Meldungen:
+    def __init__(self):
+        self.liste = []
+
+    def __call__(self, dunkel):
+        self.liste.append(dunkel)
+
+
+def waechter_mit_meldung(touch=None, anz=None):
+    touch = touch or FalscherTouch()
+    anz = anz or FalscheAnzeige()
+    meldung = Meldungen()
+    w = Waechter(Konfig(300, "beides"), anz, lambda: touch, 0.0, dunkel_melden=meldung)
+    w.swayidle_zeile("IDLE", 1.0)
+    return w, touch, anz, meldung
+
+
+def test_weckwort_weckt_das_schlafende_display_ohne_beruehrung():
+    w, touch, anz, _ = waechter_mit_meldung()
+    w.weckwort(1, 0, 10.0)  # erste Antwort: Stand merken
+    w.takt(300.0)
+    assert w.ruhe.schlaeft and touch.gesperrt
+    w.weckwort(1, 1, 400.0)
+    assert anz.aufrufe == ["aus", "an"]
+    assert not w.ruhe.schlaeft
+    assert not touch.gesperrt  # keine Berührung, nichts zu verschlucken
+
+
+def test_weckwort_startet_die_ruhezeit_neu():
+    w, _, anz, _ = waechter_mit_meldung()
+    w.weckwort(1, 0, 10.0)
+    w.takt(300.0)
+    w.weckwort(1, 1, 1000.0)
+    w.takt(1299.0)
+    assert anz.aufrufe == ["aus", "an"]
+    w.takt(1300.0)
+    assert anz.aufrufe == ["aus", "an", "aus"]
+
+
+def test_weckwort_ohne_neuen_zaehler_weckt_nicht():
+    w, _, anz, _ = waechter_mit_meldung()
+    w.weckwort(1, 3, 10.0)
+    w.takt(300.0)
+    w.weckwort(1, 3, 301.0)
+    assert anz.aufrufe == ["aus"] and w.ruhe.schlaeft
+
+
+def test_weckwort_bei_hellem_display_schaltet_nichts():
+    w, _, anz, _ = waechter_mit_meldung()
+    w.weckwort(1, 0, 10.0)
+    w.weckwort(1, 1, 20.0)
+    assert anz.aufrufe == []
+
+
+def test_dunkel_wird_vor_dem_ausschalten_gemeldet():
+    reihenfolge = []
+
+    class Anz(FalscheAnzeige):
+        def aus(self):
+            reihenfolge.append("aus")
+            return super().aus()
+
+    w, _, _, meldung = waechter_mit_meldung(anz=Anz())
+    meldung.liste = reihenfolge  # gemeinsame Liste: zeigt die Reihenfolge
+    w.takt(300.0)
+    assert reihenfolge == [True, "aus"]
+
+
+def test_nach_dem_wecken_wird_hell_gemeldet():
+    touch = FalscherTouch()
+    w, _, _, meldung = waechter_mit_meldung(touch=touch)
+    w.takt(300.0)
+    touch.ereignisse = [(EV_KEY, BTN_TOUCH, 1), (EV_KEY, BTN_TOUCH, 0)]
+    w.touch_lesen(400.0)
+    assert meldung.liste == [True, False]
+
+
+def test_misslingt_das_ausschalten_wird_wieder_hell_gemeldet():
+    w, _, _, meldung = waechter_mit_meldung(anz=FalscheAnzeige(aus=False))
+    w.takt(300.0)
+    assert meldung.liste == [True, False]
+
+
+def test_misslingt_das_einschalten_gilt_das_display_weiter_als_dunkel():
+    anz = FalscheAnzeige(an=False)
+    w, _, _, meldung = waechter_mit_meldung(anz=anz)
+    w.takt(300.0)
+    w.weckwort(1, 0, 301.0)
+    w.weckwort(1, 1, 302.0)
+    assert w.dunkel is True and meldung.liste[-1] is True
+    anz.an_ok = True
+    w.takt(302.0 + 3.0)
+    assert w.dunkel is False and meldung.liste[-1] is False
+
+
+def test_dunkel_ist_schlafen_oder_einschalten_offen():
+    w, _, _, _ = waechter_mit_meldung()
+    assert w.dunkel is False
+    w.takt(300.0)
+    assert w.dunkel is True
+
+
+class Antwort:
+    def __init__(self, daten):
+        self.daten = daten
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self, *a):
+        return json.dumps(self.daten).encode()
+
+
+def test_wach_abfragen_haengt_dunkel_an_und_liest_start_und_zaehler(monkeypatch):
+    urls = []
+
+    def auf(url, timeout):
+        urls.append(url)
+        return Antwort({"haelt": False, "gruende": [], "start": 5, "wecken": 2})
+
+    monkeypatch.setattr(urllib.request, "urlopen", auf)
+    a = wach_abfragen("http://x/wach", dunkel=True)
+    assert urls == ["http://x/wach?dunkel=1"]
+    assert (a.haelt, a.start, a.wecken) == (False, 5, 2)
+    wach_abfragen("http://x/wach", dunkel=False)
+    wach_abfragen("http://x/wach")
+    assert urls[1:] == ["http://x/wach?dunkel=0", "http://x/wach"]
+
+
+def test_wach_abfragen_alter_dienst_ohne_felder_gibt_kein_weckwort(monkeypatch):
+    monkeypatch.setattr(
+        urllib.request,
+        "urlopen",
+        lambda url, timeout: Antwort({"haelt": False, "gruende": []}),
+    )
+    a = wach_abfragen("http://x/wach")
+    assert a.start is None and a.wecken is None
+
+
+def test_wach_abfragen_ohne_dienst_heisst_wach_halten_und_kein_weckwort():
+    a = wach_abfragen("http://127.0.0.1:9/wach", dunkel=True)
+    assert a.haelt is True and a.start is None

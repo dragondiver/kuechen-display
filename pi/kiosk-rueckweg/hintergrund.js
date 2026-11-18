@@ -18,7 +18,7 @@ chrome.tabs.onUpdated.addListener(function (tabId, info, tab) {
 // Brücke zum Küchen-Dienst für rueckweg.js (#70). Die Leiste läuft in der https-Seite der App und
 // darf http://localhost nicht selbst abfragen; der Hintergrund darf es über host_permissions.
 const DIENST = 'http://localhost:8080';
-const ERLAUBT = ['/tipp', '/quittung', '/diktat/start', '/diktat/stopp', '/diktat/ergebnis', '/video'];
+const ERLAUBT = ['/tipp', '/quittung', '/diktat/start', '/diktat/stopp', '/diktat/ergebnis', '/video', '/rezept'];
 // Hierher schreiben nur eigene Inhaltsskripte; Webseiten und fremde Erweiterungen kämen nur über
 // externally_connectable bzw. onMessageExternal, und die gibt es nicht. Erlaubt sind nur die Pfade in ERLAUBT.
 chrome.runtime.onMessage.addListener(function (nachricht, absender, antwort) {

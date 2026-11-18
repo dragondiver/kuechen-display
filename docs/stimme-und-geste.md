@@ -10,6 +10,7 @@ der Anzeige wechseln.
 | Teil | Datei im Repo | Wo |
 |---|---|---|
 | Küchen-Dienst: Seite, Bridge, Ton | `pi/dienst/dienst.py`, `vertrag.py` | Pi, Dienst `kuechen-dienst`, venv `~/kuechen-venv` |
+| Weckwort „Weiter“/„Zurück“ | `pi/dienst/weckwort.py` | im Küchen-Dienst, Modell unter `~/kuechen-display/modelle/` |
 | Gerätewerte für die Bridge | `pi/bruecke/geraete.conf` | raspi-agent, `/etc/systemd/system/rundfunk.service.d/` |
 | Geheimnisse | nicht im Repo, 1Password `kuechen-display/.env` | Pi, `~/kuechen-display/.env` (Rechte 600); früher `~/.config/kuechen-display/geraete-token` |
 | Kameradienst | `pi/gesten/` | Pi, Dienst `kuechen-gesten`, nur beim Testen an |
@@ -101,6 +102,136 @@ schreibt er nur Längen und Zeiten, nicht was gesucht wurde. Kosten laut OpenAI 
 Zum Prüfen ohne Finger: `wtype` ist auf dem Pi installiert. `wtype -M ctrl k -m ctrl` öffnet in
 Spotify den Suchdialog (mit `XDG_RUNTIME_DIR` und `WAYLAND_DISPLAY=wayland-0`).
 
+## Weckwort „Weiter“ und „Zurück“
+
+Seit #89, Stand 18.11.2026. Ist ein Rezept von mise-en-place offen, hört das Display auf zwei Wörter. Der
+Ton wird auf dem Pi ausgewertet, es verlässt kein Ton das Gerät.
+
+| Lage | „Weiter“ / „Zurück“ |
+|---|---|
+| Rezept offen, Display an | blättert wie der Befehl `rezeptschritt` (`vor` bzw. `zurueck`), ohne Tipp und ohne Elektra |
+| Rezept offen, Display dunkel | weckt nur, blättert nicht; das Display geht an und die 5 Minuten beginnen neu |
+| Rezept offen, Zustand des Displays unbekannt | wie dunkel: wecken, nicht blättern |
+| kein Rezept offen | nichts, der Ton wird nicht ausgewertet |
+| Elektra hört zu, denkt oder spricht; ein Diktat läuft; Wiedergabe läuft | nichts, dazu noch 1,5 Sekunden danach |
+
+„Rezept offen“ heißt: Auswahl, Übersicht oder Koch-Ansicht von mise-en-place, genau die Seiten, für die
+`schrittTasten()` in `rueckweg.js` Tasten kennt. Auf der Übersicht blättert „Zurück“ nicht (dort gibt es nur
+„vor“); es passiert nichts, im Journal steht „Hier geht es nur vor.“. „Zurück“ bei dunklem Display weckt nur,
+wie „Weiter“ (Ergänzung zur Festlegung vom 18.11.2026).
+
+### Wie es funktioniert
+
+- Erkennung: Vosk (`pi/dienst/weckwort.py`) mit dem kleinen deutschen Modell `vosk-model-small-de-0.15` und
+  einer Grammatik, die nur „weiter“, „zurück“ und „[unk]“ (alles andere) kennt. Sie liest dieselben Rahmen
+  von Kanal 0 wie der Rest des Dienstes (`mikro_schleife`), in einem eigenen Faden, damit die
+  Mikrofon-Schleife nie wartet.
+- Es zählt nur ein Wort für sich allein, auch doppelt („weiter weiter“). „Wie geht es weiter“ erkennt die
+  Grammatik als „[unk] [unk] [unk] weiter“ und löst nichts aus; ebenso eine Äußerung mit beiden Wörtern.
+  Solche Fälle mit einem Wort darin stehen als „Verworfen, …“ im Journal. Das Wort allein ist die
+  strengere Wahl; sie kostet vermutlich einige Treffer und lässt sich in `wort_lesen` lockern.
+- Dasselbe Wort nicht zweimal innerhalb von 1,5 Sekunden.
+- Rezept offen: Die Rückweg-Erweiterung meldet alle 2 Sekunden `POST /rezept {"offen": true}` (auch bei
+  verborgener Seite, anders als die Abfrage von `/lage`). Der Dienst lässt die Meldung nach 8 Sekunden ohne
+  Nachricht verfallen. Ist das Display seit der letzten Meldung dunkel geworden, verfällt sie nicht: Ein beim
+  Einschlafen offenes Rezept bleibt offen, bis das Display wieder an ist oder die Kiosk-Seite sich meldet. Die
+  Erweiterung meldet beim Verlassen der Seite „zu“, und der Dienst setzt „offen“ zurück, wenn die Kiosk-Seite
+  sich verbindet.
+- Display dunkel oder hell: Der Schlafwächter meldet es mit `GET /wach?dunkel=0|1` (`docs/schlafen.md`). Eine
+  Meldung gilt 15 Sekunden. Davor und danach ist der Zustand unbekannt, und unbekannt heißt wecken, nicht
+  blättern: Ein Wecken bei hellem Display schadet nicht, ein Blättern bei dunklem bliebe unbemerkt.
+- Blättern bei hellem Display: Der Dienst legt in die Ablage (`Ablage`, wie ein Befehl der Bridge) einen lokalen
+  Befehl `rezeptschritt` mit der Kennung `lokal-<n>`. Die Erweiterung holt ihn über `/lage` ab, löst die Taste
+  aus und quittiert. Die Quittung eines lokalen Befehls geht nicht an die Bridge (sie kennt die Nummer nicht),
+  sondern steht im Journal, ebenso ein Befehl, den niemand abgeholt hat.
+- Ein erkanntes Wort hält das Display 6 Sekunden lang wach (Grund `weckwort` in `/wach`): Wer nur per Zuruf
+  blättert, fasst es nicht an.
+
+### Sichtbarkeit
+
+Solange die Erkennung mithört (Rezept offen, kein Gespräch, kein Diktat), steht am Mikro-Knopf der
+Rückweg-Leiste ein kleiner Punkt in Mintgrün. Er bewegt sich nicht. Nach einem erkannten Wort wächst er
+0,7 Sekunden lang. Bei hellem Display ist das Blättern selbst die Rückmeldung, bei dunklem das Display, das
+angeht.
+
+### Einrichten
+
+`pi/install-kiosk.sh` (aufgerufen von `pi/push.sh`) installiert `vosk` in `~/kuechen-venv` und holt das
+Modell nach `~/kuechen-display/modelle/vosk-model-small-de-0.15`, aber nur, wenn es fehlt. Es lädt von
+`https://alphacephei.com/vosk/models/vosk-model-small-de-0.15.zip` (rund 45 MB) und prüft die SHA-256-Summe der
+Zip-Datei, bevor es entpackt. Die Summe steht in `VOSK_SHA256` in `pi/install-kiosk.sh` (gemessen am 18.11.2026). Steht dort der Platzhalter
+`HIER_PRUEFSUMME_EINTRAGEN`, bricht das Skript mit einer Meldung ab, bevor es etwas lädt.
+
+Fehlt das Paket oder das Modell, läuft der Dienst unverändert weiter und schreibt einmal beim Start
+`Weckwort nicht verfügbar: …` ins Journal. Die Tests und die CI brauchen kein Vosk
+(`pi/requirements-test.txt` bleibt wie es ist).
+
+### Abschalten
+
+In `pi/dienst/kuechen-dienst.service` steht die Zeile `Environment=WECKWORT=an`. Auf `aus` setzen und
+`pi/push.sh` ausführen; im Journal steht dann `Weckwort aus`. Ein anderer Wert ist ein Fehler im Journal, und
+das Weckwort bleibt aus. Direkt auf dem Pi, bis der nächste `push.sh` die Datei zurücksetzt:
+
+```bash
+ssh kuechen-display.local 'sudo sed -i "s/^Environment=WECKWORT=.*/Environment=WECKWORT=aus/" /etc/systemd/system/kuechen-dienst.service && sudo systemctl daemon-reload && sudo systemctl restart kuechen-dienst'
+```
+
+### Nachsehen per SSH
+
+```bash
+# läuft es, hat es das Modell gefunden
+ssh kuechen-display.local 'journalctl -u kuechen-dienst -n 40 --no-pager | grep -i -E "weckwort|rezept"'
+
+# live mitlesen: erkannte Wörter, Rezept offen/zu, Wecken, Blättern
+ssh kuechen-display.local 'journalctl -u kuechen-dienst -f | grep -i -E "weckwort|rezept"'
+
+# Stand: hört die Erkennung (weckwort), wie viele Wörter, was hält wach, Zähler fürs Wecken
+ssh kuechen-display.local 'curl -s localhost:8080/lage; echo; curl -s localhost:8080/wach'
+
+# Last der Erkennung
+ssh kuechen-display.local 'top -b -n1 -H -p $(systemctl show -p MainPID --value kuechen-dienst) | head -15'
+```
+
+### Abnahme am Gerät
+
+Mit Florian, in dieser Reihenfolge. Bis hierher ist nichts davon am Gerät gelaufen.
+
+1. Nach `pi/push.sh`: Journal zeigt `Weckwort bereit (Modell vosk-model-small-de-0.15)`. Die Erweiterung ist neu
+   zu laden (Version 17); sonst fehlt die Meldung „Rezept offen“.
+2. Rezept öffnen (Koch-Ansicht), `curl -s localhost:8080/lage` zeigt `"weckwort": true`, am Mikro-Knopf steht der
+   Punkt. „Weiter“ sagen: Das Rezept blättert, der Punkt wächst kurz, das Journal zeigt `blättern vor`.
+   Dasselbe mit „Zurück“. Auf der Übersicht: „Weiter“ startet das Kochen, „Zurück“ tut nichts.
+3. Kein Rezept (Heute, Spotify): „Weiter“ sagen, nichts passiert, kein Punkt, kein Journaleintrag.
+4. Rezept offen, `RUHE_S=20` setzen (`docs/schlafen.md`), das Display schlafen lassen. „Weiter“ sagen: Das
+   Display geht an, das Rezept blättert nicht, im Journal steht `wecken (Display dunkel)`. Weckdauer mit der
+   Uhr messen. Danach ein zweites „Weiter“: Es blättert.
+5. Elektra: Gespräch beginnen und „Weiter“ sagen. Das Rezept blättert nicht. Beim Beenden des Gesprächs
+   dauert es 1,5 Sekunden, bis die Erkennung wieder auswertet. Dasselbe beim Diktat.
+6. Elektra spricht lange (Antwort mit „weiter“ im Text): löst nichts aus.
+7. Küchengeräusche und Musik: Abzug, Wasserhahn, Spotify auf dem Evoke laufen lassen und mitzählen, wie oft das
+   Rezept ungewollt blättert (Journal: `Weckwort „…“`).
+8. Last: `top` wie oben, während gesprochen wird und während Ruhe ist.
+9. Dienst von Hand beenden und starten: Im Journal steht kein Wecken beim Start eines schlafenden Displays.
+
+### Nicht gemessen
+
+Alles hier ist aus Quelltext und Handbuch, nicht aus einem Lauf am Gerät.
+
+- Ob Vosk auf dem Pi 5 unter Python 3.13 läuft (das Rad `py3-none-manylinux2014_aarch64` für 0.3.45 gibt es
+  auf PyPI) und wie hoch die Last der Erkennung ist.
+- Ob „weiter“ und „zurück“ im Wörterbuch des Modells stehen (die Grammatik braucht beide) und wie viele Wörter
+  die Erkennung trifft, vom Herd, vom Tisch, mit Küchengeräuschen und mit Musik.
+- Wie oft „[unk]“ um ein echtes Wort steht und es als „nicht allein gesagt“ durchfällt. Zu viele Verluste:
+  `wort_lesen` lockern.
+- Die Wartezeit von „Weiter“ gesagt bis Blättern (Erkennung am Ende der Äußerung, Abholen über `/lage` jede
+  Sekunde, Taste) und bis zum Einschalten des dunklen Displays (Erkennung, Frage jede Sekunde, `wlopm --on`).
+- Ob die Seite bei dunklem Display als `hidden` gilt und ihre Zeitgeber gedrosselt werden. Der Dienst hält
+  das Rezept dafür fest, aber ob es nötig ist, ist offen. Ebenso, ob die Rezept-Seite nach dem Einschlafen
+  weiter ihre Tasten annimmt, wenn der Befehl beim Display an ankommt.
+- Ob Elektras eigene Stimme (Bluetooth, ohne Echounterdrückung) trotz Sperre noch Wörter auslöst, die als
+  Nachlauf nach 1,5 Sekunden ankommen.
+- Ob Musik auf dem Evoke ungewollt „Weiter“ oder „Zurück“ auslöst.
+
 ## Einrichten
 
 Alles vom Mac aus, im Checkout von `kuechen-display`.
@@ -130,7 +261,7 @@ pi/push.sh
 Das Skript spiegelt `pi/`, die Wetterbilder und die Figur (F2), ruft auf dem Pi
 `install-kiosk.sh` auf und lädt den Kiosk neu. Einzelheiten: `docs/deploy.md`.
 
-`install-kiosk.sh` legt `~/kuechen-venv` (nur `websockets`) und `~/gesten-venv` (MediaPipe) an,
+`install-kiosk.sh` legt `~/kuechen-venv` (`websockets`, `vosk`) und `~/gesten-venv` (MediaPipe) an,
 installiert beide Units, startet `kuechen-dienst` und lässt `kuechen-gesten` aus.
 
 ## Prüfen

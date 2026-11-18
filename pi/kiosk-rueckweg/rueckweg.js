@@ -5,6 +5,8 @@
 // Der Mikro-Knopf rechts startet und beendet das Gespräch mit Elektra wie der Tipp aufs Mikrofon
 // der Kiosk-Seite (#70). Befehle, die Elektra währenddessen schickt („zurück zu heute“), holt die
 // Leiste jede Sekunde über den Hintergrund (hintergrund.js) beim Küchen-Dienst ab.
+// Ist ein Rezept offen, hört der Küchen-Dienst auf „Weiter“ und „Zurück“ (#89); die Leiste meldet ihm
+// das Rezept (meldeRezept) und zeigt einen Punkt am Mikro-Knopf, solange er mithört.
 (function () {
   if (window.top !== window || document.getElementById('kuechen-rueckweg')) return;
   const RUHE = 'http://localhost:8080/';
@@ -29,6 +31,13 @@
       .leiste:not([data-zustand="aus"]) button svg { filter: drop-shadow(0 0 6px rgba(243,154,43,.9)); }
       .leiste[data-zustand="nachdenken"] button { animation: atmen 1.4s ease-in-out infinite; }
       .leiste[data-verbunden="nein"] button { opacity: .25; }
+      /* Weckwort (#89): ein stiller Punkt am Mikro-Knopf, solange der Dienst auf „Weiter“ und „Zurück“ hört.
+         Er steht still. Nur ein erkanntes Wort lässt ihn kurz wachsen. */
+      button { position: relative; }
+      button::after { content: ''; position: absolute; right: 6px; bottom: 6px; width: 7px; height: 7px; border-radius: 50%;
+                      background: #8fd6c4; opacity: 0; transform: scale(.4); transition: opacity .3s, transform .25s; }
+      .leiste[data-weckwort="ja"] button::after { opacity: .85; transform: scale(1); }
+      .leiste[data-weckwort="ja"].gehoert button::after { transform: scale(1.9); opacity: 1; }
       @keyframes atmen { 50% { background: rgba(243,154,43,.1); } }
       svg { width: 26px; height: 26px; }
       .trenner { width: 1px; height: 22px; background: rgba(255,255,255,.18); }
@@ -50,6 +59,7 @@
 
   const leiste = schatten.querySelector('.leiste');
   let diktatLage = function () {};  // wird unten vom Diktat gesetzt
+  let letztesWort = null, gehoertZeitgeber = 0;  // Weckwort-Rückmeldung, siehe frage()
   const SEITEN = ['heute', 'morgen', 'apps'];
   const APPS = { spotify: 'https://open.spotify.com/', rezepte: 'https://mise-en-place.fhuber.com/de/kd/recipes' };  // wie data-app in pi/kiosk/index.html
   // Koch-Ansicht von mise-en-place (kuechen-display#75): /<locale>/kd/recipes/<id>, z. B. /de/kd/recipes/42.
@@ -109,17 +119,49 @@
     if (document.hidden) return;
     try {
       chrome.runtime.sendMessage({ art: 'lage' }, function (lage) {
-        if (chrome.runtime.lastError || !lage) { leiste.dataset.verbunden = 'nein'; return; }
+        if (chrome.runtime.lastError || !lage) { leiste.dataset.verbunden = 'nein'; leiste.dataset.weckwort = 'nein'; return; }
         leiste.dataset.zustand = lage.zustand;
         leiste.dataset.verbunden = lage.verbunden ? 'ja' : 'nein';
+        leiste.dataset.weckwort = lage.weckwort ? 'ja' : 'nein';
+        // lage.wort zählt die erkannten Wörter; ein neuer Stand lässt den Punkt kurz wachsen.
+        if (typeof lage.wort === 'number') {
+          if (letztesWort !== null && lage.wort !== letztesWort) {
+            leiste.classList.add('gehoert');
+            clearTimeout(gehoertZeitgeber);
+            gehoertZeitgeber = setTimeout(function () { leiste.classList.remove('gehoert'); }, 700);
+          }
+          letztesWort = lage.wort;
+        }
         if (lage.befehl) ausfuehren(lage.befehl);
         diktatLage(!!lage.diktat);
       });
-    } catch (e) { leiste.dataset.verbunden = 'nein'; }
+    } catch (e) { leiste.dataset.verbunden = 'nein'; leiste.dataset.weckwort = 'nein'; }
   }
   schatten.querySelector('button').addEventListener('click', function () { melde('/tipp').then(frage); });
   frage();
   setInterval(frage, 1000);
+
+  // --- Ist ein Rezept offen? (#89) -------------------------------------------------------------
+  // Der Küchen-Dienst hört nur dann auf „Weiter“ und „Zurück“, wenn hier ein Rezept offen ist, also
+  // genau auf den Seiten, für die schrittTasten() Tasten kennt. Gemeldet wird alle 2 s, solange eins
+  // offen ist, und einmal danach. Anders als frage() läuft das auch bei document.hidden: Bei dunklem
+  // Display ist nicht gemessen, ob die Seite als verborgen gilt; der Dienst hält ein beim Einschlafen
+  // offenes Rezept dann selbst fest (pi/dienst/weckwort.py, Rezept).
+  let rezeptGemeldet = false, rezeptWarnung = false;
+  function meldeRezept() {
+    const offen = !!schrittTasten();
+    if (!offen && !rezeptGemeldet) return;
+    rezeptGemeldet = offen;
+    melde('/rezept', { offen: offen }).then(function (a) {
+      if (!a.ok && !rezeptWarnung) {
+        rezeptWarnung = true;
+        console.warn('Küchen-Display: Rezept-Meldung fürs Weckwort ging nicht:', a.daten.fehler || a);
+      }
+    });
+  }
+  setInterval(meldeRezept, 2000);
+  meldeRezept();
+  addEventListener('pagehide', function () { if (rezeptGemeldet) melde('/rezept', { offen: false }); });
 
   // --- Läuft ein Video? (#48) -----------------------------------------------------------------
   // Das Display geht nach Ruhe aus, außer ein Video läuft. Die Leiste meldet dem Küchen-Dienst alle
