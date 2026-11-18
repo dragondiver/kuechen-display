@@ -91,6 +91,10 @@ WETTER_ENTITAET = os.environ.get("WETTER_ENTITAET", "weather.stuttgart_schn")
 TEMPERATUR_SENSOR = os.environ.get(
     "TEMPERATUR_SENSOR", "sensor.stuttgart_schn_temperatur"
 )
+# Sensor "aktuelle Warnstufe" der Integration dwd_weather_warnings (#37); leer = keine Warnung.
+WARNUNG_SENSOR = os.environ.get(
+    "WARNUNG_SENSOR", "sensor.kreis_ludwigsburg_aktuelle_warnstufe"
+)
 ORT = os.environ.get("ORT", "Kornwestheim")
 # Kalender der CalDAV-Integration, durch Komma getrennt; die Reihenfolge gibt die Farbe des
 # Punkts (Festlegung 15.11.2026 in #15: Family und Abfall).
@@ -721,7 +725,9 @@ def daten_schleife() -> None:
         if wetter_zuletzt is None or time.monotonic() - wetter_zuletzt >= WETTER_TAKT_S:
             wetter_zuletzt = time.monotonic()
             karte = wetter_abruf(
-                lambda: wetter_karte(ha, WETTER_ENTITAET, TEMPERATUR_SENSOR, ORT)
+                lambda: wetter_karte(
+                    ha, WETTER_ENTITAET, TEMPERATUR_SENSOR, ORT, WARNUNG_SENSOR, ZONE
+                )
             )
         if karte is not None:
             if karte["unbekannt"] and karte["zustand"] != gemeldet:

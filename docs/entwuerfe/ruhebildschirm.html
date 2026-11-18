@@ -150,6 +150,9 @@
   .scr .temp { font-size: 190px; font-weight: 200; line-height: .9; letter-spacing: -6px; }
   .scr .zustand { font-size: 34px; font-weight: 400; margin-top: 8px; }
   .scr .hoch { font-size: 26px; opacity: .75; margin-top: 8px; }
+  .scr .warnung { display:flex; align-items:center; gap:12px; margin-top:22px; font-size:22px; opacity:.85; }
+  .scr .warnung .punkt { background:#ff9900; }
+  .scr .warnung .plus { opacity:.65; }
   .scr .verlauf { display:flex; gap: 34px; margin-top: 48px; }
   .scr .verlauf div { text-align:center; font-size: 22px; }
   .scr .verlauf b { display:block; font-size: 30px; font-weight: 400; margin-top: 8px; }
@@ -687,6 +690,7 @@
           <div class="temp" style="font-size:150px;" data-wetter-temp>11°</div>
           <div class="zustand" data-wetter-text>Gedämpft</div>
           <div class="hoch">Nacht 5°</div>
+          <div class="warnung"><i class="punkt"></i>Sturmböen bis 18 Uhr<span class="plus">+1</span></div>
         </div>
       </div></div>
     </section>

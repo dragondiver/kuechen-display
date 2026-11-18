@@ -7,6 +7,7 @@ Tests: test_daten.py. Anleitung: docs/datenweg.md
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime, time, timedelta
 
 # Wetterlage aus Home Assistant → Text auf der Wetterkarte und eines der sechs Bilder
@@ -59,6 +60,7 @@ def wetter_aufbereiten(
     sonne: str | None = None,
     ort: str = "",
     stand: int = 0,
+    warnung: dict | None = None,
 ) -> dict:
     """Macht aus der weather-Entität und der Tagesvorhersage die Wetterkarte.
 
@@ -67,6 +69,7 @@ def wetter_aufbereiten(
     temperatur  Zustand eines eigenen Temperatursensors; ohne ihn gilt die der Entität
     sonne       Zustand von sun.sun ("above_horizon" / "below_horizon")
     stand       Zeit des Abrufs als Unix-Sekunden; die Seite erkennt daran alte Daten
+    warnung     Ergebnis von warnung_aufbereiten oder None (dann keine Zeile)
 
     Eine unbekannte Wetterlage wird nicht verschluckt: Sie steht im Klartext auf der Karte,
     bekommt das Rückfallbild und "unbekannt": True, damit der Dienst sie ins Journal schreibt.
@@ -103,6 +106,80 @@ def wetter_aufbereiten(
         "bild": bild,
         "unbekannt": unbekannt,
         "stand": stand,
+        "warnung": warnung,
+    }
+
+
+# --- Wetterwarnung --------------------------------------------------------------
+# Festlegung 18.11.2026 in #37: ab Stufe 2 (wie beim Sprechen), eine Zeile unten in der
+# Wetterkarte. Quelle ist der Sensor "aktuelle Warnstufe" der Integration dwd_weather_warnings.
+
+WARNUNG_AB_STUFE = 2
+WARNUNG_MAX = 20  # Obergrenze für warning_N, falls warning_count Unsinn liefert
+# Rückfall, wenn die Farbe fehlt oder kein Hex ist: die DWD-Farben der Stufen 2 bis 4.
+WARNUNG_FARBEN = {2: "#ff9900", 3: "#ff0000", 4: "#a50066"}
+_HEX = re.compile(r"#[0-9a-fA-F]{6}")
+
+
+def _warn_ende(wert, zone) -> datetime | None:
+    try:
+        ende = datetime.fromisoformat(str(wert))
+    except ValueError:
+        return None
+    return ende.replace(tzinfo=zone) if ende.tzinfo is None else ende.astimezone(zone)
+
+
+def _bis_text(ende: datetime, jetzt: datetime) -> str:
+    uhr = (
+        f"{ende.hour} Uhr" if ende.minute == 0 else f"{ende.hour}:{ende.minute:02d} Uhr"
+    )
+    tage = (ende.date() - jetzt.date()).days
+    if tage <= 0:
+        return f"bis {uhr}"
+    if tage == 1:
+        return f"bis morgen {uhr}"
+    return f"bis {WOCHENTAGE[ende.weekday()][:2]} {uhr}"
+
+
+def warnung_aufbereiten(sensor: dict | None, jetzt: datetime) -> dict | None:
+    """Wählt aus dem Sensor "aktuelle Warnstufe" die eine Warnung für die Wetterkarte.
+
+    sensor  Antwort von /api/states/<Entität> oder None; Attribute warning_count und je
+            Warnung warning_N_name, _level, _end, _color (N ab 1)
+    jetzt   lokale Zeit mit Zeitzone
+
+    Die DWD liefert gleichzeitige Warnungen in wechselnder Reihenfolge. Es gewinnt die
+    höchste Stufe, bei gleicher Stufe das früheste Ende. Vorbei gegangene Warnungen und
+    Stufe 1 zählen nicht. Gibt es mehrere, hängt "mehr" die Zahl der übrigen an.
+    Ergebnis {"text", "farbe", "mehr"} oder None, dann steht keine Zeile da.
+    """
+    if not sensor or sensor.get("state") == "unavailable":
+        return None
+    attribute = sensor.get("attributes") or {}
+    anzahl = zahl(attribute.get("warning_count"))
+    if anzahl is None:
+        return None
+    aktiv = []
+    for n in range(1, min(int(anzahl), WARNUNG_MAX) + 1):
+        stufe = zahl(attribute.get(f"warning_{n}_level"))
+        name = str(attribute.get(f"warning_{n}_name") or "").strip()
+        ende = _warn_ende(attribute.get(f"warning_{n}_end"), jetzt.tzinfo)
+        if stufe is None or not name or ende is None:
+            continue
+        if stufe < WARNUNG_AB_STUFE or ende <= jetzt:
+            continue
+        farbe = str(attribute.get(f"warning_{n}_color") or "")
+        if not _HEX.fullmatch(farbe):
+            farbe = WARNUNG_FARBEN.get(int(stufe), WARNUNG_FARBEN[4])
+        aktiv.append((-stufe, ende, n, name, farbe))
+    if not aktiv:
+        return None
+    aktiv.sort()
+    _, ende, _, name, farbe = aktiv[0]
+    return {
+        "text": f"{name} {_bis_text(ende, jetzt)}",
+        "farbe": farbe,
+        "mehr": len(aktiv) - 1,
     }
 
 

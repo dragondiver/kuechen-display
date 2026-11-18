@@ -11,8 +11,9 @@ import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
-from daten import termine_aufbereiten, wetter_aufbereiten
+from daten import termine_aufbereiten, warnung_aufbereiten, wetter_aufbereiten
 
 
 class HomeAssistant:
@@ -77,16 +78,30 @@ class HomeAssistant:
         return {e: (ergebnis.get(e) or {}).get("events") or [] for e in entitaeten}
 
 
-def wetter_karte(ha, entitaet: str, sensor: str | None, ort: str) -> dict:
-    """Vier Abrufe, eine Wetterkarte. Netzfehler gehen als Ausnahme an den Aufrufer."""
+def wetter_karte(
+    ha,
+    entitaet: str,
+    sensor: str | None,
+    ort: str,
+    warnung_sensor: str | None = None,
+    zone: ZoneInfo | None = None,
+) -> dict:
+    """Vier Abrufe, fünf mit Warnsensor, eine Wetterkarte. Netzfehler gehen als Ausnahme an
+    den Aufrufer. Kennt HA den Warnsensor nicht, fehlt nur die Warnzeile."""
     wetter = ha.entitaet(entitaet)
+    stand = int(time.time())
+    warnung = None
+    if warnung_sensor:
+        jetzt = datetime.fromtimestamp(stand, zone or ZoneInfo("Europe/Berlin"))
+        warnung = warnung_aufbereiten(ha.entitaet(warnung_sensor), jetzt)
     return wetter_aufbereiten(
         wetter,
         ha.vorhersage(entitaet) if wetter else [],
         temperatur=ha.zustand(sensor) if sensor else None,
         sonne=ha.zustand("sun.sun"),
         ort=ort,
-        stand=int(time.time()),
+        stand=stand,
+        warnung=warnung,
     )
 
 
