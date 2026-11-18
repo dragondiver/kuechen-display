@@ -20,7 +20,11 @@ VOSK_URL="https://alphacephei.com/vosk/models/$VOSK_MODELL.zip"
 # SHA-256 der Zip-Datei, am 18.11.2026 auf dem Mac gemessen (shasum -a 256, 46 499 967 Bytes), nach Florians
 # Freigabe des Downloads. Die Modellseite nennt selbst keine Summe.
 VOSK_SHA256="b7e53c90b1f0a38456f4cd62b366ecd58803cd97cd42b06438e2c131713d5e43"
+LADEN_TMP=""
+# Strg-C beim Download räumt das halbe Verzeichnis weg; der Rest des Skripts bricht damit wie üblich ab.
+trap 'rm -rf "${LADEN_TMP:-}"; exit 130' INT TERM
 weckwort_einrichten() {
+  rm -rf "$d"/modelle/.laden.*   # Reste eines abgebrochenen früheren Laufs
   ~/kuechen-venv/bin/python -c "import vosk" 2>/dev/null \
     || ~/kuechen-venv/bin/pip install -q "vosk>=0.3.45,<0.4" \
     || { echo "vosk konnte nicht installiert werden (offline?)." >&2; return 1; }
@@ -30,9 +34,9 @@ weckwort_einrichten() {
     echo "Prüfsumme eingetragen. Ohne sie wird nichts heruntergeladen. Siehe docs/stimme-und-geste.md, Weckwort." >&2
     return 1
   fi
-  local tmp
   mkdir -p "$d/modelle" || return 1
-  tmp=$(mktemp -d "$d/modelle/.laden.XXXXXX") || return 1
+  LADEN_TMP=$(mktemp -d "$d/modelle/.laden.XXXXXX") || return 1
+  local tmp=$LADEN_TMP
   curl -sSfL -o "$tmp/modell.zip" "$VOSK_URL" \
     || { echo "Download von $VOSK_URL schlug fehl (offline?)." >&2; rm -rf "$tmp"; return 1; }
   echo "$VOSK_SHA256  $tmp/modell.zip" | sha256sum -c --status - \
@@ -43,6 +47,7 @@ weckwort_einrichten() {
     || { echo "$VOSK_MODELL fehlt im Archiv." >&2; rm -rf "$tmp"; return 1; }
   mv "$tmp/entpackt/$VOSK_MODELL" "$d/modelle/$VOSK_MODELL" || { rm -rf "$tmp"; return 1; }
   rm -rf "$tmp"
+  LADEN_TMP=""
   echo "neu: $d/modelle/$VOSK_MODELL"
 }
 WECKWORT_FEHLT=0

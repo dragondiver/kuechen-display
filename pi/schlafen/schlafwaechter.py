@@ -356,7 +356,7 @@ class Waechter:
         self.an_versuch = 0.0
         # (bool) -> None: sagt dem Küchen-Dienst sofort, ob das Display dunkel ist, damit er nicht bis
         # zur nächsten Frage ein dunkles Display für hell hält und blättert (#89).
-        self.dunkel_melden = dunkel_melden or (lambda dunkel: None)
+        self.dunkel_melden = dunkel_melden or (lambda dunkel, versuche=None: None)
         self.weck_zaehler = WeckZaehler()
 
     @property
@@ -403,7 +403,9 @@ class Waechter:
                 "Einschalten nicht gelungen, nächster Versuch in %.0f s", NEU_VERSUCH_S
             )
         self.ruhe.aufgewacht(jetzt)
-        self.dunkel_melden(self.an_offen)
+        # Nur ein Versuch: Wecken darf nicht langsamer werden, der Touch ist bis dahin gesperrt. Der
+        # reguläre Takt meldet den Stand ohnehin erneut.
+        self.dunkel_melden(self.an_offen, versuche=1)
         log.info("Display an: %s", grund)
         # Den Touch erst freigeben, wenn der Finger oben ist (touch_lesen). Gab es keine
         # Berührung (Eingabe von VNC), gibt es nichts zu verschlucken.
@@ -447,7 +449,7 @@ class Waechter:
             if self.an_offen:
                 log.error("Einschalten weiter ohne Erfolg")
             else:
-                self.dunkel_melden(False)
+                self.dunkel_melden(False, versuche=1)
         aktion = self.ruhe.tick(jetzt)
         if aktion == WECKEN:
             self.ausfuehren(WECKEN, jetzt, "Eingabe")

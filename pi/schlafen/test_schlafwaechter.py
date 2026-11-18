@@ -439,9 +439,11 @@ def test_toter_touch_weckt_das_display_und_gibt_frei(caplog):
 class Meldungen:
     def __init__(self):
         self.liste = []
+        self.versuche = []
 
-    def __call__(self, dunkel):
+    def __call__(self, dunkel, versuche=None):
         self.liste.append(dunkel)
+        self.versuche.append(versuche)
 
 
 def waechter_mit_meldung(touch=None, anz=None):
@@ -628,3 +630,11 @@ def test_wach_abfragen_alter_dienst_ohne_felder_gibt_kein_weckwort(monkeypatch):
 def test_wach_abfragen_ohne_dienst_heisst_wach_halten_und_kein_weckwort():
     a = wach_abfragen("http://127.0.0.1:9/wach", dunkel=True)
     assert a.haelt is True and a.start is None
+
+
+def test_wecken_meldet_mit_nur_einem_versuch():
+    w, _, _, meldung = waechter_mit_meldung()
+    w.takt(300.0)  # schlafen: darf wiederholen
+    assert meldung.versuche[-1] is None
+    w.wecken(310.0, "Test")
+    assert meldung.liste[-1] is False and meldung.versuche[-1] == 1

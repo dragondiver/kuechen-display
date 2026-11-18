@@ -2,4 +2,4 @@
 pytest==9.2.0
 ruff==0.17.5
 # dienst.py importiert websockets (test_wach_http.py); auf dem Pi gilt >=15,<16 (install-kiosk.sh).
-websockets==15.0.1
+websockets>=15,<16
