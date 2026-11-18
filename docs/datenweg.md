@@ -43,6 +43,39 @@ Festlegung vom 18.9.2026).
 Zweite Zeile, Nachtbild und Verblassen nach einer Stunde hat Florian am 15.11.2026 so
 festgelegt (#15).
 
+## Wetterwarnung
+
+Ab Stufe 2 steht unten in der Wetterkarte eine Zeile: Punkt in der DWD-Farbe, Name und Ende,
+etwa „Sturmböen bis 18 Uhr“. Festlegung 18.11.2026 in #37. Kein Band, kein Blinken, Antippen tut
+nichts, die Vorwarnstufe (`sensor.kreis_ludwigsburg_vorwarnstufe`) steht nicht auf dem Display.
+
+Dieselbe Verbindung, ein Abruf mehr: Der Dienst liest `sensor.kreis_ludwigsburg_aktuelle_warnstufe`
+(Kern-Integration `dwd_weather_warnings`) und legt das Ergebnis als Feld `warnung` ins Ereignis
+„wetter“. Die Warnung altert damit wie das Wetter: Sie bleibt beim letzten Stand stehen, nach
+einer Stunde wird die ganze Karte blass.
+
+Der Sensor hat die Attribute `warning_count` und je Warnung `warning_N_name`, `_level`, `_end`,
+`_color` (N ab 1). Die Auswahl steht in `warnung_aufbereiten` (`pi/dienst/daten.py`, getestet):
+
+- Stufe 1 zählt nicht, Warnungen mit Ende in der Vergangenheit auch nicht.
+- Es gewinnt die höchste Stufe, bei gleicher Stufe das früheste Ende. Die DWD liefert gleichzeitige
+  Warnungen in wechselnder Reihenfolge, die Reihenfolge der Attribute spielt keine Rolle.
+- Gibt es mehr als eine, steht hinter der Zeile „+1“ (oder „+2“ …): die Zahl der übrigen Warnungen
+  ab Stufe 2, die noch laufen. Die Zeile bleibt einzeilig, ein langer Name wird mit „…“ gekürzt.
+- Ende heute: „bis 18 Uhr“ (mit Minuten „bis 16:30 Uhr“), morgen „bis morgen 6 Uhr“, später
+  „bis Fr 12 Uhr“.
+- Farbe aus `warning_N_color`. Ist sie kein Hex-Wert wie `#ff9900`, gilt die DWD-Farbe der Stufe
+  (2 orange, 3 rot, 4 violett).
+- Sensor nicht verfügbar, unbekannt, ohne Attribute oder ohne passende Warnung: keine Zeile, die
+  Karte sieht aus wie ohne Warnung. Kennt Home Assistant den Sensor nicht, fehlt nur die Zeile.
+
+Der Sensor ist über `WARNUNG_SENSOR` einstellbar (Drop-in der Unit wie unten). Leer heißt: keine
+Warnung abfragen. Der Dienst prüft das Ende nur beim Abruf alle zehn Minuten; eine abgelaufene
+Warnung kann bis dahin stehen bleiben.
+
+Prüfen: Im Ereignis „wetter“ (`curl` wie oben) steht `"warnung": null` oder `{"text": …, "farbe": …,
+"mehr": …}`.
+
 ## Einrichten
 
 Der Dienst braucht ein eigenes Token für Home Assistant. Ohne `HA_TOKEN` läuft er weiter und
@@ -97,7 +130,7 @@ ssh kuechen-display.local 'curl -sN --max-time 3 http://127.0.0.1:8080/ereigniss
 ## Andere Quelle oder anderer Ort
 
 Die Werte stehen als Umgebungsvariablen im Dienst (`pi/dienst/dienst.py`): `HA_URL`,
-`WETTER_ENTITAET`, `TEMPERATUR_SENSOR`, `ORT`, für die Termine `KALENDER`. Sie sind keine
+`WETTER_ENTITAET`, `TEMPERATUR_SENSOR`, `WARNUNG_SENSOR`, `ORT`, für die Termine `KALENDER`. Sie sind keine
 Geheimnisse und gehören nicht in 1Password: ändern über einen Drop-in der Unit `kuechen-dienst`.
 
 ## Termine

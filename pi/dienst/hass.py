@@ -7,12 +7,16 @@ auf dem Pi bei `websockets` bleibt. Die Antworten bereitet daten.py auf.
 from __future__ import annotations
 
 import json
+import logging
 import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
-from daten import termine_aufbereiten, wetter_aufbereiten
+from daten import termine_aufbereiten, warnung_aufbereiten, wetter_aufbereiten
+
+log = logging.getLogger("dienst")
 
 
 class HomeAssistant:
@@ -77,16 +81,36 @@ class HomeAssistant:
         return {e: (ergebnis.get(e) or {}).get("events") or [] for e in entitaeten}
 
 
-def wetter_karte(ha, entitaet: str, sensor: str | None, ort: str) -> dict:
-    """Vier Abrufe, eine Wetterkarte. Netzfehler gehen als Ausnahme an den Aufrufer."""
+def wetter_karte(
+    ha,
+    entitaet: str,
+    sensor: str | None,
+    ort: str,
+    warnung_sensor: str | None = None,
+    zone: ZoneInfo | None = None,
+) -> dict:
+    """Vier Abrufe, fünf mit Warnsensor, eine Wetterkarte. Netzfehler gehen als Ausnahme an
+    den Aufrufer, außer beim Warnsensor: Ist er unbekannt oder nicht lesbar, fehlt nur die Warnzeile."""
     wetter = ha.entitaet(entitaet)
+    stand = int(time.time())
+    warnung = None
+    if warnung_sensor:
+        jetzt = datetime.fromtimestamp(stand, zone or ZoneInfo("Europe/Berlin"))
+        # Die Warnung ist Beiwerk: Scheitert sie, kommt das Wetter trotzdem.
+        try:
+            warnung = warnung_aufbereiten(ha.entitaet(warnung_sensor), jetzt)
+        except Exception as fehler:  # noqa: BLE001
+            log.warning(
+                "Wetter: Warnung von %s nicht lesbar: %s", warnung_sensor, fehler
+            )
     return wetter_aufbereiten(
         wetter,
         ha.vorhersage(entitaet) if wetter else [],
         temperatur=ha.zustand(sensor) if sensor else None,
         sonne=ha.zustand("sun.sun"),
         ort=ort,
-        stand=int(time.time()),
+        stand=stand,
+        warnung=warnung,
     )
 
 

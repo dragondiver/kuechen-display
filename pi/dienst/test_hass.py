@@ -79,3 +79,63 @@ def test_vorhersage_ohne_eintrag_ist_leer():
         }
     )
     assert ha.vorhersage("weather.kueche") == []
+
+
+def test_wetter_karte_schickt_die_warnung_mit():
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    ende = (datetime.now(ZoneInfo("Europe/Berlin")) + timedelta(hours=2)).replace(
+        minute=0, second=0, microsecond=0
+    )
+    antworten = {
+        **ANTWORTEN,
+        "/api/states/sensor.warnung": {
+            "state": "2",
+            "attributes": {
+                "warning_count": 1,
+                "warning_1_name": "Sturmböen",
+                "warning_1_level": 2,
+                "warning_1_end": ende.isoformat(),
+                "warning_1_color": "#ff9900",
+            },
+        },
+    }
+    ha = FakeHA(antworten)
+    karte = wetter_karte(ha, "weather.kueche", "sensor.aussen", "K", "sensor.warnung")
+    assert karte["warnung"] == {
+        "text": f"Sturmböen bis {ende.hour} Uhr",
+        "farbe": "#ff9900",
+        "mehr": 0,
+    }
+
+
+def test_wetter_karte_ohne_warnsensor_oder_unbekanntem_sensor_keine_warnung():
+    ha = FakeHA(ANTWORTEN)
+    assert wetter_karte(ha, "weather.kueche", None, "K")["warnung"] is None
+    assert not any("warnung" in a[1] for a in ha.anfragen)
+    karte = wetter_karte(ha, "weather.kueche", None, "K", "sensor.gibt_es_nicht")
+    assert karte["warnung"] is None and karte["zustand"] == "Regen"
+
+
+@pytest.mark.parametrize(
+    "fehler",
+    [
+        TimeoutError("zu langsam"),
+        urllib.error.HTTPError("/x", 503, "Unavailable", {}, io.BytesIO()),
+        json.JSONDecodeError("kaputt", "", 0),
+    ],
+)
+def test_warnsensor_scheitert_wetter_kommt_trotzdem(fehler, caplog):
+    class Kaputt(FakeHA):
+        def _anfrage(self, methode, pfad, body=None):
+            if pfad == "/api/states/sensor.warnung":
+                raise fehler
+            return super()._anfrage(methode, pfad, body)
+
+    karte = wetter_karte(
+        Kaputt(ANTWORTEN), "weather.kueche", "sensor.aussen", "K", "sensor.warnung"
+    )
+    assert karte["warnung"] is None
+    assert (karte["zustand"], karte["temperatur"]) == ("Regen", "7°")
+    assert "sensor.warnung" in caplog.text
