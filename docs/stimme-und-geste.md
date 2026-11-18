@@ -29,6 +29,7 @@ damit Bluetooth wach bleibt; sonst fehlt am Anfang etwa eine Sekunde.
 | Tipp aufs Mikrofon, Elektra ist aus | Gespräch beginnt, sie hört zu |
 | Tipp, während sie spricht | sie hört sofort auf und hört wieder zu |
 | Tipp, während sie zuhört oder nachdenkt | Gespräch am Display beendet, Mikrofon zu |
+| Tipp, die Bridge ist nicht erreichbar (Mikrofon blass) | vier Sekunden „Elektra ist gerade nicht erreichbar“, es beginnt nichts (#50) |
 | flache Hand vor der Kamera, während sie spricht | wie Tipp beim Sprechen (Kamera nur beim Testen) |
 
 Das Mikrofon sitzt auf der Seite „Heute“ an der Figur. In einer App wie Spotify ist die Kiosk-Seite

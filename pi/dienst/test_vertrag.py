@@ -298,3 +298,20 @@ def test_ohne_lokalen_befehl_bleibt_das_journal_leer(caplog):
     with caplog.at_level(logging.WARNING, logger="dienst"):
         a.kiosk_vorn(10.5)
     assert not caplog.records
+
+
+def test_tipp_ohne_bridge_zeigt_nur_einen_hinweis():
+    l = Leitung()
+    a = l.tipp(verbunden=False)
+    assert arten(a) == ["anzeige"]
+    assert a[0].daten == {
+        "ereignis": "hinweis",
+        "text": "Elektra ist gerade nicht erreichbar",
+    }
+    # Das Gespräch hat nicht begonnen: Zustand bleibt aus, das Mikrofon zu.
+    assert l.zustand == "aus"
+    assert l.mikro_offen is False
+
+
+def test_tipp_mit_bridge_bleibt_wie_vorher():
+    assert arten(Leitung().tipp(verbunden=True)) == arten(Leitung().tipp())
