@@ -1,6 +1,6 @@
 # Datenweg: Wetter und Termine auf dem Ruhebildschirm
 
-Stand 15.11.2026, zu #15. Wetter und Termine kommen aus Home Assistant.
+Stand 18.11.2026, zu #15. Wetter und Termine kommen aus Home Assistant.
 
 ## Wie das Wetter auf die Seite kommt
 
@@ -231,10 +231,10 @@ Karte dunkelt kurz nach, dann steht dort ein Schloss mit „Termine ausgeblendet
 mit Terminen, ohne Zahl (auch „Morgen ›“ trägt keine mehr). Per Stimme und über Elektra geht es nicht.
 
 **Entsperren** geht nur am Handy. In der Home-Assistant-App den Schalter
-`input_boolean.termine_privat` ausschalten (in der App suchen nach „termine“), zu finden unter Einstellungen → Geräte & Dienste →
+„Termine privat“ (`input_boolean.termine_privat`, Symbol Kalender mit Schloss) ausschalten, zu finden unter Einstellungen → Geräte & Dienste →
 Helfer oder auf dem Dashboard, wenn er dort liegt. Spätestens zwei Minuten später (so oft fragt der
 Dienst die Termine ab) stehen sie wieder da. Am Display gibt es keinen Weg zurück, auch keinen Code.
-Jeden Morgen um 6 Uhr schaltet eine Automation in Home Assistant den Helfer aus (nicht Teil dieses
+Jeden Morgen um 6 Uhr schaltet die Automation „Termine privat morgens aus“ in Home Assistant den Helfer aus (nicht Teil dieses
 Repos).
 
 ```
@@ -247,8 +247,12 @@ Handy: Helfer aus ─▶ HA ─▶ Dienst liest den Helfer bei jedem Terminabruf
 
 Der Helfer in Home Assistant ist die einzige Wahrheit (`pi/dienst/sperre.py`, getestet):
 
-- „on“ heißt gesperrt. „off“, „unknown“, „unavailable“ und ein Helfer, den Home Assistant nicht
-  kennt, gelten als nicht gesperrt, ohne Fehler auf der Seite.
+- „on“ heißt gesperrt, nur ein ausdrückliches „off“ hebt die Sperre auf. „unknown“, „unavailable“
+  und ein Helfer, den Home Assistant nicht kennt, lassen den Stand, wie er ist: Ein gesperrtes
+  Display bleibt gesperrt (nach einem Neustart von Home Assistant fehlt der Helfer kurz, und der
+  Besuch soll dann keine Termine sehen). Ist das Display nicht gesperrt, zählt das als frei, ohne
+  Fehler auf der Seite. Ein Neustart des Küchen-Dienstes beginnt frei und übernimmt den ersten
+  lesbaren Stand.
 - Gesperrt schickt der Dienst gar keine Termine an die Seite, weder Titel noch Zeiten noch eine
   Anzahl, und ruft sie auch nicht ab. Das Ereignis „termine“ lautet dann nur
   `{"gesperrt": true, "sperrbar": true}`. Die Seite wirft ihren Stand weg und zeigt das Schloss,

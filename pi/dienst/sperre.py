@@ -19,10 +19,16 @@ log = logging.getLogger("dienst")
 HINWEIS_FEHLER = "Sperren hat nicht geklappt"
 
 
-def als_sperre(zustand: str | None) -> bool:
-    """„on“ sperrt. Alles andere gilt als nicht gesperrt: „off“, „unknown“, „unavailable“ und ein
-    Helfer, den Home Assistant nicht kennt (None), ohne Fehler auf der Seite."""
-    return zustand == "on"
+def neuer_stand(zustand: str | None, bisher: bool) -> bool:
+    """„on“ sperrt, nur ein ausdrückliches „off“ hebt auf. Alles andere („unknown“, „unavailable“,
+    ein Helfer, den Home Assistant nicht kennt) lässt den Stand, wie er ist: Ein gesperrtes Display
+    bleibt gesperrt (nach einem Neustart von Home Assistant fehlt der Helfer kurz), ein freies bleibt
+    frei, ohne Fehler auf der Seite."""
+    if zustand == "on":
+        return True
+    if zustand == "off":
+        return False
+    return bisher
 
 
 class Sperre:
@@ -44,19 +50,21 @@ class Sperre:
 
     def abgleichen(self, ha) -> bool:
         """Liest den Helfer und übernimmt ihn. Antwortet Home Assistant nicht, bleibt der letzte Stand
-        (ein gesperrtes Display bleibt gesperrt). Gibt zurück, ob sich etwas geändert hat."""
+        (ein gesperrtes Display bleibt gesperrt); „unknown“, „unavailable“ und ein fehlender
+        Helfer lassen den Stand ebenfalls. Gibt zurück, ob sich etwas geändert hat."""
         if not self.aktiv:
             return False
         with self._lock:
             lauf = self._lauf
         try:
-            neu = als_sperre(ha.zustand(self.entitaet))
+            zustand = ha.zustand(self.entitaet)
         except (OSError, ValueError) as fehler:
             log.warning(
                 "Sperre: %s nicht lesbar, Stand bleibt: %s", self.entitaet, fehler
             )
             return False
         with self._lock:
+            neu = neuer_stand(zustand, self.gesperrt)
             if lauf != self._lauf or neu == self.gesperrt:
                 return False
             self.gesperrt = neu

@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 from hass import termine_karte
-from sperre import HINWEIS_FEHLER, Sperre, als_sperre
+from sperre import HINWEIS_FEHLER, Sperre, neuer_stand
 from test_hass import FakeHA
 
 HELFER = "input_boolean.termine_privat"
@@ -82,17 +82,22 @@ def zyklus(sperre, ha, buehne):
 
 
 @pytest.mark.parametrize(
-    "zustand,erwartet",
+    "zustand,bisher,erwartet",
     [
-        ("on", True),
-        ("off", False),
-        ("unknown", False),
-        ("unavailable", False),
-        (None, False),
+        ("on", False, True),
+        ("on", True, True),
+        ("off", True, False),
+        ("off", False, False),
+        ("unknown", True, True),
+        ("unavailable", True, True),
+        (None, True, True),
+        ("unknown", False, False),
+        ("unavailable", False, False),
+        (None, False, False),
     ],
 )
-def test_helfer_lesen(zustand, erwartet):
-    assert als_sperre(zustand) is erwartet
+def test_nur_off_hebt_auf(zustand, bisher, erwartet):
+    assert neuer_stand(zustand, bisher) is erwartet
 
 
 def test_helfer_an_sperrt_beim_abgleich():
@@ -109,15 +114,42 @@ def test_helfer_aus_entsperrt_beim_abgleich():
 
 
 @pytest.mark.parametrize("zustand", ["unknown", "unavailable"])
-def test_unbekannt_und_nicht_verfuegbar_gilt_als_frei(zustand):
+def test_unbekannt_und_nicht_verfuegbar_gilt_frei_wenn_frei(zustand):
     s = Sperre(HELFER)
-    s.abgleichen(ha_mit(zustand))
+    assert s.abgleichen(ha_mit(zustand)) is False
     assert s.gesperrt is False
+
+
+@pytest.mark.parametrize("zustand", ["unknown", "unavailable"])
+def test_unbekannt_und_nicht_verfuegbar_hebt_die_sperre_nicht_auf(zustand):
+    s = Sperre(HELFER)
+    s.gesperrt = True
+    assert s.abgleichen(ha_mit(zustand)) is False
+    assert s.gesperrt is True
 
 
 def test_fehlender_helfer_gilt_als_frei_ohne_fehler():
     s = Sperre(HELFER)
     s.abgleichen(ha_mit(None))  # 404 für die Entität
+    assert s.gesperrt is False
+
+
+def test_fehlender_helfer_hebt_die_sperre_nicht_auf():
+    s = Sperre(HELFER)
+    s.gesperrt = True
+    s.abgleichen(ha_mit(None))
+    assert s.gesperrt is True
+
+
+def test_gesperrt_ueberlebt_neustart_von_ha_und_sendet_nichts():
+    # HA startet neu: erst fehlt der Helfer, dann ist er unavailable, dann wieder off.
+    s, b = Sperre(HELFER), Buehne()
+    zyklus(s, ha_mit("on"), b)
+    for zwischen in (None, "unavailable", "unknown"):
+        zyklus(s, ha_mit(zwischen), b)
+        assert s.gesperrt is True
+    assert GEHEIM not in b.alles_als_text()
+    zyklus(s, ha_mit("off"), b)
     assert s.gesperrt is False
 
 
