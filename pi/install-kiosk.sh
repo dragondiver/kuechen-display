@@ -15,9 +15,9 @@ d=$(cd "$(dirname "$0")" && pwd)   # ~/kuechen-display, per rsync vom Mac befül
 ~/kuechen-venv/bin/python -c "import vosk" 2>/dev/null || ~/kuechen-venv/bin/pip install -q "vosk>=0.3.45,<0.4"
 VOSK_MODELL=vosk-model-small-de-0.15
 VOSK_URL="https://alphacephei.com/vosk/models/$VOSK_MODELL.zip"
-# SHA-256 der Zip-Datei. NOCH NICHT EINGETRAGEN: Sie wird erst nach Florians Freigabe des Downloads
-# gemessen (sha256sum der heruntergeladenen Datei, und gegen die Angabe auf alphacephei.com/vosk/models legen).
-VOSK_SHA256="HIER_PRUEFSUMME_EINTRAGEN"
+# SHA-256 der Zip-Datei, am 18.11.2026 auf dem Mac gemessen (shasum -a 256, 46 499 967 Bytes), nach Florians
+# Freigabe des Downloads. Die Modellseite nennt selbst keine Summe.
+VOSK_SHA256="b7e53c90b1f0a38456f4cd62b366ecd58803cd97cd42b06438e2c131713d5e43"
 if [ ! -d "$d/modelle/$VOSK_MODELL" ]; then
   if [ "$VOSK_SHA256" = "HIER_PRUEFSUMME_EINTRAGEN" ]; then
     echo "Abbruch: Für das Weckwort-Modell $VOSK_MODELL ist in pi/install-kiosk.sh (VOSK_SHA256) noch keine" >&2

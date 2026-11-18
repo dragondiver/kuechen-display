@@ -159,10 +159,8 @@ angeht.
 `pi/install-kiosk.sh` (aufgerufen von `pi/push.sh`) installiert `vosk` in `~/kuechen-venv` und holt das
 Modell nach `~/kuechen-display/modelle/vosk-model-small-de-0.15`, aber nur, wenn es fehlt. Es lädt von
 `https://alphacephei.com/vosk/models/vosk-model-small-de-0.15.zip` (rund 45 MB) und prüft die SHA-256-Summe der
-Zip-Datei, bevor es entpackt. Die Summe ist noch nicht eingetragen: In `pi/install-kiosk.sh` steht der Platzhalter
-`HIER_PRUEFSUMME_EINTRAGEN`, und solange er dort steht, bricht das Skript mit einer Meldung ab, bevor es
-etwas lädt oder die Dienste anfasst. Eintragen nach Freigabe des Downloads: Zip laden, `shasum -a 256` bilden,
-mit der Angabe auf der Modellseite vergleichen, dann in `VOSK_SHA256` setzen.
+Zip-Datei, bevor es entpackt. Die Summe steht in `VOSK_SHA256` in `pi/install-kiosk.sh` (gemessen am 18.11.2026). Steht dort der Platzhalter
+`HIER_PRUEFSUMME_EINTRAGEN`, bricht das Skript mit einer Meldung ab, bevor es etwas lädt.
 
 Fehlt das Paket oder das Modell, läuft der Dienst unverändert weiter und schreibt einmal beim Start
 `Weckwort nicht verfügbar: …` ins Journal. Die Tests und die CI brauchen kein Vosk
