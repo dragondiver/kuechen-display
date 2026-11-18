@@ -76,6 +76,44 @@ Warnung kann bis dahin stehen bleiben.
 Prüfen: Im Ereignis „wetter“ (`curl` wie oben) steht `"warnung": null` oder `{"text": …, "farbe": …,
 "mehr": …}`.
 
+## Wenn etwas fehlt
+
+Festlegung 18.11.2026 in #50. Die Seite hat drei Zeichen dafür, jedes ohne Dialog und ohne Ton.
+
+| Was fehlt | Was die Seite zeigt |
+|---|---|
+| Home Assistant antwortet länger als eine Stunde nicht | Wetterkarte und Termine blass, mit dem letzten Stand |
+| Die Bridge ist nicht erreichbar | Mikrofon blass; ein Tipp darauf zeigt vier Sekunden lang „Elektra ist gerade nicht erreichbar“ |
+| Der Pi hat kein Netz | Karten blass, unten links „Kein Netz“ |
+
+**Alter.** Wetter und Termine tragen `stand`, die Zeit ihres letzten erfolgreichen Abrufs. Die
+Seite vergleicht jede Minute: Ist `stand` mehr als eine Stunde her, wird blass (`istAlt` in
+`pi/kiosk/regeln.js`, getestet in `pi/dienst/test_regeln.py`). Genau eine Stunde gilt noch als frisch,
+ohne Stand wird nichts blass. Bei den Terminen bleiben Uhr, Datum und die Seitenüberschriften
+„Morgen“ und „Die Woche“ stehen, blass werden Überschrift der Liste, Einträge und „Morgen ›“.
+
+**Tipp ohne Bridge.** Der Dienst nimmt den Tipp dann gar nicht erst als Gesprächsbeginn: Er schickt
+das Ereignis `hinweis` mit dem Text, der Zustand bleibt „aus“, das Mikrofon geschlossen
+(`Leitung.tipp(verbunden=False)` in `pi/dienst/vertrag.py`). Die Seite zeigt den Text in der Zeile,
+in der sonst Elektras Worte stehen, und nimmt ihn nach vier Sekunden wieder weg. Mit Bridge ändert
+sich am Tipp nichts.
+
+**Kein Netz.** Der Dienst kann nicht sehen, ob das WLAN da ist, aber ob das System noch eine
+Standardroute hat: Fällt das WLAN aus, nimmt der Netzwerkdienst sie aus `/proc/net/route`. Alle
+fünf Sekunden liest `netz_schleife` (`pi/dienst/dienst.py`, Logik in `pi/dienst/netz.py`) die Datei.
+Fehlt die Route zweimal hintereinander, schickt der Dienst das Ereignis `netz` mit `da: false`, bei
+der Rückkehr mit `da: true`; neue Seiten bekommen den Stand sofort. Die Seite macht dann beide
+Karten sofort blass (ohne eine Stunde zu warten) und zeigt „Kein Netz“. Beim Zurückkommen
+verschwindet die Zeile, und das Blasse hängt wieder nur am Alter.
+
+Warum nicht „Home Assistant und Bridge beide weg“: Beide laufen auf raspi-agent. Ein abgeschalteter
+raspi-agent bei gesundem WLAN wäre dann auch „Kein Netz“, und ohne `HA_TOKEN` gäbe es kein Signal.
+Home Assistant allein ist nie „Kein Netz“, dann gilt nur die Alters-Regel. Die Route sagt nichts
+über eine Störung hinter dem Router; dann steht kein „Kein Netz“, und die Alters-Regel greift.
+
+Prüfen: Im Strom von `/ereignisse` (`curl` wie oben) steht nach dem Verbinden ein Ereignis `netz`
+nur dann, wenn es sich geändert hat.
+
 ## Einrichten
 
 Der Dienst braucht ein eigenes Token für Home Assistant. Ohne `HA_TOKEN` läuft er weiter und
@@ -166,7 +204,8 @@ Regeln:
 - Ein Termin über Mitternacht steht am Folgetag mit „bis 02:00“.
 - Kennt Home Assistant einen eingestellten Kalender nicht, steht eine Warnung im Journal und
   die übrigen Kalender erscheinen trotzdem. Antwortet Home Assistant nicht, behält die Seite
-  den letzten Stand.
+  den letzten Stand. Ist er älter als eine Stunde, werden die Termine blass, wie das Wetter
+  (siehe „Wenn etwas fehlt“).
 
 Die iCloud-Integration in Home Assistant ist ebenfalls eingerichtet, sie ist für die
 Anwesenheit da. Ihre Kalender (`calendar.florianhuber_icloud_com_…`) liest das Display nicht.

@@ -45,6 +45,7 @@ from diktat import (
 )
 from hass import HomeAssistant, termine_karte, wetter_karte
 from konfig import geheimnis
+from netz import Netz, hat_route
 from statisch import StatischOhneCache
 from vertrag import (
     RAHMEN_BYTES,
@@ -107,6 +108,7 @@ ZONE = ZoneInfo(os.environ.get("ZEITZONE", "Europe/Berlin"))
 # Termine alle zwei Minuten (Wunsch 15.11.2026), das Wetter weiter alle zehn.
 TERMINE_TAKT_S = 120
 WETTER_TAKT_S = 600
+NETZ_TAKT_S = 5
 
 log = logging.getLogger("dienst")
 leitung = Leitung()
@@ -468,7 +470,7 @@ class Handler(StatischOhneCache):
             return self.diktat(self.path.rsplit("/", 1)[1], daten)
         if self.path == "/tipp":
             with leitung_sperre:
-                ausfuehren(leitung.tipp())
+                ausfuehren(leitung.tipp(ws is not None))
         elif self.path == "/stopp":
             with leitung_sperre:
                 ausfuehren(leitung.stopp())
@@ -766,6 +768,23 @@ def daten_schleife() -> None:
         time.sleep(TERMINE_TAKT_S)
 
 
+def netz_schleife() -> None:
+    """Meldet der Seite „Kein Netz“, wenn die Standardroute fehlt (pi/dienst/netz.py, #50)."""
+    netz = Netz()
+    while True:
+        try:
+            with open("/proc/net/route") as datei:
+                route = hat_route(datei.read())
+        except OSError:
+            route = None
+        neu = netz.pruefen(route)
+        if neu is not None:
+            log.info("Netz: %s", "wieder da" if neu else "keine Standardroute")
+            letzte_daten["netz"] = {"da": neu}
+            an_seite("netz", {"da": neu})
+        time.sleep(NETZ_TAKT_S)
+
+
 # --- Bridge -------------------------------------------------------------------
 async def bruecke_schleife() -> None:
     global ws
@@ -831,7 +850,13 @@ def main() -> None:
         log.error("RUNDFUNK_GERAETE_TOKEN fehlt (siehe docs/stimme-und-geste.md)")
         sys.exit(1)
     weckwort_starten()
-    for ziel in (bruecke_faden, wiedergabe_schleife, mikro_schleife, daten_schleife):
+    for ziel in (
+        bruecke_faden,
+        wiedergabe_schleife,
+        mikro_schleife,
+        daten_schleife,
+        netz_schleife,
+    ):
         threading.Thread(target=ziel, daemon=True, name=ziel.__name__).start()
     server = ThreadingHTTPServer(("127.0.0.1", PORT), partial(Handler, directory=SEITE))
     server.daemon_threads = True

@@ -88,6 +88,13 @@
   .punkte i { width: 11px; height: 11px; border-radius: 50%; background: rgba(255,255,255,.35); }
   .punkte i.an { background: #fff; }
   .mehr[data-weiter] { cursor: pointer; }
+  /* Blass: veraltete Daten (älter als eine Stunde) oder kein Netz (#50). Uhr, Datum und die
+     Überschriften der Seiten bleiben; die Wetterkarte tritt als Ganzes zurück. */
+  .blass { opacity: .45; }
+  .scr[data-termine="blass"] :is(.kopf, .liste, .rolle, .mehr) { opacity: .45; }
+  .kein-netz { position: absolute; left: 64px; bottom: 12px; font-size: 20px; letter-spacing: 3px;
+               text-transform: uppercase; opacity: .65; pointer-events: none; }
+  .kein-netz[hidden] { display: none; }
   /* Rückmeldung für die flache Hand: kurz ein ruhiges Zeichen, keine dauernde Bewegung. */
   .stopp { position: absolute; left: 50%; top: 50%; width: 180px; height: 180px; margin: -90px 0 0 -90px; border-radius: 50%;
            display: grid; place-items: center; background: rgba(20,24,32,.45); backdrop-filter: blur(28px);
@@ -172,6 +179,7 @@
   </div>
   <div class="punkte" id="punkte"><i></i><i></i><i class="an"></i><i></i></div>
   <div class="stopp" id="stopp" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 34V16a3 3 0 0 1 6 0v14M28 30V12a3 3 0 0 1 6 0v18M34 30V14a3 3 0 0 1 6 0v18M40 32v-10a3 3 0 0 1 6 0v18c0 9-6 16-15 16-6 0-10-3-13-8l-6-10a3 3 0 0 1 5-3l3 4"/></svg></div>
+  <div class="kein-netz" id="kein-netz" hidden>Kein Netz</div>
   <div class="glas zeile" id="zeile"></div>
   <svg class="figur" id="figur" viewBox="0 0 240 250" aria-label="Elektra">
     <defs><clipPath id="fkreis"><circle cx="120" cy="112" r="92"/></clipPath></defs>
@@ -197,6 +205,7 @@
   </svg>
   <div class="debug" id="debug"></div>
 </div>
+<script src="regeln.js"></script>
 <script>
 (function () {
   const HEUTE = 2, LETZTE = 3, ZURUECK_MS = 5 * 60 * 1000;
@@ -309,12 +318,20 @@
   });
   // Wetter vom Küchen-Dienst (pi/dienst/daten.py). Ohne Daten bleibt „Keine Wetterdaten“ stehen.
   // Sind die Daten älter als eine Stunde, tritt die Karte zurück (ALT_MS), statt Falsches zu behaupten.
-  const ALT_MS = 60 * 60 * 1000;
-  let wetterStand = 0;
+  // Dieselbe Regel gilt für die Termine (#50, regeln.js) und, sofort, wenn das Netz fehlt.
+  let wetterStand = 0, termineStand = 0, netzDa = true;
   const wetterKarte = document.getElementById('w-temp').parentElement;
+  const keinNetz = document.getElementById('kein-netz');
   function wetterAlter() {
-    wetterKarte.style.opacity = wetterStand && Date.now() - wetterStand * 1000 > ALT_MS ? '.45' : '';
+    const jetzt = Date.now();
+    wetterKarte.classList.toggle('blass', !netzDa || Regeln.istAlt(wetterStand, jetzt));
+    scr.dataset.termine = !netzDa || Regeln.istAlt(termineStand, jetzt) ? 'blass' : '';
+    keinNetz.hidden = netzDa;
   }
+  quelle.addEventListener('netz', function (e) {
+    netzDa = JSON.parse(e.data).da;
+    wetterAlter();
+  });
   quelle.addEventListener('wetter', function (e) {
     const w = JSON.parse(e.data);
     document.getElementById('w-ort').textContent = w.ort;
@@ -395,6 +412,8 @@
   }
   quelle.addEventListener('termine', function (e) {
     termine = JSON.parse(e.data);
+    termineStand = termine.stand;
+    wetterAlter();
     zeigeTermine();
   });
   setInterval(zeigeTermine, 60000);
@@ -416,6 +435,16 @@
     else if (b.name === 'rezeptschritt') fehler = 'Es ist kein Rezept offen.';
     else fehler = 'Das kann die Anzeige noch nicht: ' + b.name;
     melde('/quittung', fehler ? { id: b.id, ok: false, fehler: fehler } : { id: b.id, ok: true });
+  });
+  // Kurzer Hinweis des Dienstes, z. B. wenn die Bridge fehlt (#50): in der Zeile für Elektras Text,
+  // nach vier Sekunden weg, falls dort nicht inzwischen etwas anderes steht.
+  const HINWEIS_MS = 4000;
+  let hinweisZeit = null;
+  quelle.addEventListener('hinweis', function (e) {
+    const text = JSON.parse(e.data).text;
+    zeigeZeile('hinweis', text);
+    clearTimeout(hinweisZeit);
+    hinweisZeit = setTimeout(function () { if (zeile.textContent === text) zeigeZeile('', ''); }, HINWEIS_MS);
   });
   // Tipp aufs Mikrofon oder auf die Figur: Gespräch beginnen bzw. Elektra anhalten.
   document.getElementById('figur').addEventListener('click', function (e) {

@@ -26,6 +26,8 @@ XVF_KANAELE = 6
 XVF_KANAL = 0
 ROH_BYTES = RAHMEN_PROBEN * XVF_KANAELE * 2
 
+NICHT_ERREICHBAR = "Elektra ist gerade nicht erreichbar"
+
 ZUSTAENDE = ("zuhoeren", "nachdenken", "sprechen", "aus")
 
 
@@ -52,8 +54,14 @@ class Leitung:
         self.mikro_offen = False
 
     # --- vom Display ------------------------------------------------------
-    def tipp(self) -> list[Aktion]:
-        """Tipp auf die Figur: aus → Gespräch beginnt, sprechend → Elektra hört auf, sonst → Ende."""
+    def tipp(self, verbunden: bool = True) -> list[Aktion]:
+        """Tipp auf die Figur: aus → Gespräch beginnt, sprechend → Elektra hört auf, sonst → Ende.
+        Ohne Leitung zur Bridge (#50) beginnt nichts: nur ein kurzer Hinweis für die Seite, der
+        Zustand bleibt „aus“, sonst stünde das Mikrofon offen, ohne dass jemand zuhört."""
+        if not verbunden:
+            return [
+                Aktion("anzeige", {"ereignis": "hinweis", "text": NICHT_ERREICHBAR})
+            ]
         if self.zustand == "aus":
             # Bis die Bridge den ersten Zustand schickt, gilt das Mikrofon schon als offen,
             # sonst gingen die ersten Wörter verloren.
