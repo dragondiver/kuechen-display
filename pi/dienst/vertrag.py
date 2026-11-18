@@ -144,6 +144,56 @@ class Leitung:
         return []
 
 
+LOKAL = "lokal-"
+
+
+def ist_lokal(kennung) -> bool:
+    """Ein Befehl, den der Dienst selbst ablegt (Weckwort, #89). Die Bridge kennt seine Nummer
+    nicht: Seine Quittung darf nicht zu ihr, und eine Fehler-Quittung für ihn auch nicht."""
+    return isinstance(kennung, str) and kennung.startswith(LOKAL)
+
+
+def quittung_leiten(daten: dict) -> tuple[dict | None, str | None]:
+    """Quittung der Rückweg-Erweiterung: (Nachricht an die Bridge, Journalzeile).
+
+    Für einen Befehl der Bridge geht die Quittung weiter an sie und ins Journal nur ein Fehler.
+    Für einen lokalen Befehl (Weckwort) kennt die Bridge die Nummer nicht: Es geht nichts zu ihr,
+    und das Ergebnis steht im Journal.
+    """
+    kennung = daten.get("id")
+    if ist_lokal(kennung):
+        if daten.get("ok") is True:
+            return None, f"Weckwort: {kennung} ausgeführt"
+        grund = str(daten.get("fehler", "kein Grund gemeldet"))[:120]
+        return None, f"Weckwort: {kennung} ohne Wirkung: {grund}"
+    return {
+        "type": "quittung",
+        **{k: daten[k] for k in ("id", "ok", "fehler") if k in daten},
+    }, None
+
+
+def abgelaufene_melden(alt: list[dict]) -> tuple[list[dict], list[str]]:
+    """Befehle, die niemand abgeholt hat: (Fehler-Quittungen für die Bridge, Journalzeilen für die
+    lokalen unter ihnen)."""
+    bridge: list[dict] = []
+    journal: list[str] = []
+    for befehl in alt:
+        if ist_lokal(befehl["id"]):
+            journal.append(
+                f"Weckwort: Befehl {befehl['id']} hat niemand abgeholt (Rückweg-Erweiterung weg?)"
+            )
+        else:
+            bridge.append(
+                {
+                    "type": "quittung",
+                    "id": befehl["id"],
+                    "ok": False,
+                    "fehler": "Die Anzeige ist nicht offen.",
+                }
+            )
+    return bridge, journal
+
+
 class Ablage:
     """Befehle für eine App ohne Kiosk-Seite (kuechen-display#70).
 
@@ -174,8 +224,17 @@ class Ablage:
         bekommt sie gleich (Neuladen, Rückkehr aus einer App)."""
         self.app_zuletzt = None
         self.kiosk_weg = False
-        offen = [b for zeit, b in self.befehle if jetzt - zeit < self.FRIST_S]
-        self.befehle = [(z, b) for z, b in self.befehle if jetzt - z >= self.FRIST_S]
+        offen = [
+            b
+            for zeit, b in self.befehle
+            if jetzt - zeit < self.FRIST_S and not ist_lokal(b.get("id"))
+        ]
+        # Lokale Befehle gehören der Erweiterung; die Kiosk-Seite bekommt sie nicht.
+        self.befehle = [
+            (z, b)
+            for z, b in self.befehle
+            if jetzt - z >= self.FRIST_S and not ist_lokal(b.get("id"))
+        ]
         return offen
 
     def kiosk_geht(self) -> None:

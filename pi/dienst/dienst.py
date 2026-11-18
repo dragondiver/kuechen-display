@@ -30,6 +30,7 @@ from datetime import datetime
 from functools import partial
 from http.server import ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 from zoneinfo import ZoneInfo
 
 import websockets
@@ -54,9 +55,12 @@ from vertrag import (
     Ablage,
     Aktion,
     Leitung,
+    abgelaufene_melden,
     kanal,
+    quittung_leiten,
 )
 from wach import Wach
+from weckwort import NICHTS, VOR, WECKEN, ZURUECK, Lauscher, Weckwort, erkenner_laden
 
 PORT = 8080
 SEITE = os.environ.get(
@@ -121,6 +125,7 @@ GESCHUETZT = {
     "/diktat/stopp",
     "/diktat/ergebnis",
     "/video",
+    "/rezept",
 }
 # Was das Display wach hält (#48): Elektra und Video; der Schlafwächter fragt über GET /wach.
 wach = Wach()
@@ -131,6 +136,18 @@ aufnahme_sperre = threading.Lock()
 DIKTAT_MODELL = os.environ.get("DIKTAT_MODELL", "gpt-transcribe")
 DIKTAT_TEXT_MODELL = os.environ.get("DIKTAT_TEXT_MODELL", "gpt-6-luna")
 OPENAI_DATEI = Path(os.path.expanduser("~/.config/kuechen-display/openai-key"))
+# Weckwort „Weiter“/„Zurück“ bei offenem Rezept (#89, docs/stimme-und-geste.md). Schalter: WECKWORT=an|aus
+# in der Unit (kuechen-dienst.service).
+WECKWORT_MODELL = Path(
+    os.environ.get(
+        "WECKWORT_MODELL",
+        os.path.expanduser("~/kuechen-display/modelle/vosk-model-small-de-0.15"),
+    )
+)
+weckwort = Weckwort()
+weckwort_sperre = threading.Lock()
+lauscher: Lauscher | None = None
+lokal_zaehler = 0
 
 
 # --- Seite --------------------------------------------------------------------
@@ -187,30 +204,31 @@ def ausfuehren(aktionen: list[Aktion]) -> None:
                 app_vorn = ablage.app_vorn(time.monotonic())
             if app_vorn or an_seite(art, daten) == 0:
                 log.info("Befehl %s für die App bereitgelegt", daten.get("name"))
-                with ablage_sperre:
-                    ablage.ablegen(daten, time.monotonic())
-                zeitgeber = threading.Timer(Ablage.FRIST_S + 0.5, ablage_aufraeumen)
-                zeitgeber.daemon = True
-                zeitgeber.start()
+                befehl_ablegen(daten)
+
+
+def befehl_ablegen(befehl: dict) -> None:
+    with ablage_sperre:
+        ablage.ablegen(befehl, time.monotonic())
+    zeitgeber = threading.Timer(Ablage.FRIST_S + 0.5, ablage_aufraeumen)
+    zeitgeber.daemon = True
+    zeitgeber.start()
 
 
 def ablage_aufraeumen() -> None:
-    """Befehle, die keine App abgeholt hat: laut zurückmelden."""
+    """Befehle, die keine App abgeholt hat: laut zurückmelden. Bei einem lokalen Befehl (Weckwort)
+    ins Journal, denn die Bridge kennt seine Nummer nicht."""
     try:
         with ablage_sperre:
             alt = ablage.abgelaufen(time.monotonic())
     except Exception:
         log.exception("Ablage aufräumen")
         return
-    for befehl in alt:
-        an_bruecke(
-            {
-                "type": "quittung",
-                "id": befehl["id"],
-                "ok": False,
-                "fehler": "Die Anzeige ist nicht offen.",
-            }
-        )
+    bridge, journal = abgelaufene_melden(alt)
+    for zeile in journal:
+        log.warning("%s", zeile)
+    for nachricht in bridge:
+        an_bruecke(nachricht)
 
 
 class Handler(StatischOhneCache):
@@ -220,12 +238,15 @@ class Handler(StatischOhneCache):
     def do_GET(self):
         if self.path == "/lage":
             return self.lage()
-        if self.path == "/wach":
+        if urlsplit(self.path).path == "/wach":
             return self.wach_lage()
         if self.path != "/ereignisse":
             return super().do_GET()
         with ablage_sperre:
             offen = ablage.kiosk_vorn(time.monotonic())
+        # Die Kiosk-Seite ist vorn, also ist kein Rezept offen (die Erweiterung läuft nur in https-Seiten).
+        with weckwort_sperre:
+            weckwort.rezept.zuruecksetzen()
         self.send_response(200)
         self.send_header("Content-Type", "text/event-stream")
         self.send_header("Cache-Control", "no-cache")
@@ -271,6 +292,8 @@ class Handler(StatischOhneCache):
                 "verbunden": ws is not None,
                 "befehl": befehl,
                 "diktat": aufnahme.aktiv,
+                "weckwort": weckwort_hoert(),
+                "wort": weckwort.gehoert,
             },
             ensure_ascii=False,
         ).encode()
@@ -282,10 +305,26 @@ class Handler(StatischOhneCache):
         self.wfile.write(roh)
 
     def wach_lage(self) -> None:
-        """Für den Schlafwächter (pi/schlafen): Darf das Display ausgehen?"""
+        """Für den Schlafwächter (pi/schlafen): Darf das Display ausgehen? Er meldet dabei mit
+        ?dunkel=0|1, ob es dunkel ist, und bekommt zurück, ob ein Weckwort geweckt haben will (#89)."""
+        jetzt = time.monotonic()
+        dunkel = parse_qs(urlsplit(self.path).query).get("dunkel", [None])[0]
+        with weckwort_sperre:
+            if dunkel in ("0", "1"):
+                weckwort.anzeige.melden(dunkel == "1", jetzt)
+            elif dunkel is not None:
+                log.warning("/wach: dunkel=%r ist weder 0 noch 1", dunkel[:20])
+            start, zaehler = weckwort.start, weckwort.wecken_zaehler
         with wach_sperre:
-            gruende = wach.gruende(leitung.zustand, time.monotonic())
-        roh = json.dumps({"haelt": bool(gruende), "gruende": gruende}).encode()
+            gruende = wach.gruende(leitung.zustand, jetzt)
+        roh = json.dumps(
+            {
+                "haelt": bool(gruende),
+                "gruende": gruende,
+                "start": start,
+                "wecken": zaehler,
+            }
+        ).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Cache-Control", "no-store")
@@ -401,6 +440,21 @@ class Handler(StatischOhneCache):
             self.send_response(204)
             self.end_headers()
             return
+        if self.path == "/rezept":
+            # Die Rückweg-Erweiterung meldet alle 2 s, ob ein Rezept von mise-en-place offen ist (#89).
+            offen = daten.get("offen")
+            if not isinstance(offen, bool):
+                log.warning("Rezept-Meldung ohne offen=true/false: %s", roh[:80])
+                self.send_error(400)
+                return
+            with weckwort_sperre:
+                vorher = weckwort.rezept.offen
+                weckwort.rezept.melden(offen, time.monotonic())
+            if offen != vorher:
+                log.info("Rezept: %s", "offen" if offen else "zu")
+            self.send_response(204)
+            self.end_headers()
+            return
         if self.path in ("/diktat/start", "/diktat/stopp", "/diktat/ergebnis"):
             return self.diktat(self.path.rsplit("/", 1)[1], daten)
         if self.path == "/tipp":
@@ -410,12 +464,11 @@ class Handler(StatischOhneCache):
             with leitung_sperre:
                 ausfuehren(leitung.stopp())
         elif self.path == "/quittung":
-            an_bruecke(
-                {
-                    "type": "quittung",
-                    **{k: daten[k] for k in ("id", "ok", "fehler") if k in daten},
-                }
-            )
+            nachricht, zeile = quittung_leiten(daten)
+            if nachricht:
+                an_bruecke(nachricht)
+            if zeile:
+                log.info("%s", zeile)
         elif self.path == "/geste":
             # Vom Kameradienst: an die Seite (Blättern, Rückmeldung) und Stopp an die Bridge.
             log.info("Geste: %s", daten)
@@ -435,6 +488,83 @@ class Handler(StatischOhneCache):
             return
         self.send_response(204)
         self.end_headers()
+
+
+# --- Weckwort -----------------------------------------------------------------
+WORT_TEXT = {VOR: "weiter", ZURUECK: "zurück"}  # fürs Journal: das gesagte Wort
+
+
+def weckwort_belegt() -> bool:
+    """Elektra, ein Diktat oder Wiedergabe sind dran: Dann wertet die Erkennung nichts aus."""
+    return (
+        leitung.zustand != "aus"
+        or leitung.mikro_offen
+        or aufnahme.aktiv
+        or not wiedergabe.empty()
+    )
+
+
+def weckwort_hoert() -> bool:
+    """Bekommt die Erkennung gerade Ton? Zeigt die Rückweg-Leiste an. Ohne Erkennung nie."""
+    if lauscher is None or not lauscher.bereit:
+        return False
+    with weckwort_sperre:
+        return weckwort.hoert(weckwort_belegt(), time.monotonic())
+
+
+def weckwort_text(text: str) -> None:
+    """Läuft im Faden der Erkennung: ein Ergebnis auswerten und ausführen."""
+    jetzt = time.monotonic()
+    with weckwort_sperre:
+        treffer = weckwort.wort(text, weckwort_belegt(), jetzt)
+        zaehler = weckwort.wecken_zaehler
+    if treffer is None or treffer.aktion == NICHTS:
+        return
+    if treffer.aktion == WECKEN:
+        log.info(
+            "Weckwort „%s“: wecken (%s), Zähler %d",
+            WORT_TEXT[treffer.wort],
+            treffer.grund,
+            zaehler,
+        )
+        return
+    global lokal_zaehler
+    lokal_zaehler += 1  # nur dieser Faden schreibt
+    richtung = "vor" if treffer.aktion == VOR else "zurueck"
+    with wach_sperre:
+        wach.wort_gehoert(jetzt)
+    log.info("Weckwort „%s“: blättern %s", WORT_TEXT[treffer.wort], richtung)
+    befehl_ablegen(
+        {
+            "id": f"lokal-{lokal_zaehler}",
+            "name": "rezeptschritt",
+            "argumente": {"richtung": richtung},
+        }
+    )
+
+
+def weckwort_starten() -> None:
+    """Schalter WECKWORT=an|aus; Vosk und Modell werden erst hier geladen. Jeder Ausgang ins
+    Journal, auch der stille Fall „aus“."""
+    global lauscher
+    schalter = os.environ.get("WECKWORT", "an").strip().lower()
+    if schalter == "aus":
+        log.info("Weckwort aus (WECKWORT=aus in der Unit)")
+        return
+    if schalter != "an":
+        log.error(
+            "WECKWORT=%r geht nicht (an oder aus), das Weckwort bleibt aus", schalter
+        )
+        return
+    erkenner, fehler = erkenner_laden(WECKWORT_MODELL, RATE)
+    if erkenner is None:
+        log.error("Weckwort nicht verfügbar: %s", fehler)
+        return
+    lauscher = Lauscher(erkenner, weckwort_text)
+    threading.Thread(target=lauscher.lauf, daemon=True, name="weckwort").start()
+    log.info(
+        "Weckwort bereit (Modell %s), hört bei offenem Rezept zu", WECKWORT_MODELL.name
+    )
 
 
 # --- Ton ----------------------------------------------------------------------
@@ -538,6 +668,8 @@ def mikro_schleife() -> None:
             if aufnahme.aktiv:
                 with aufnahme_sperre:
                     aufnahme.rahmen(ton)
+            if lauscher is not None:
+                lauscher.rahmen(ton, weckwort_hoert())
         log.warning("arecord beendet (Code %s), starte neu", prozess.wait())
         time.sleep(2)
 
@@ -687,6 +819,7 @@ def main() -> None:
     if geheimnis("RUNDFUNK_GERAETE_TOKEN", TOKEN_DATEI) is None:
         log.error("RUNDFUNK_GERAETE_TOKEN fehlt (siehe docs/stimme-und-geste.md)")
         sys.exit(1)
+    weckwort_starten()
     for ziel in (bruecke_faden, wiedergabe_schleife, mikro_schleife, daten_schleife):
         threading.Thread(target=ziel, daemon=True, name=ziel.__name__).start()
     server = ThreadingHTTPServer(("127.0.0.1", PORT), partial(Handler, directory=SEITE))

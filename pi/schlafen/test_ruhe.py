@@ -338,3 +338,58 @@ def test_touch_name_stimmt_mit_der_labwc_regel_ueberein():
     labwc = (HIER.parent / "kiosk" / "labwc-rc.xml").read_text()
     assert f'deviceName="{TOUCH_NAME}"' in labwc
     assert f'mapToOutput="{AUSGANG}"' in labwc
+
+
+# --- Weckwort (#89) ---------------------------------------------------------------------
+def test_weckwort_weckt_ein_schlafendes_display_und_startet_die_ruhezeit_neu():
+    r = Ruhe(300, 0.0)
+    r.ruhig(1.0)
+    r.eingeschlafen()
+    assert r.weckwort(400.0) == WECKEN
+    r.aufgewacht(400.0)
+    assert r.tick(699.0) == NICHTS
+    assert r.tick(700.0) == SCHLAFEN
+
+
+def test_weckwort_bei_hellem_display_schiebt_die_ruhezeit_nur_hinaus():
+    r = Ruhe(300, 0.0)
+    r.ruhig(1.0)
+    assert r.weckwort(200.0) == NICHTS
+    assert r.tick(300.0) == NICHTS
+    assert r.tick(500.0) == SCHLAFEN
+
+
+def test_weckzaehler_merkt_beim_ersten_mal_nur_den_stand():
+    from ruhe import WeckZaehler
+
+    z = WeckZaehler()
+    assert z.neu(111, 4) is False  # Wächter startet, der Dienst zählt schon 4
+    assert z.neu(111, 4) is False
+    assert z.neu(111, 5) is True
+    assert z.neu(111, 5) is False
+
+
+def test_weckzaehler_zaehlt_mehrere_auf_einmal_als_ein_wecken():
+    from ruhe import WeckZaehler
+
+    z = WeckZaehler()
+    z.neu(1, 0)
+    assert z.neu(1, 3) is True
+
+
+def test_weckzaehler_neuer_start_des_dienstes_weckt_nicht_von_selbst():
+    from ruhe import WeckZaehler
+
+    z = WeckZaehler()
+    z.neu(1, 7)
+    assert z.neu(2, 0) is False  # Dienst neu gestartet, Zähler wieder bei 0
+    assert z.neu(2, 1) is True  # und das nächste Wort kommt trotzdem an
+
+
+@pytest.mark.parametrize("start,zaehler", [(None, None), ("x", 1), (1, None), (1, "2")])
+def test_weckzaehler_unlesbare_antwort_weckt_nicht(start, zaehler):
+    from ruhe import WeckZaehler
+
+    z = WeckZaehler()
+    z.neu(1, 0)
+    assert z.neu(start, zaehler) is False

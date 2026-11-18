@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Auf dem Pi: bash ~/kuechen-display/install-kiosk.sh   (idempotent, fragt sudo für die Dienste)
 # Vom Mac aus ruft pi/push.sh dieses Skript auf (docs/deploy.md).
-# Richtet Küchen-Dienst, Schlafwächter, Kameradienst und Chromium-Kiosk ein.
+# Richtet Küchen-Dienst (mit Weckwort), Schlafwächter, Kameradienst und Chromium-Kiosk ein.
 # Anleitung: docs/stimme-und-geste.md und docs/kiosk-und-gesten.md
 set -euo pipefail
 d=$(cd "$(dirname "$0")" && pwd)   # ~/kuechen-display, per rsync vom Mac befüllt
@@ -9,6 +9,32 @@ d=$(cd "$(dirname "$0")" && pwd)   # ~/kuechen-display, per rsync vom Mac befül
 # Küchen-Dienst: Seite, Bridge, Ton. Braucht nur websockets.
 [ -d ~/kuechen-venv ] || python3 -m venv ~/kuechen-venv
 ~/kuechen-venv/bin/python -c "import websockets" 2>/dev/null || ~/kuechen-venv/bin/pip install -q "websockets>=15,<16"
+
+# Weckwort (#89, docs/stimme-und-geste.md): Vosk im selben venv, das deutsche Modell nur, wenn es fehlt.
+# Ohne beides läuft der Dienst trotzdem; er schreibt dann einen Fehler ins Journal und lässt das Weckwort aus.
+~/kuechen-venv/bin/python -c "import vosk" 2>/dev/null || ~/kuechen-venv/bin/pip install -q "vosk>=0.3.45,<0.4"
+VOSK_MODELL=vosk-model-small-de-0.15
+VOSK_URL="https://alphacephei.com/vosk/models/$VOSK_MODELL.zip"
+# SHA-256 der Zip-Datei. NOCH NICHT EINGETRAGEN: Sie wird erst nach Florians Freigabe des Downloads
+# gemessen (sha256sum der heruntergeladenen Datei, und gegen die Angabe auf alphacephei.com/vosk/models legen).
+VOSK_SHA256="HIER_PRUEFSUMME_EINTRAGEN"
+if [ ! -d "$d/modelle/$VOSK_MODELL" ]; then
+  if [ "$VOSK_SHA256" = "HIER_PRUEFSUMME_EINTRAGEN" ]; then
+    echo "Abbruch: Für das Weckwort-Modell $VOSK_MODELL ist in pi/install-kiosk.sh (VOSK_SHA256) noch keine" >&2
+    echo "Prüfsumme eingetragen. Ohne sie wird nichts heruntergeladen. Siehe docs/stimme-und-geste.md, Weckwort." >&2
+    exit 1
+  fi
+  mkdir -p "$d/modelle"
+  tmp=$(mktemp -d "$d/modelle/.laden.XXXXXX")
+  trap 'rm -rf "$tmp"' EXIT
+  curl -sSfL -o "$tmp/modell.zip" "$VOSK_URL"
+  echo "$VOSK_SHA256  $tmp/modell.zip" | sha256sum -c --status - \
+    || { echo "Abbruch: Prüfsumme von $VOSK_URL stimmt nicht, Datei verworfen." >&2; exit 1; }
+  python3 -m zipfile -e "$tmp/modell.zip" "$tmp/entpackt"
+  [ -d "$tmp/entpackt/$VOSK_MODELL" ] || { echo "Abbruch: $VOSK_MODELL fehlt im Archiv." >&2; exit 1; }
+  mv "$tmp/entpackt/$VOSK_MODELL" "$d/modelle/$VOSK_MODELL"
+  echo "neu: $d/modelle/$VOSK_MODELL"
+fi
 
 # Kameradienst: MediaPipe, mit System-Paketen für picamera2 und libcamera.
 [ -d ~/gesten-venv ] || python3 -m venv --system-site-packages ~/gesten-venv

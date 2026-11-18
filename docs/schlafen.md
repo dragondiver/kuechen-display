@@ -2,6 +2,7 @@
 
 Stand 16.11.2026, zu #48. Das Display geht nach 5 Minuten ohne Berührung aus und mit einem Tipp wieder an.
 Der erste Tipp weckt nur: Er öffnet keine Kachel, startet kein Gespräch und klickt nichts in einer App.
+Seit #89 weckt bei offenem Rezept auch das Wort „Weiter“ oder „Zurück“ (Abschnitt unten).
 Wach bleibt es, solange ein Video läuft oder Elektra spricht oder ein Gespräch läuft. Spotify allein hält es
 nicht wach. Nachts und im Akkubetrieb ist damit noch nichts entschieden, das bleibt in #48 offen.
 
@@ -33,6 +34,15 @@ dem Küchen-Dienst. Er setzt sich aus drei Quellen zusammen.
   (Spotifys Canvas) und mindestens ein Fünftel des Fensters füllt (`pi/dienst/wach.py`). Bleibt die Meldung
   20 Sekunden aus, gilt das Video als beendet. Endet etwas, das wach gehalten hat, beginnen die 5 Minuten
   von da an neu.
+- Weckwort (#89): Der Küchen-Dienst hört bei offenem Rezept auf „Weiter“ und „Zurück“
+  (`docs/stimme-und-geste.md`). Bei dunklem Display weckt das Wort nur und blättert nicht. Dafür melden sich
+  Wächter und Dienst gegenseitig: Der Wächter hängt an jede Frage `?dunkel=0` oder `?dunkel=1` an, der Dienst
+  antwortet zusätzlich mit `start` (ändert sich bei jedem Start des Dienstes) und `wecken` (Zähler der Wörter,
+  die das Display wecken sollen). Steigt der Zähler bei gleichem `start`, schaltet der Wächter das Display ein
+  und die 5 Minuten beginnen neu. Bei dunklem Display fragt er jede Sekunde statt alle 5, damit das Wecken
+  nicht bis zu 5 Sekunden dauert. Vor dem Ausschalten meldet er „dunkel“ und erst dann schaltet er ab; nach
+  dem Einschalten meldet er „hell“. Schlägt das Einschalten fehl, gilt das Display weiter als dunkel.
+  Erster Stand nach dem Start des Wächters oder des Dienstes wird nur gemerkt, er weckt nichts nachträglich.
 - Entscheidung: `pi/schlafen/ruhe.py` ist reine Logik ohne Hardware und Uhr, mit Tests in `test_ruhe.py`.
 
 Beim Ausschalten merkt sich der Wächter die Helligkeit (`/sys/class/backlight/10-0045/brightness`), setzt sie
@@ -52,7 +62,8 @@ schaltet er das Display an und gibt den Touch erst frei, wenn der Finger wieder 
 5 Sekunden. So kommt weder das Aufsetzen noch das Loslassen in einem Fenster an. Eingaben, die nicht vom
 Touch kommen (VNC, eine Tastatur), wecken ebenfalls, ohne dass es etwas zu verschlucken gibt. Elektra weckt
 das Display nicht: Spricht sie bei dunklem Display von sich aus (eine Erinnerung), bleibt es dunkel und sie
-kommt nur als Ton. Wach halten verhindert das Einschlafen, aufwecken kann es nichts. Läuft beim Wecken per
+kommt nur als Ton. Wach halten verhindert das Einschlafen, aufwecken kann es nichts. Aufwecken kann nur eine
+Eingabe oder, bei offenem Rezept, das gesprochene „Weiter“ oder „Zurück“. Läuft beim Wecken per
 Tipp noch ein Gespräch oder ein Video, beginnen die 5 Minuten erst nach dessen Ende.
 
 ### Wenn etwas ausfällt
@@ -62,6 +73,9 @@ Im Zweifel bleibt das Display an. Das gilt für jeden Fall, den der Wächter erk
 - `swayidle` stirbt: Fehler im Journal, Display an, nach 5 Sekunden neuer Start. Bis es wieder läuft, wird
   nicht geschlafen.
 - Der Küchen-Dienst antwortet nicht: gilt als „hält wach“.
+- Der Wächter meldet sich beim Dienst nicht (ausgeschaltet, hängt): Nach 15 Sekunden gilt das Display dem
+  Dienst als „Zustand unbekannt“. Dann weckt das Weckwort nur und blättert nicht, und im Journal des Dienstes
+  steht „Zustand des Displays unbekannt“. Das ist Absicht: Ein dunkles Display soll nie unbemerkt blättern.
 - Der Touch lässt sich nicht sperren (Gerät nicht gefunden, keine Rechte) oder `wlopm` und die Beleuchtung
   gehen beide nicht: Fehler im Journal, das Display bleibt an, nächster Versuch nach einer Minute.
 - Das Einschalten klappt nicht: Fehler im Journal, alle 3 Sekunden ein neuer Versuch.
@@ -142,7 +156,8 @@ unten). Am Gerät mit Florian durchgehen, in dieser Reihenfolge:
    ```
 7. Spotify allein: Musik auf dem Evoke spielen, die Spotify-Seite offen lassen. Das Display geht nach der
    Ruhezeit aus, die Musik läuft weiter. `curl -s localhost:8080/wach` zeigt dabei `"haelt": false`.
-8. Zum Schluss `RUHE_S=300` zurücksetzen (`pi/push.sh`) und prüfen, dass die Datei wieder 300 sagt.
+8. Weckwort bei dunklem Display: Abnahme in `docs/stimme-und-geste.md`, Abschnitt „Weckwort“ (Punkt 4 dort).
+9. Zum Schluss `RUHE_S=300` zurücksetzen (`pi/push.sh`) und prüfen, dass die Datei wieder 300 sagt.
 
 ## Nicht gemessen
 
@@ -160,6 +175,10 @@ Alles unten steht auf Annahmen aus Quelltext und Handbuch, nicht aus einem Lauf 
 - Die Grenze von einem Fünftel der Fensterfläche für „ein Video“ und ob YouTube, Spotify und die Seiten
   der späteren Apps `<video>` so benutzen wie angenommen. Videos in eingebetteten Frames und im Shadow DOM
   sieht die Erweiterung nicht.
+- Das Weckwort (#89): Wie schnell ein gesprochenes Wort das dunkle Display einschaltet (Erkennung, Zähler,
+  Frage jede Sekunde, `wlopm --on`), ob die Seite bei dunklem Display als verborgen gilt und ihre Zeitgeber
+  gedrosselt werden, und ob `EVIOCGRAB` beim Wecken ohne Berührung etwas stört (es gibt dann keine Sperre
+  zu lösen, der Weg ist wie bei „Eingabe nicht Touch“).
 - Die Ersparnis an Strom. Aus #48 gilt: Beleuchtung aus spart rund 1,5 bis 2 W, ob der abgeschaltete
   Ausgang mehr bringt, ist offen.
 

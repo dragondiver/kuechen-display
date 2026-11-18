@@ -7,6 +7,7 @@ kommt als Argument. So lässt sich alles ohne Pi testen (test_ruhe.py). Was am G
 Drei Bausteine:
 - konfig_lesen: schlafen.conf, mit lauten Rückfallwerten statt stillem Verwerfen
 - Ruhe: Ist Ruhe erreicht, hält etwas wach, soll geweckt werden?
+- WeckZaehler: Hat der Küchen-Dienst ein Weckwort gehört (#89)? Zählt, ob es ein neues gibt.
 - WeckTipp: Wann beginnt der Tipp, der das Display weckt, und wann ist er zu Ende? Bis dahin
   bekommt ihn nur der Wächter, kein Fenster.
 """
@@ -97,6 +98,9 @@ class Ruhe:
       er nicht antwortet: im Zweifel an). Das verhindert das Einschlafen, weckt aber ein
       schlafendes Display nicht (Festlegung 16.11.2026: Elektra, auch mit Erinnerung, lässt es
       dunkel; nur Berührung oder andere Eingabe wecken)
+    - weckwort(t): der Küchen-Dienst hat „Weiter“ oder „Zurück“ gehört und das Display war (oder
+      galt als) dunkel. Weckt ein schlafendes Display wie eine Eingabe und startet die Ruhezeit neu,
+      verschluckt aber keine Berührung, denn es gab keine
     - eingeschlafen(t) / aufgewacht(t): der Wächter hat das Display aus- bzw. eingeschaltet
     - tick(t): alle Sekunde; sagt SCHLAFEN, WECKEN oder NICHTS
 
@@ -129,6 +133,10 @@ class Ruhe:
         weiß davon nichts und bleibt „ruhig“."""
         self.letzte_eingabe = max(self.letzte_eingabe, jetzt)
 
+    def weckwort(self, jetzt: float) -> str:
+        self.letzte_eingabe = max(self.letzte_eingabe, jetzt)
+        return WECKEN if self.schlaeft else NICHTS
+
     def eingabe_unbekannt(self) -> str:
         """swayidle fehlt: Ob jemand tippt, ist nicht zu sehen. Im Zweifel an."""
         self.eingabe_laeuft = True
@@ -160,6 +168,31 @@ class Ruhe:
         if self.letzter_halt is not None:
             letzte = max(letzte, self.letzter_halt)
         return SCHLAFEN if jetzt - letzte >= self.ruhe_s else NICHTS
+
+
+# --- Weckwort ----------------------------------------------------------------------------
+class WeckZaehler:
+    """Erkennt an der Antwort von GET /wach, ob der Küchen-Dienst ein neues Weckwort meldet.
+
+    Die Antwort trägt `start` (ändert sich bei jedem Start des Küchen-Dienstes) und `wecken` (Zähler
+    seit diesem Start). Beim ersten Mal und nach einem neuen `start` wird nur der Stand gemerkt:
+    Ein Wecken, das vor dem Start des Wächters oder des Dienstes lag, soll nicht nachträglich
+    das Display einschalten. Steigt der Zähler danach, ist es ein neues Wort.
+    """
+
+    def __init__(self) -> None:
+        self.start = None
+        self.zaehler = 0
+
+    def neu(self, start, zaehler) -> bool:
+        if not isinstance(start, int) or not isinstance(zaehler, int):
+            return False  # alter Dienst oder unlesbare Antwort: nichts zu wecken
+        if start != self.start:
+            self.start, self.zaehler = start, zaehler
+            return False
+        gestiegen = zaehler > self.zaehler
+        self.zaehler = zaehler
+        return gestiegen
 
 
 # --- Weck-Tipp ---------------------------------------------------------------------------

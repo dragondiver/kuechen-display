@@ -105,3 +105,23 @@ def test_nur_musik_haelt_nicht_wach():
     w = Wach()
     w.video_melden([film(bild=False)], 0.0)
     assert w.gruende("aus", 1.0) == []
+
+
+# --- Weckwort (#89) ---------------------------------------------------------------------
+def test_weckwort_haelt_wach_bis_der_waechter_gefragt_hat():
+    from wach import WORT_HALT_S
+
+    w = Wach()
+    w.wort_gehoert(100.0)
+    assert w.gruende("aus", 100.0 + WORT_HALT_S - 0.1) == ["weckwort"]
+    assert w.gruende("aus", 100.0 + WORT_HALT_S) == []
+
+
+def test_weckwort_haelt_laenger_als_der_fragetakt_des_waechters():
+    from wach import WORT_HALT_S
+
+    assert WORT_HALT_S > 5.0  # WACH_TAKT_S in pi/schlafen/schlafwaechter.py
+
+
+def test_ohne_weckwort_kein_grund():
+    assert Wach().gruende("aus", 10.0) == []
