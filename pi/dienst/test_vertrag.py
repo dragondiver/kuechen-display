@@ -1,4 +1,5 @@
 import json
+import logging
 from array import array
 
 from vertrag import RAHMEN_BYTES, ROH_BYTES, Ablage, Leitung, kanal
@@ -278,3 +279,22 @@ def test_kiosk_seite_bekommt_keinen_lokalen_befehl():
     offen = a.kiosk_vorn(10.5)
     assert [b["id"] for b in offen] == [3]
     assert a.abgelaufen(100.0) == []  # auch nicht als „abgelaufen“ übrig
+
+
+def test_verworfener_lokaler_befehl_kommt_ins_journal(caplog):
+    a = Ablage()
+    a.ablegen({"id": "lokal-7", "name": "rezeptschritt"}, 10.0)
+    a.ablegen({"id": 3}, 10.0)
+    with caplog.at_level(logging.WARNING, logger="dienst"):
+        offen = a.kiosk_vorn(10.5)
+    assert offen == [{"id": 3}]
+    zeilen = [r.getMessage() for r in caplog.records]
+    assert len(zeilen) == 1 and "lokal-7" in zeilen[0]
+
+
+def test_ohne_lokalen_befehl_bleibt_das_journal_leer(caplog):
+    a = Ablage()
+    a.ablegen({"id": 3}, 10.0)
+    with caplog.at_level(logging.WARNING, logger="dienst"):
+        a.kiosk_vorn(10.5)
+    assert not caplog.records

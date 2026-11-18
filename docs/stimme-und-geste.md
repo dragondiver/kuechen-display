@@ -137,7 +137,7 @@ wie „Weiter“ (Ergänzung zur Festlegung vom 18.11.2026).
   Einschlafen offenes Rezept bleibt offen, bis das Display wieder an ist oder die Kiosk-Seite sich meldet. Die
   Erweiterung meldet beim Verlassen der Seite „zu“, und der Dienst setzt „offen“ zurück, wenn die Kiosk-Seite
   sich verbindet.
-- Display dunkel oder hell: Der Schlafwächter meldet es mit `GET /wach?dunkel=0|1` (`docs/schlafen.md`). Eine
+- Display dunkel oder hell: Der Schlafwächter meldet es mit `GET /wach?dunkel=0|1` und dem Header `X-Kuechen: 1` (`docs/schlafen.md`; ohne Header antwortet der Dienst 403, das reine Lesen von `/wach` braucht ihn nicht). Schlägt die Meldung fehl, wiederholt der Wächter sie dreimal und schreibt jeden Fehlschlag ins Journal. Eine
   Meldung gilt 15 Sekunden. Davor und danach ist der Zustand unbekannt, und unbekannt heißt wecken, nicht
   blättern: Ein Wecken bei hellem Display schadet nicht, ein Blättern bei dunklem bliebe unbemerkt.
 - Blättern bei hellem Display: Der Dienst legt in die Ablage (`Ablage`, wie ein Befehl der Bridge) einen lokalen
@@ -160,7 +160,9 @@ angeht.
 Modell nach `~/kuechen-display/modelle/vosk-model-small-de-0.15`, aber nur, wenn es fehlt. Es lädt von
 `https://alphacephei.com/vosk/models/vosk-model-small-de-0.15.zip` (rund 45 MB) und prüft die SHA-256-Summe der
 Zip-Datei, bevor es entpackt. Die Summe steht in `VOSK_SHA256` in `pi/install-kiosk.sh` (gemessen am 18.11.2026). Steht dort der Platzhalter
-`HIER_PRUEFSUMME_EINTRAGEN`, bricht das Skript mit einer Meldung ab, bevor es etwas lädt.
+`HIER_PRUEFSUMME_EINTRAGEN`, lädt das Skript nichts und meldet das. Das Weckwort darf beim Einrichten ausfallen (Pi offline, Download oder
+Prüfsumme schlägt fehl): Das Skript nennt den Grund, richtet Dienst, Wächter und Kiosk trotzdem ein und weist am
+Ende noch einmal darauf hin. Ein erneuter Lauf mit Netz holt Vosk und das Modell nach.
 
 Fehlt das Paket oder das Modell, läuft der Dienst unverändert weiter und schreibt einmal beim Start
 `Weckwort nicht verfügbar: …` ins Journal. Die Tests und die CI brauchen kein Vosk

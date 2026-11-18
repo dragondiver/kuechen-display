@@ -36,7 +36,7 @@ dem Küchen-Dienst. Er setzt sich aus drei Quellen zusammen.
   von da an neu.
 - Weckwort (#89): Der Küchen-Dienst hört bei offenem Rezept auf „Weiter“ und „Zurück“
   (`docs/stimme-und-geste.md`). Bei dunklem Display weckt das Wort nur und blättert nicht. Dafür melden sich
-  Wächter und Dienst gegenseitig: Der Wächter hängt an jede Frage `?dunkel=0` oder `?dunkel=1` an, der Dienst
+  Wächter und Dienst gegenseitig: Der Wächter hängt an jede Frage `?dunkel=0` oder `?dunkel=1` an (dann mit dem Header `X-Kuechen: 1`, sonst antwortet der Dienst 403), der Dienst
   antwortet zusätzlich mit `start` (ändert sich bei jedem Start des Dienstes) und `wecken` (Zähler der Wörter,
   die das Display wecken sollen). Steigt der Zähler bei gleichem `start`, schaltet der Wächter das Display ein
   und die 5 Minuten beginnen neu. Bei dunklem Display fragt er jede Sekunde statt alle 5, damit das Wecken
