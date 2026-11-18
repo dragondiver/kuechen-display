@@ -92,6 +92,13 @@
      Überschriften der Seiten bleiben; die Wetterkarte tritt als Ganzes zurück. */
   .blass { opacity: .45; }
   .scr[data-termine="blass"] :is(.kopf, .liste, .rolle, .mehr) { opacity: .45; }
+  /* Gesperrt (#82): Schloss statt der Einträge, ohne Zahl. Die Karte dunkelt beim langen Drücken kurz nach,
+     wie die Kacheln beim Antippen. */
+  .sperre { display: flex; align-items: center; gap: 18px; padding: 16px 0; border-top: 1px solid rgba(255,255,255,.14); }
+  .sperre svg { width: 40px; height: 40px; flex: none; opacity: .75; }
+  .sperre .titel { font-size: 26px; font-weight: 400; opacity: .65; }
+  .glas[data-termine] { transition: background .2s; }
+  .glas[data-termine].gedrueckt { background: rgba(20,24,32,.6); }
   .kein-netz { position: absolute; left: 64px; bottom: 12px; font-size: 20px; letter-spacing: 3px;
                text-transform: uppercase; opacity: .65; pointer-events: none; }
   .kein-netz[hidden] { display: none; }
@@ -149,7 +156,7 @@
       <div class="app"><div class="symbol"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="34" r="18"/><path d="M32 24v10l7 5M26 12h12"/></svg></div><div class="appname">Timer</div></div>
     </div></div>
     <div class="seite">
-      <div class="glas spalte" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px;">
+      <div class="glas spalte" data-termine style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px;">
         <div class="uhr" id="uhr">--:--</div>
         <div class="datum" id="datum"></div>
         <div class="kopf">Noch heute</div>
@@ -165,13 +172,13 @@
       </div>
     </div>
     <div class="seite">
-      <div class="glas spalte" style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px 0;">
+      <div class="glas spalte" data-termine style="position:absolute;left:48px;top:48px;bottom:48px;width:640px;padding:44px 48px 0;">
         <div class="uhr">Morgen</div>
         <div class="datum" id="datum-morgen"></div>
         <div class="kopf" id="t-morgen-kopf"></div>
         <div class="rolle" id="t-morgen"></div>
       </div>
-      <div class="glas spalte" style="position:absolute;right:48px;top:48px;bottom:48px;width:460px;padding:40px 44px 0;">
+      <div class="glas spalte" data-termine style="position:absolute;right:48px;top:48px;bottom:48px;width:460px;padding:40px 44px 0;">
         <div class="ort">Die Woche</div>
         <div class="rolle" id="t-woche"></div>
       </div>
@@ -240,6 +247,35 @@
   // Richtung wie auf dem Touchscreen: nach links wischen holt die rechte Seite herein.
   function wischen(richtung) { setzeSeite(seite + (richtung === 'links' ? 1 : -1)); }
 
+  // Lang drücken auf eine Terminkarte sperrt die Termine (#82). Der Druck zählt nur, wenn der Finger
+  // fast still liegt (Regeln.langerDruck); danach schluckt die Seite den Klick, der auf das Loslassen
+  // folgt, damit „Morgen ›“ oder eine Kachel nicht nebenbei auslöst.
+  let sperrbar = false, gesperrt = false, druck = null, klickSchlucken = false;
+  function druckAbbrechen() { if (druck) { clearTimeout(druck.timer); druck = null; } }
+  function druckBeginnt(e) {
+    druckAbbrechen();
+    klickSchlucken = false;
+    const karte = e.target.closest('[data-termine]');
+    if (!karte || !sperrbar || gesperrt || e.target.closest('.mehr[data-weiter]')) return;
+    const d = { x: e.clientX, y: e.clientY, t: Date.now(), karte: karte };
+    d.timer = setTimeout(function () { druckZaehlt(d); }, Regeln.LANG_MS);
+    druck = d;
+  }
+  function druckZaehlt(d) {
+    if (druck !== d) return;
+    druck = null;
+    start = null;
+    klickSchlucken = true;
+    d.karte.classList.add('gedrueckt');
+    setTimeout(function () { d.karte.classList.remove('gedrueckt'); klickSchlucken = false; }, 1500);
+    melde('/sperren');
+  }
+  addEventListener('click', function (e) {
+    if (!klickSchlucken) return;
+    klickSchlucken = false;
+    e.stopPropagation(); e.preventDefault();
+  }, true);
+  document.addEventListener('contextmenu', function (e) { if (e.target.closest('[data-termine]')) e.preventDefault(); });
   let weg = 0;  // wie weit der Finger zuletzt gezogen hat; ein Wischer über eine Kachel öffnet sie nicht
   document.addEventListener('click', function (e) {
     if (e.target.closest('.mehr[data-weiter]')) setzeSeite(LETZTE);
@@ -251,17 +287,20 @@
   // Finger. Rollt der Browser doch selbst, kommt pointercancel und die Seite hält sich raus.
   let start = null;
   document.addEventListener('pointerdown', function (e) {
+    druckBeginnt(e);
     const liste = e.target.closest('.liste, .rolle');
     start = { x: e.clientX, y: e.clientY, liste: liste, oben: liste ? liste.scrollTop : 0, rollt: false };
   });
   document.addEventListener('pointermove', function (e) {
+    if (druck && !Regeln.langerDruck(Regeln.LANG_MS, Math.hypot(e.clientX - druck.x, e.clientY - druck.y))) druckAbbrechen();
     if (!start || !start.liste) return;
     const dx = e.clientX - start.x, dy = e.clientY - start.y;
     if (!start.rollt && Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) start.rollt = true;
     if (start.rollt) start.liste.scrollTop = start.oben - dy;
   });
-  document.addEventListener('pointercancel', function () { start = null; });
+  document.addEventListener('pointercancel', function () { start = null; druckAbbrechen(); });
   document.addEventListener('pointerup', function (e) {
+    druckAbbrechen();
     if (!start) return;
     const dx = e.clientX - start.x, dy = e.clientY - start.y;
     weg = Math.hypot(dx, dy);
@@ -384,6 +423,22 @@
   }
   heuteListe.addEventListener('scroll', weiterZeichen);
   function anzahl(n) { return n === 1 ? '1 Termin' : n + ' Termine'; }
+  // Gesperrt (#82): Der Dienst schickt gar keine Termine mehr, die Seite wirft ihren Stand weg und
+  // zeigt auf jeder Seite das Schloss, ohne Zahl.
+  function sperrBlock() {
+    const b = el('div', 'sperre');
+    b.innerHTML = '<svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="14" y="28" width="36" height="26" rx="6"/><path d="M22 28v-7a10 10 0 0 1 20 0v7"/><path d="M32 38v7"/></svg>';
+    b.append(el('div', 'titel', 'Termine ausgeblendet'));
+    return b;
+  }
+  function zeigeSperre() {
+    document.getElementById('t-heute').replaceChildren(sperrBlock());
+    heuteListe.classList.remove('weiter');
+    document.getElementById('t-mehr').textContent = 'Morgen ›';
+    document.getElementById('t-morgen-kopf').textContent = '';
+    document.getElementById('t-morgen').replaceChildren(sperrBlock());
+    document.getElementById('t-woche').replaceChildren(sperrBlock());
+  }
   function zeigeTermine() {
     if (!termine) return;
     const jetzt = Date.now() / 1000;
@@ -411,7 +466,17 @@
     document.getElementById('t-woche').replaceChildren(...woche);
   }
   quelle.addEventListener('termine', function (e) {
-    termine = JSON.parse(e.data);
+    const neu = JSON.parse(e.data);
+    sperrbar = !!neu.sperrbar;
+    document.querySelectorAll('.gedrueckt').forEach(function (k) { k.classList.remove('gedrueckt'); });
+    if (neu.gesperrt) {
+      gesperrt = true; termine = null; termineStand = 0;
+      zeigeSperre();
+      wetterAlter();
+      return;
+    }
+    gesperrt = false;
+    termine = neu;
     termineStand = termine.stand;
     wetterAlter();
     zeigeTermine();

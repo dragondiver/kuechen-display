@@ -1,4 +1,4 @@
-"""Alters-Regel der Kiosk-Seite (pi/kiosk/regeln.js, #50): gilt für Wetter und Termine.
+"""Regeln der Kiosk-Seite (pi/kiosk/regeln.js): Alter von Wetter und Terminen (#50), langer Druck (#82).
 
 Die Regel steht in JavaScript, damit die Seite sie nutzt; geprüft wird sie hier mit Node (auf
 dem Mac und in GitHub Actions vorhanden, sonst übersprungen)."""
@@ -46,3 +46,29 @@ def test_viel_aelter_ist_blass():
 @pytest.mark.parametrize("stand", [0, None])
 def test_ohne_stand_gibt_es_nichts_zu_verblassen(stand):
     assert ist_alt(stand, JETZT) is False
+
+
+def lang(dauer_ms, weg_px):
+    skript = (
+        f"const r = require({json.dumps(str(REGELN))});"
+        f"console.log(JSON.stringify(r.langerDruck({dauer_ms}, {weg_px})));"
+    )
+    aus = subprocess.run(
+        ["node", "-e", skript], capture_output=True, text=True, check=True
+    )
+    return json.loads(aus.stdout)
+
+
+@pytest.mark.parametrize(
+    "dauer_ms,weg_px,erwartet",
+    [
+        (800, 0, True),  # genau 0,8 s zählt
+        (1500, 12, True),  # kleines Wackeln ist erlaubt
+        (799, 0, False),  # ein Tippen oder ein kurzer Halt
+        (300, 0, False),
+        (900, 13, False),  # Wischen oder Rollen
+        (900, 80, False),
+    ],
+)
+def test_langer_druck_braucht_zeit_und_ruhe(dauer_ms, weg_px, erwartet):
+    assert lang(dauer_ms, weg_px) is erwartet

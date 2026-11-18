@@ -52,6 +52,10 @@ class HomeAssistant:
         z = self.entitaet(entity_id)
         return None if z is None else z.get("state")
 
+    def dienst(self, domain: str, name: str, daten: dict) -> None:
+        """Dienstaufruf ohne Antwortdaten, z. B. input_boolean/turn_on."""
+        self._anfrage("POST", f"/api/services/{domain}/{name}", daten)
+
     def vorhersage(self, entity_id: str, art: str = "daily") -> list[dict]:
         """Die Vorhersage gibt es nur über den Dienst weather.get_forecasts mit
         ?return_response, nicht über /api/states."""

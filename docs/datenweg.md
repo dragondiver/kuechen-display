@@ -1,6 +1,6 @@
 # Datenweg: Wetter und Termine auf dem Ruhebildschirm
 
-Stand 15.11.2026, zu #15. Wetter und Termine kommen aus Home Assistant.
+Stand 18.11.2026, zu #15. Wetter und Termine kommen aus Home Assistant.
 
 ## Wie das Wetter auf die Seite kommt
 
@@ -168,7 +168,7 @@ ssh kuechen-display.local 'curl -sN --max-time 3 http://127.0.0.1:8080/ereigniss
 ## Andere Quelle oder anderer Ort
 
 Die Werte stehen als Umgebungsvariablen im Dienst (`pi/dienst/dienst.py`): `HA_URL`,
-`WETTER_ENTITAET`, `TEMPERATUR_SENSOR`, `WARNUNG_SENSOR`, `ORT`, für die Termine `KALENDER`. Sie sind keine
+`WETTER_ENTITAET`, `TEMPERATUR_SENSOR`, `WARNUNG_SENSOR`, `ORT`, für die Termine `KALENDER` und `SPERRE_ENTITAET`. Sie sind keine
 Geheimnisse und gehören nicht in 1Password: ändern über einen Drop-in der Unit `kuechen-dienst`.
 
 ## Termine
@@ -219,4 +219,54 @@ ssh kuechen-display.local 'journalctl -u kuechen-dienst -n 30 --no-pager | grep 
 Dort steht eine Zeile wie `Termine: heute 2, morgen 1, Woche 6`.
 
 Einstellungen (kein Geheimnis, Drop-in der Unit wie oben): `KALENDER` (Entitäten, durch Komma
-getrennt), `ZEITZONE` (Vorgabe `Europe/Berlin`).
+getrennt), `ZEITZONE` (Vorgabe `Europe/Berlin`), `SPERRE_ENTITAET` (siehe unten).
+
+## Termine sperren
+
+Festlegung 17. und 18.11.2026 in #82. Kommt Besuch, sollen die Termine nicht auf dem Display stehen.
+
+**Sperren** geht nur am Display: etwa 0,8 Sekunden auf eine Terminkarte drücken (Heute, Morgen oder
+Woche), mit ruhigem Finger. Wischen, Rollen und das Antippen von „Morgen ›“ lösen nichts aus. Die
+Karte dunkelt kurz nach, dann steht dort ein Schloss mit „Termine ausgeblendet“, auf allen Seiten
+mit Terminen, ohne Zahl (auch „Morgen ›“ trägt keine mehr). Per Stimme und über Elektra geht es nicht.
+
+**Entsperren** geht nur am Handy. In der Home-Assistant-App den Schalter
+„Termine privat“ (`input_boolean.termine_privat`, Symbol Kalender mit Schloss) ausschalten, zu finden unter Einstellungen → Geräte & Dienste →
+Helfer oder auf dem Dashboard, wenn er dort liegt. Spätestens zwei Minuten später (so oft fragt der
+Dienst die Termine ab) stehen sie wieder da. Am Display gibt es keinen Weg zurück, auch keinen Code.
+Jeden Morgen um 6 Uhr schaltet die Automation „Termine privat morgens aus“ in Home Assistant den Helfer aus (nicht Teil dieses
+Repos).
+
+```
+langes Drücken ─▶ Seite: POST /sperren ─▶ Dienst: input_boolean/turn_on in HA
+                                              │ klappt: Schloss sofort (Ereignis „termine“)
+                                              │ klappt nicht: Hinweis „Sperren hat nicht geklappt“,
+                                              ▼            das Display bleibt entsperrt
+Handy: Helfer aus ─▶ HA ─▶ Dienst liest den Helfer bei jedem Terminabruf (alle 2 Minuten)
+```
+
+Der Helfer in Home Assistant ist die einzige Wahrheit (`pi/dienst/sperre.py`, getestet):
+
+- „on“ heißt gesperrt, nur ein ausdrückliches „off“ hebt die Sperre auf. „unknown“, „unavailable“
+  und ein Helfer, den Home Assistant nicht kennt, lassen den Stand, wie er ist: Ein gesperrtes
+  Display bleibt gesperrt (nach einem Neustart von Home Assistant fehlt der Helfer kurz, und der
+  Besuch soll dann keine Termine sehen). Ist das Display nicht gesperrt, zählt das als frei, ohne
+  Fehler auf der Seite. Ein Neustart des Küchen-Dienstes beginnt frei und übernimmt den ersten
+  lesbaren Stand.
+- Gesperrt schickt der Dienst gar keine Termine an die Seite, weder Titel noch Zeiten noch eine
+  Anzahl, und ruft sie auch nicht ab. Das Ereignis „termine“ lautet dann nur
+  `{"gesperrt": true, "sperrbar": true}`. Die Seite wirft ihren Stand weg und zeigt das Schloss,
+  auch eine neu geöffnete Seite bekommt nichts anderes. Ein Abruf, der beim Sperren gerade läuft,
+  wird verworfen.
+- Nach dem langen Drücken gilt die Sperre erst, wenn Home Assistant den Helfer eingeschaltet hat; dann
+  zeigt die Seite das Schloss sofort, ohne den nächsten Abruf abzuwarten. Scheitert das (Home Assistant
+  nicht erreichbar, kein `HA_TOKEN`), bleibt das Display entsperrt und zeigt vier Sekunden lang
+  „Sperren hat nicht geklappt“ in der Zeile für Hinweise.
+- Antwortet Home Assistant nicht, bleibt der letzte Stand: Ein gesperrtes Display bleibt gesperrt.
+  Beim Entsperren vom Handy bleibt das Schloss stehen, bis der Abruf der Termine klappt.
+- `SPERRE_ENTITAET` (Vorgabe `input_boolean.termine_privat`): leer schaltet die Funktion ab, das
+  lange Drücken tut dann nichts.
+
+Prüfen: Im Strom von `/ereignisse` (`curl` wie oben) steht beim Ereignis „termine“ `"gesperrt": false`
+oder `{"gesperrt": true, "sperrbar": true}`. Im Journal steht „Sperre: Termine gesperrt (am Display)“
+bzw. „… wieder frei (vom Handy)“.
