@@ -3,11 +3,19 @@ import http.client
 import json
 import logging
 import os
+import time
 import urllib.request
 from types import SimpleNamespace
 
 from ruhe import BTN_TOUCH, EV_KEY, Konfig, WeckTipp
-from schlafwaechter import Anzeige, Touch, Waechter, wach_abfragen, wach_fragen
+from schlafwaechter import (
+    Anzeige,
+    Touch,
+    Waechter,
+    dunkel_melden,
+    wach_abfragen,
+    wach_fragen,
+)
 
 
 # --- Anzeige ---------------------------------------------------------------------------
@@ -431,9 +439,11 @@ def test_toter_touch_weckt_das_display_und_gibt_frei(caplog):
 class Meldungen:
     def __init__(self):
         self.liste = []
+        self.versuche = []
 
-    def __call__(self, dunkel):
+    def __call__(self, dunkel, versuche=None):
         self.liste.append(dunkel)
+        self.versuche.append(versuche)
 
 
 def waechter_mit_meldung(touch=None, anz=None):
@@ -547,8 +557,11 @@ class Antwort:
 def test_wach_abfragen_haengt_dunkel_an_und_liest_start_und_zaehler(monkeypatch):
     urls = []
 
-    def auf(url, timeout):
-        urls.append(url)
+    kopfzeilen = []
+
+    def auf(anfrage, timeout):
+        urls.append(anfrage.full_url)
+        kopfzeilen.append(anfrage.get_header("X-kuechen"))
         return Antwort({"haelt": False, "gruende": [], "start": 5, "wecken": 2})
 
     monkeypatch.setattr(urllib.request, "urlopen", auf)
@@ -558,6 +571,50 @@ def test_wach_abfragen_haengt_dunkel_an_und_liest_start_und_zaehler(monkeypatch)
     wach_abfragen("http://x/wach", dunkel=False)
     wach_abfragen("http://x/wach")
     assert urls[1:] == ["http://x/wach?dunkel=0", "http://x/wach"]
+    # Nur der Aufruf, der Zustand setzt, trägt den Header (#92)
+    assert kopfzeilen == ["1", "1", None]
+
+
+def test_dunkel_melden_wiederholt_und_schreibt_ins_journal(monkeypatch, caplog):
+    versuche = []
+
+    def auf(anfrage, timeout):
+        versuche.append(anfrage.full_url)
+        if len(versuche) < 3:
+            raise OSError("Verbindung abgelehnt")
+        return Antwort({"haelt": False, "gruende": []})
+
+    monkeypatch.setattr(urllib.request, "urlopen", auf)
+    monkeypatch.setattr(time, "sleep", lambda s: None)
+    with caplog.at_level(logging.WARNING, logger="schlafen"):
+        assert dunkel_melden(True, "http://x/wach") is True
+    assert versuche == ["http://x/wach?dunkel=1"] * 3
+    zeilen = [r.getMessage() for r in caplog.records]
+    assert len(zeilen) == 2 and "Verbindung abgelehnt" in zeilen[0]
+
+
+def test_dunkel_melden_gibt_nach_den_versuchen_auf(monkeypatch, caplog):
+    def auf(anfrage, timeout):
+        raise OSError("weg")
+
+    pausen = []
+    monkeypatch.setattr(urllib.request, "urlopen", auf)
+    monkeypatch.setattr(time, "sleep", pausen.append)
+    with caplog.at_level(logging.WARNING, logger="schlafen"):
+        assert dunkel_melden(False, "http://x/wach", versuche=3, pause=0.3) is False
+    assert len(caplog.records) == 3
+    assert pausen == [0.3, 0.3]  # nach dem letzten Versuch keine Pause mehr
+
+
+def test_dunkel_melden_gelingt_beim_ersten_ohne_journal(monkeypatch, caplog):
+    monkeypatch.setattr(
+        urllib.request,
+        "urlopen",
+        lambda anfrage, timeout: Antwort({"haelt": True, "gruende": ["video"]}),
+    )
+    with caplog.at_level(logging.WARNING, logger="schlafen"):
+        assert dunkel_melden(True, "http://x/wach") is True
+    assert not caplog.records
 
 
 def test_wach_abfragen_alter_dienst_ohne_felder_gibt_kein_weckwort(monkeypatch):
@@ -573,3 +630,11 @@ def test_wach_abfragen_alter_dienst_ohne_felder_gibt_kein_weckwort(monkeypatch):
 def test_wach_abfragen_ohne_dienst_heisst_wach_halten_und_kein_weckwort():
     a = wach_abfragen("http://127.0.0.1:9/wach", dunkel=True)
     assert a.haelt is True and a.start is None
+
+
+def test_wecken_meldet_mit_nur_einem_versuch():
+    w, _, _, meldung = waechter_mit_meldung()
+    w.takt(300.0)  # schlafen: darf wiederholen
+    assert meldung.versuche[-1] is None
+    w.wecken(310.0, "Test")
+    assert meldung.liste[-1] is False and meldung.versuche[-1] == 1

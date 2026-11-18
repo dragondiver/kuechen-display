@@ -11,30 +11,47 @@ d=$(cd "$(dirname "$0")" && pwd)   # ~/kuechen-display, per rsync vom Mac befül
 ~/kuechen-venv/bin/python -c "import websockets" 2>/dev/null || ~/kuechen-venv/bin/pip install -q "websockets>=15,<16"
 
 # Weckwort (#89, docs/stimme-und-geste.md): Vosk im selben venv, das deutsche Modell nur, wenn es fehlt.
-# Ohne beides läuft der Dienst trotzdem; er schreibt dann einen Fehler ins Journal und lässt das Weckwort aus.
-~/kuechen-venv/bin/python -c "import vosk" 2>/dev/null || ~/kuechen-venv/bin/pip install -q "vosk>=0.3.45,<0.4"
+# Das Weckwort darf ausfallen (Pi offline, Download kaputt, Prüfsumme falsch): Dann steht eine klare Meldung
+# am Ende, und Dienst, Wächter und Kiosk werden trotzdem eingerichtet. Der Dienst schreibt ohne Modell einen
+# Fehler ins Journal und lässt das Weckwort aus. Ein erneuter Lauf holt es nach.
+# In einer Funktion, die in `if` steht, gilt `set -e` nicht; deshalb prüft jeder Schritt selbst.
 VOSK_MODELL=vosk-model-small-de-0.15
 VOSK_URL="https://alphacephei.com/vosk/models/$VOSK_MODELL.zip"
 # SHA-256 der Zip-Datei, am 18.11.2026 auf dem Mac gemessen (shasum -a 256, 46 499 967 Bytes), nach Florians
 # Freigabe des Downloads. Die Modellseite nennt selbst keine Summe.
 VOSK_SHA256="b7e53c90b1f0a38456f4cd62b366ecd58803cd97cd42b06438e2c131713d5e43"
-if [ ! -d "$d/modelle/$VOSK_MODELL" ]; then
+LADEN_TMP=""
+# Strg-C beim Download räumt das halbe Verzeichnis weg; der Rest des Skripts bricht damit wie üblich ab.
+trap 'rm -rf "${LADEN_TMP:-}"; exit 130' INT TERM
+weckwort_einrichten() {
+  rm -rf "$d"/modelle/.laden.*   # Reste eines abgebrochenen früheren Laufs
+  ~/kuechen-venv/bin/python -c "import vosk" 2>/dev/null \
+    || ~/kuechen-venv/bin/pip install -q "vosk>=0.3.45,<0.4" \
+    || { echo "vosk konnte nicht installiert werden (offline?)." >&2; return 1; }
+  [ -d "$d/modelle/$VOSK_MODELL" ] && return 0
   if [ "$VOSK_SHA256" = "HIER_PRUEFSUMME_EINTRAGEN" ]; then
-    echo "Abbruch: Für das Weckwort-Modell $VOSK_MODELL ist in pi/install-kiosk.sh (VOSK_SHA256) noch keine" >&2
+    echo "Für das Weckwort-Modell $VOSK_MODELL ist in pi/install-kiosk.sh (VOSK_SHA256) noch keine" >&2
     echo "Prüfsumme eingetragen. Ohne sie wird nichts heruntergeladen. Siehe docs/stimme-und-geste.md, Weckwort." >&2
-    exit 1
+    return 1
   fi
-  mkdir -p "$d/modelle"
-  tmp=$(mktemp -d "$d/modelle/.laden.XXXXXX")
-  trap 'rm -rf "$tmp"' EXIT
-  curl -sSfL -o "$tmp/modell.zip" "$VOSK_URL"
+  mkdir -p "$d/modelle" || return 1
+  LADEN_TMP=$(mktemp -d "$d/modelle/.laden.XXXXXX") || return 1
+  local tmp=$LADEN_TMP
+  curl -sSfL -o "$tmp/modell.zip" "$VOSK_URL" \
+    || { echo "Download von $VOSK_URL schlug fehl (offline?)." >&2; rm -rf "$tmp"; return 1; }
   echo "$VOSK_SHA256  $tmp/modell.zip" | sha256sum -c --status - \
-    || { echo "Abbruch: Prüfsumme von $VOSK_URL stimmt nicht, Datei verworfen." >&2; exit 1; }
-  python3 -m zipfile -e "$tmp/modell.zip" "$tmp/entpackt"
-  [ -d "$tmp/entpackt/$VOSK_MODELL" ] || { echo "Abbruch: $VOSK_MODELL fehlt im Archiv." >&2; exit 1; }
-  mv "$tmp/entpackt/$VOSK_MODELL" "$d/modelle/$VOSK_MODELL"
+    || { echo "Prüfsumme von $VOSK_URL stimmt nicht, Datei verworfen." >&2; rm -rf "$tmp"; return 1; }
+  python3 -m zipfile -e "$tmp/modell.zip" "$tmp/entpackt" \
+    || { echo "Entpacken von $VOSK_MODELL schlug fehl." >&2; rm -rf "$tmp"; return 1; }
+  [ -d "$tmp/entpackt/$VOSK_MODELL" ] \
+    || { echo "$VOSK_MODELL fehlt im Archiv." >&2; rm -rf "$tmp"; return 1; }
+  mv "$tmp/entpackt/$VOSK_MODELL" "$d/modelle/$VOSK_MODELL" || { rm -rf "$tmp"; return 1; }
+  rm -rf "$tmp"
+  LADEN_TMP=""
   echo "neu: $d/modelle/$VOSK_MODELL"
-fi
+}
+WECKWORT_FEHLT=0
+weckwort_einrichten || WECKWORT_FEHLT=1
 
 # Kameradienst: MediaPipe, mit System-Paketen für picamera2 und libcamera.
 [ -d ~/gesten-venv ] || python3 -m venv --system-site-packages ~/gesten-venv
@@ -74,4 +91,8 @@ setze "$d/kiosk/wf-panel-pi.ini" ~/.config/wf-panel-pi/wf-panel-pi.ini 'pkill -x
 
 install -d ~/.config/autostart
 install -m 644 "$d/kiosk/kiosk.desktop" ~/.config/autostart/kiosk.desktop
+if [ "$WECKWORT_FEHLT" = 1 ]; then
+  echo "ACHTUNG: Das Weckwort ist nicht eingerichtet (Meldung weiter oben). Alles andere läuft." >&2
+  echo "Mit Netz erneut bash ~/kuechen-display/install-kiosk.sh, dann holt es Vosk und das Modell nach." >&2
+fi
 echo "Fertig. Kamera für Gesten: sudo systemctl start kuechen-gesten (und stop danach)."

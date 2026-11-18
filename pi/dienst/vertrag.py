@@ -11,8 +11,11 @@ ohne Netz und ohne Ton, damit sie sich ohne Pi testen lässt (test_vertrag.py):
 from __future__ import annotations
 
 import json
+import logging
 from array import array
 from dataclasses import dataclass, field
+
+log = logging.getLogger("dienst")
 
 RATE = 16000
 RAHMEN_PROBEN = 960  # 60 ms, wie im Vertrag
@@ -229,7 +232,14 @@ class Ablage:
             for zeit, b in self.befehle
             if jetzt - zeit < self.FRIST_S and not ist_lokal(b.get("id"))
         ]
-        # Lokale Befehle gehören der Erweiterung; die Kiosk-Seite bekommt sie nicht.
+        # Lokale Befehle gehören der Erweiterung; die Kiosk-Seite bekommt sie nicht. Wartet einer
+        # gerade, weil die Seite neu lädt, geht er verloren: das kommt ins Journal.
+        for _, b in self.befehle:
+            if ist_lokal(b.get("id")):
+                log.warning(
+                    "Weckwort: Befehl %s verworfen, die Kiosk-Seite hat sich neu verbunden",
+                    b.get("id"),
+                )
         self.befehle = [
             (z, b)
             for z, b in self.befehle

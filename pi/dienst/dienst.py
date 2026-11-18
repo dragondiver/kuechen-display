@@ -309,6 +309,11 @@ class Handler(StatischOhneCache):
         ?dunkel=0|1, ob es dunkel ist, und bekommt zurück, ob ein Weckwort geweckt haben will (#89)."""
         jetzt = time.monotonic()
         dunkel = parse_qs(urlsplit(self.path).query).get("dunkel", [None])[0]
+        # Mit ?dunkel= setzt der Aufruf Zustand: wie bei den POST-Wegen nur mit eigenem Header, den eine
+        # fremde Seite im Kiosk nicht ohne Vorabfrage mitschicken kann. Das reine Lesen bleibt offen.
+        if dunkel is not None and self.headers.get("X-Kuechen") != "1":
+            self.send_error(403)
+            return
         with weckwort_sperre:
             if dunkel in ("0", "1"):
                 weckwort.anzeige.melden(dunkel == "1", jetzt)

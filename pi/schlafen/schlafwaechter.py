@@ -274,16 +274,23 @@ class WachAntwort:
         None  # Kennung des Küchen-Dienst-Starts (nur zusammen mit `wecken` sinnvoll)
     )
     wecken: object = None  # Zähler der Weckwörter seit diesem Start
+    fehler: str | None = None  # gesetzt, wenn der Dienst nicht (lesbar) geantwortet hat
 
 
-def wach_abfragen(url: str = WACH_URL, dunkel: bool | None = None) -> WachAntwort:
+def wach_abfragen(
+    url: str = WACH_URL, dunkel: bool | None = None, timeout: float = 2
+) -> WachAntwort:
     """Hält etwas wach, und gibt es ein neues Weckwort? Mit `dunkel` meldet der Wächter dem Dienst,
     ob das Display dunkel ist. Antwortet der Dienst nicht oder unlesbar, gilt: hält wach (im
     Zweifel an), und es gibt kein Weckwort."""
+    anfrage = urllib.request.Request(url)
     if dunkel is not None:
-        url += f"?dunkel={int(dunkel)}"
+        # Mit ?dunkel= setzt der Aufruf Zustand im Dienst; der verlangt dafür diesen Header.
+        anfrage = urllib.request.Request(
+            f"{url}?dunkel={int(dunkel)}", headers={"X-Kuechen": "1"}
+        )
     try:
-        with urllib.request.urlopen(url, timeout=2) as antwort:
+        with urllib.request.urlopen(anfrage, timeout=timeout) as antwort:
             daten = json.load(antwort)
         if not isinstance(daten, dict) or not isinstance(daten.get("haelt"), bool):
             raise TypeError(f"unerwartete Antwort: {str(daten)[:100]}")
@@ -292,7 +299,37 @@ def wach_abfragen(url: str = WACH_URL, dunkel: bool | None = None) -> WachAntwor
             daten["haelt"], gruende, daten.get("start"), daten.get("wecken")
         )
     except (OSError, ValueError, TypeError, http.client.HTTPException) as fehler:
-        return WachAntwort(True, [f"dienst: {fehler}"])
+        return WachAntwort(True, [f"dienst: {fehler}"], fehler=str(fehler))
+
+
+MELDE_VERSUCHE = 3
+MELDE_PAUSE_S = 0.3
+MELDE_TIMEOUT_S = 1.0
+
+
+def dunkel_melden(
+    dunkel: bool,
+    url: str = WACH_URL,
+    versuche: int = MELDE_VERSUCHE,
+    pause: float = MELDE_PAUSE_S,
+) -> bool:
+    """Sagt dem Küchen-Dienst, ob das Display dunkel ist. Ein Fehlschlag kommt ins Journal und wird
+    wenige Male wiederholt (der Dienst hält das Display sonst für hell, und ein „Weiter“ blättert
+    bei dunklem Display). Höchstens etwa versuche * (Timeout + Pause), meist weit weniger."""
+    for nr in range(1, versuche + 1):
+        antwort = wach_abfragen(url, dunkel=dunkel, timeout=MELDE_TIMEOUT_S)
+        if antwort.fehler is None:
+            return True
+        log.warning(
+            "Meldung „%s“ an den Küchen-Dienst schlug fehl (Versuch %d/%d): %s",
+            "dunkel" if dunkel else "hell",
+            nr,
+            versuche,
+            antwort.fehler,
+        )
+        if nr < versuche:
+            time.sleep(pause)
+    return False
 
 
 def wach_fragen(url: str = WACH_URL) -> tuple[bool, list[str]]:
@@ -319,7 +356,7 @@ class Waechter:
         self.an_versuch = 0.0
         # (bool) -> None: sagt dem Küchen-Dienst sofort, ob das Display dunkel ist, damit er nicht bis
         # zur nächsten Frage ein dunkles Display für hell hält und blättert (#89).
-        self.dunkel_melden = dunkel_melden or (lambda dunkel: None)
+        self.dunkel_melden = dunkel_melden or (lambda dunkel, versuche=None: None)
         self.weck_zaehler = WeckZaehler()
 
     @property
@@ -366,7 +403,9 @@ class Waechter:
                 "Einschalten nicht gelungen, nächster Versuch in %.0f s", NEU_VERSUCH_S
             )
         self.ruhe.aufgewacht(jetzt)
-        self.dunkel_melden(self.an_offen)
+        # Nur ein Versuch: Wecken darf nicht langsamer werden, der Touch ist bis dahin gesperrt. Der
+        # reguläre Takt meldet den Stand ohnehin erneut.
+        self.dunkel_melden(self.an_offen, versuche=1)
         log.info("Display an: %s", grund)
         # Den Touch erst freigeben, wenn der Finger oben ist (touch_lesen). Gab es keine
         # Berührung (Eingabe von VNC), gibt es nichts zu verschlucken.
@@ -410,7 +449,7 @@ class Waechter:
             if self.an_offen:
                 log.error("Einschalten weiter ohne Erfolg")
             else:
-                self.dunkel_melden(False)
+                self.dunkel_melden(False, versuche=1)
         aktion = self.ruhe.tick(jetzt)
         if aktion == WECKEN:
             self.ausfuehren(WECKEN, jetzt, "Eingabe")
@@ -481,7 +520,7 @@ def lauf(konfig: Konfig) -> None:
         anzeige,
         Touch,
         time.monotonic(),
-        dunkel_melden=lambda dunkel: wach_abfragen(dunkel=dunkel),
+        dunkel_melden=dunkel_melden,
     )
     sel = selectors.DefaultSelector()
     idle: subprocess.Popen | None = None
