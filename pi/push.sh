@@ -58,7 +58,12 @@ ssh -t "$ZIEL" "bash $PFAD/install-kiosk.sh"
 
 echo "→ Kiosk neu laden"
 # pkill -x trifft nur den Browser; -f würde diese ssh-Zeile mit beenden.
-ssh "$ZIEL" "pkill -x chromium; sleep 1; setsid -f sh $PFAD/kiosk-start.sh '$KIOSK_ZUSATZ' </dev/null >/tmp/kiosk.log 2>&1"
+# -o nimmt nur den ältesten Prozess, den Hauptprozess: der fährt sauber herunter und schreibt
+# frische Cookies auf die Platte. Bis zu 10 s warten, danach hart beenden. Läuft kein Chromium,
+# ist das kein Fehler (pkill meldet 1, aber nicht als letzter Befehl der Zeile).
+# shellcheck disable=SC2016  # soll auf dem Pi expandiert werden, nicht hier
+STOPP='pkill -o -x chromium; i=0; while pgrep -x chromium >/dev/null && [ $i -lt 20 ]; do sleep 0.5; i=$((i+1)); done; if pgrep -x chromium >/dev/null; then pkill -x chromium; sleep 2; pkill -9 -x chromium; fi'
+ssh "$ZIEL" "$STOPP; setsid -f sh $PFAD/kiosk-start.sh '$KIOSK_ZUSATZ' </dev/null >/tmp/kiosk.log 2>&1"
 
 echo "→ Zustand"
 sleep 4

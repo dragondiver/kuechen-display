@@ -56,8 +56,10 @@ KIOSK_ZUSATZ='?debug=1' pi/push.sh
 Nur den Browser neu starten, ohne etwas zu übertragen:
 
 ```bash
-ssh kuechen-display.local "pkill -x chromium; sleep 1; setsid -f sh kuechen-display/kiosk-start.sh '?debug=1' </dev/null >/tmp/kiosk.log 2>&1"
+ssh kuechen-display.local "pkill -o -x chromium; i=0; while pgrep -x chromium >/dev/null && [ \$i -lt 20 ]; do sleep 0.5; i=\$((i+1)); done; if pgrep -x chromium >/dev/null; then pkill -x chromium; sleep 2; pkill -9 -x chromium; fi; setsid -f sh kuechen-display/kiosk-start.sh '?debug=1' </dev/null >/tmp/kiosk.log 2>&1"
 ```
+
+Die Backslashes vor `$i` und `$((i+1))` stehen da, weil die Zeile in doppelten Anführungszeichen steht: Ohne sie würde schon der Mac die Variable ersetzen, und die Warteschleife bräche sofort ab.
 
 `kiosk-start.sh` ist derselbe Aufruf, den der Autostart beim Hochfahren benutzt
 (`~/.config/autostart/kiosk.desktop`). Es wartet bis zu 30 s auf den Küchen-Dienst, bevor es
