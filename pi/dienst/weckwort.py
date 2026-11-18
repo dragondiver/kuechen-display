@@ -260,7 +260,7 @@ class Lauscher:
         self.bereit = True
         self.hoerte = False
         self.verworfen = 0
-        self.verworfen_gemeldet = 0.0
+        self.verworfen_gemeldet = float("-inf")  # noch nie gemeldet
 
     def rahmen(self, ton: bytes, hoeren: bool) -> None:
         if not self.bereit:
