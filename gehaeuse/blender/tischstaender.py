@@ -39,7 +39,7 @@ MIK_L = 110.6  # Mikrofonleiste, gemessen 110,6 x 11
 MIK_B = 11.3  # lichte Breite der Endtaschen; Platine gemessen 11,1
 MIK_LUFT = 0.2  # Luft je Ende in der Länge
 MIK_AUFLAGE = 9.0  # so weit liegt die Platine an jedem Ende auf
-MIK_HOCH = 3.5  # Auflage über der Leiste, Platz für Stecker und Kabel darunter
+MIK_HOCH = 5.0  # Auflage über der Leiste, Platz für Stecker und Kabel darunter
 MIK_RINNE = 7.5  # Rinne in der Auflage; die Platine liegt je Seite 1,8 mm auf
 
 # ---------------------------------------------------------------- abgeleitet
@@ -217,7 +217,7 @@ def leiste():
     # Schlitz fürs Kamerakabel (16 mm breit)
     minus(l, quader(-10, 10, ty0 + 1.5, ty_wand, z0 - 1, z1 + 0.01))
 
-    # Mikrofonleiste: je eine Tasche an den Enden, 3,5 mm über der Leiste. Die Mitte bleibt frei,
+    # Mikrofonleiste: je eine Tasche an den Enden, 5 mm über der Leiste. Die Mitte bleibt frei,
     # weil das Flachbandkabel quer über die lange Kante abgeht und Bauteile unten sitzen dürfen.
     yc = y1 - 10.0
     for sx in (-1, 1):
