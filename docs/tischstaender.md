@@ -15,7 +15,7 @@ einen 10 mm breiten Kabelschlitz. Zwischen den Bechern bleibt Platz für den Pi-
 **Leiste** (200 × 44 mm). Sie wird oben auf die zwei Zapfen der Stützen gesteckt. Vorn sitzt die
 Tasche für das Camera Module 3: Platine von oben einschieben, das Kabel läuft durch den Schlitz
 nach unten. Die Tasche ist 15° nach hinten geneigt. Dahinter sitzt die Mikrofonleiste mit ihren
-Enden in zwei Taschen, 3,5 mm über der Leiste. Die Mitte bleibt frei, weil das Flachbandkabel quer
+Enden in zwei Taschen, 3,5 mm über der Leiste, und liegt dort nur mit den Rändern auf. Die Mitte bleibt frei, weil das Flachbandkabel quer
 über die lange Kante abgeht.
 
 Die Lautsprecher strahlen hier nach oben, im Gehäuse später zur Seite. Für die Echounterdrückung

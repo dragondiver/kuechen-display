@@ -40,6 +40,7 @@ MIK_B = 11.3  # lichte Breite der Endtaschen; Platine gemessen 11,1
 MIK_LUFT = 0.2  # Luft je Ende in der Länge
 MIK_AUFLAGE = 9.0  # so weit liegt die Platine an jedem Ende auf
 MIK_HOCH = 3.5  # Auflage über der Leiste, Platz für Stecker und Kabel darunter
+MIK_RINNE = 7.5  # Rinne in der Auflage; die Platine liegt je Seite 1,8 mm auf
 
 # ---------------------------------------------------------------- abgeleitet
 B = 240.0  # Sockelbreite
@@ -224,6 +225,8 @@ def leiste():
         stop_x = sx * (MIK_L / 2 + MIK_LUFT)
         block = quader(*sorted((innen_x, stop_x + sx * 2)), yc - MIK_B / 2 - 2, yc + MIK_B / 2 + 2, z1 - 1, z1 + MIK_HOCH + 2.6)
         minus(block, quader(*sorted((innen_x - sx, stop_x)), yc - MIK_B / 2, yc + MIK_B / 2, z1 + MIK_HOCH, z1 + MIK_HOCH + 5))
+        # Rinne in der Auflage: die Platine liegt nur mit den Rändern auf, Bauteile in der Mitte hängen frei
+        minus(block, quader(*sorted((innen_x - sx, stop_x)), yc - MIK_RINNE / 2, yc + MIK_RINNE / 2, z1 + MIK_HOCH - 2.5, z1 + MIK_HOCH + 1))
         plus(l, block)
 
     # Löcher für die Zapfen, 0,35 mm Luft ringsum
