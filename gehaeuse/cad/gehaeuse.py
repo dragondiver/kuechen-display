@@ -245,7 +245,7 @@ def baue():
         p["wange_" + n] = w
 
         # --- Lautsprecherschale (PLA): gerundete Wanne, innerer Flansch klemmt den Rahmen des FRS 7
-        def wanne(d):
+        def wanne(d, sx=sx):
             b = fillet(Box(100 - 2 * d, 71 - 2 * d, 100 - 2 * d).edges(), 18 - d)
             b = Location((sx * XI, 8.5, 66)) * b
             hinter_front = prisma(
@@ -433,7 +433,7 @@ def bohre(p, schrauben):
     for sch in schrauben:
         sch["schaft"] = zyl(3.0, sch["laenge"], sch["kopf"], sch["richtung"])
         sch["einsatz_k"] = None
-        for anfang in [x * 0.5 for x in range(0, int(sch["laenge"] * 2))]:
+        for anfang in [x * 0.5 for x in range(int(sch["laenge"] * 2))]:
             ort = (
                 zyl(0.01, anfang, sch["kopf"], sch["richtung"]).bounding_box().center()
             )
@@ -509,12 +509,12 @@ if __name__ == "__main__":
         f"Gehäuse {W:.0f} x {TIEFE:.0f} x {H:.0f} mm, {len(p)} Druckteile, {len(schrauben)} Schrauben M3"
     )
     for name, k in p.items():  # Bambu Lab A1: Bett 256 x 256 mm, nutzbar etwa 250
-        g = sorted(tuple(k.bounding_box().size))
+        g = sorted(k.bounding_box().size)
         if g[1] > 250 or g[2] > 250:
             print(f"  ZU GROSS fürs Druckbett: {name} {g[2]:.0f} x {g[1]:.0f} mm")
     print(
         "  größtes Teil: "
-        + max(((sorted(tuple(k.bounding_box().size))[2], n) for n, k in p.items()))[1]
+        + max(((sorted(k.bounding_box().size)[2], n) for n, k in p.items()))[1]
     )
     fehler = pruefe(p, e, roh, schrauben)
     for z in fehler:
@@ -555,6 +555,7 @@ if __name__ == "__main__":
             os.path.join(ziel, "gehaeuse.glb"),
             binary=True,
         )
+        datei = open(os.path.join(ziel, "teile.json"), "w")  # noqa: SIM115
         json.dump(
             {
                 "teile": list(p),
@@ -564,8 +565,9 @@ if __name__ == "__main__":
                     for s in schrauben
                 ],
             },
-            open(os.path.join(ziel, "teile.json"), "w"),
+            datei,
             indent=1,
         )
+        datei.close()
         print("exportiert nach", ziel)
     sys.exit(1 if fehler else 0)
