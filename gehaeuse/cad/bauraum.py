@@ -12,7 +12,12 @@ from itertools import combinations
 
 from build123d import Box, Cylinder, Location, Plane, Polygon, extrude, offset
 
-TIEFE = float(sys.argv[1]) if len(sys.argv) > 1 else 105.0
+TIEFE = (
+    float(sys.argv[1]) if len(sys.argv) > 1 else 120.0
+)  # 120 statt 105: Entscheidung 19.11.2026 (#4)
+RAND_UNTEN = (
+    float(sys.argv[2]) if len(sys.argv) > 2 else 14.0
+)  # Bildrand unten wie Entwurf O
 W, SL, WINKEL, WAND = 235.0, 148.0, 75.0, 4.0  # Entwurf O; Wandstärke A
 LUFT = 2.0  # Mindestabstand zwischen zwei Teilen, A
 c, s = math.cos(math.radians(WINKEL)), math.sin(math.radians(WINKEL))
@@ -44,7 +49,7 @@ def teile(stapel_y=None):
     """Hüllkörper aller Einbauten. stapel_y = vordere Kante des Stapels; None = ganz hinten."""
     t = {}
     # Display: Glas 194 x 119 x 7,4 (Z), unterer Rand 14 mm (Entwurf O), 3 mm Frontlippe (A)
-    dm = 14 - 5.4 + 119 / 2
+    dm = RAND_UNTEN - 5.4 + 119 / 2
     t["display"] = an_front(194, 119, 3, 10.4, U0, dm)
     # Platine auf der Rückseite 110 x 97,5 (Z), 1,6 dick plus Bauteile 3 (F); Lage mittig (A)
     t["display_platine"] = an_front(110, 97.5, 10.4, 15, U0, dm)
@@ -110,7 +115,19 @@ def pruefe(t, raum):
         if v > 50:  # mm³; darunter berühren sich die Hüllkörper nur
             fehler.append((a, b, v / 1000))
     for a, k in t.items():
-        v = 0 if a in IN_DER_WAND else (k - raum).volume
+        if a in IN_DER_WAND and a.startswith("mikro"):
+            continue
+        if a in IN_DER_WAND:  # Front darf durchdrungen werden, Boden und Deckel nicht
+            platten = Location((0, 0, WAND / 2)) * Box(W, TIEFE, WAND) + Location(
+                (0, 0, HOEHE - WAND / 2)
+            ) * Box(W, TIEFE, WAND)
+            v = (k & platten).volume + (
+                k - Location((0, 0, HOEHE / 2)) * Box(W, 2 * TIEFE, HOEHE)
+            ).volume
+            if v > 50:
+                fehler.append((a, "Boden oder Deckel", v / 1000))
+            continue
+        v = (k - raum).volume
         if v > 50:  # mm³; darunter berühren sich die Hüllkörper nur
             fehler.append((a, "Gehäusewand", v / 1000))
     return fehler
@@ -134,7 +151,7 @@ if __name__ == "__main__":
     print(
         f"Platz für eine Lautsprecherschale, 50 mm breit: links {kammer(t, raum, -1):.2f} l, rechts {kammer(t, raum, 1):.2f} l (brutto, ohne Wand der Schale)"
     )
-    oben = SL - (14 - 5.4 + 119)
+    oben = SL - (RAND_UNTEN - 5.4 + 119)
     print(
         f"Über dem Glas bleiben auf der Schräge {oben:.1f} mm, davon {WAND:.0f} mm Deckel; die Kamera ist 24 mm hoch"
     )
