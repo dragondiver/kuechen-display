@@ -7,7 +7,7 @@ Zwei Teile, beide ohne Stützen druckbar:
 - sockel: Bodenplatte mit Rinne fürs Display (lehnt mit 75 Grad an zwei Stützen),
   zwei Becher für die Lautsprecher (Membran nach oben), freie Fläche für Kernboard und Pi-Turm.
 - leiste: wird oben auf die Zapfen der Stützen gesteckt, trägt die Kameratasche (15 Grad
-  nach hinten geneigt) und die Ablage für die Mikrofonleiste.
+  nach hinten geneigt) und die zwei Endtaschen für die Mikrofonleiste.
 
 Maße in Millimetern. x quer, y von vorn nach hinten, z nach oben. Alles mit Spiel gebaut;
 die Werte im Block MASSE sind die Stellen, an denen ein nachgemessenes Maß etwas ändert.
@@ -36,7 +36,10 @@ KAM_LUFT = 0.8
 KAM_TASCHE = 4.5  # Platz hinter den Haltelippen: Platine plus Stecker auf der Rückseite
 
 MIK_L = 110.6  # Mikrofonleiste, gemessen 110,6 x 11
-MIK_ABLAGE_B = 13.0  # lichte Breite der Ablage
+MIK_B = 11.3  # lichte Breite der Endtaschen; Platine gemessen 11,1
+MIK_LUFT = 0.2  # Luft je Ende in der Länge
+MIK_AUFLAGE = 9.0  # so weit liegt die Platine an jedem Ende auf
+MIK_HOCH = 3.5  # Auflage über der Leiste, Platz für Stecker und Kabel darunter
 
 # ---------------------------------------------------------------- abgeleitet
 B = 240.0  # Sockelbreite
@@ -213,17 +216,15 @@ def leiste():
     # Schlitz fürs Kamerakabel (16 mm breit)
     minus(l, quader(-10, 10, ty0 + 1.5, ty_wand, z0 - 1, z1 + 0.01))
 
-    # Ablage Mikrofonleiste: zwei Schienen, in der Mitte ein Schlitz für Bauteile und Kabel
-    my1 = y1 - 1.0
-    my0 = my1 - MIK_ABLAGE_B
-    halb = MIK_L / 2 + 13
-    plus(
-        l,
-        quader(-halb, halb, my0 - 1.5, my0, z1 - 1, z1 + 2.5),
-        quader(-halb, halb, my1, my1 + 1.0, z1 - 1, z1 + 2.5),
-    )
-    mm = (my0 + my1) / 2
-    minus(l, quader(-MIK_L / 2 + 8, MIK_L / 2 - 8, mm - 2.5, mm + 2.5, z0 - 1, z1 + 1))
+    # Mikrofonleiste: je eine Tasche an den Enden, 3,5 mm über der Leiste. Die Mitte bleibt frei,
+    # weil das Flachbandkabel quer über die lange Kante abgeht und Bauteile unten sitzen dürfen.
+    yc = y1 - 10.0
+    for sx in (-1, 1):
+        innen_x = sx * (MIK_L / 2 - MIK_AUFLAGE)
+        stop_x = sx * (MIK_L / 2 + MIK_LUFT)
+        block = quader(*sorted((innen_x, stop_x + sx * 2)), yc - MIK_B / 2 - 2, yc + MIK_B / 2 + 2, z1 - 1, z1 + MIK_HOCH + 2.6)
+        minus(block, quader(*sorted((innen_x - sx, stop_x)), yc - MIK_B / 2, yc + MIK_B / 2, z1 + MIK_HOCH, z1 + MIK_HOCH + 5))
+        plus(l, block)
 
     # Löcher für die Zapfen, 0,35 mm Luft ringsum
     for sx in (-1, 1):
@@ -268,7 +269,7 @@ def vorschau():
     for sx in (-1, 1):
         attrappe(quader(sx * BECHER_X - 33.25, sx * BECHER_X + 33.25, BECHER_Y - 33.25, BECHER_Y + 33.25, BODEN + FRS_TIEFE, BODEN + FRS_TIEFE + 3, "frs"), (0.1, 0.1, 0.1, 1))
     y1 = LEISTE_Y0 + LEISTE_T - 1
-    attrappe(quader(-MIK_L / 2, MIK_L / 2, y1 - 12, y1 - 1, Z_OBEN + LEISTE_D, Z_OBEN + LEISTE_D + 1.6, "mik"), (0.05, 0.2, 0.1, 1))
+    attrappe(quader(-MIK_L / 2, MIK_L / 2, y1 - 15.55, y1 - 4.45, Z_OBEN + LEISTE_D + MIK_HOCH, Z_OBEN + LEISTE_D + MIK_HOCH + 1.6, "mik"), (0.05, 0.2, 0.1, 1))
 
     SZENE.render.engine = "BLENDER_WORKBENCH"
     SZENE.display.shading.light = "STUDIO"
