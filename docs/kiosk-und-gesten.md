@@ -81,6 +81,9 @@ jeden Weg:
 - Der Schieber zeigt, was der Dienst meldet (`lautstaerke` in `GET /lage`, das die Leiste jede Sekunde
   holt). Stellt Elektra über die Bridge um, zieht der Schieber nach. Beim Ziehen und anderthalb Sekunden
   danach gilt der eigene Wert.
+- Der Dienst meldet jede Änderung auch an die Bridge (`{"type":"lautstaerke","wert":N}`), und das hallo
+  beim Verbinden trägt die Stellung (#105, Einzelheiten in `docs/stimme-und-geste.md`). Die Bridge setzt
+  beim Verbinden deshalb keine eigene Lautstärke mehr.
 
 Der Dienst merkt sich die Stellung in `~/.config/kuechen-display/lautstaerke` (anderer Ort:
 `LAUTSTAERKE_DATEI`) und stellt sie beim Start wieder ein. Fehlt die Datei oder ist ihr Inhalt keine Zahl

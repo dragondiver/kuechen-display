@@ -193,3 +193,91 @@ def test_meldung_geht_unter_der_sperre_raus(aufrufe, monkeypatch):
     )
     dienst.lautstaerke(30)
     assert gehalten == [True]
+
+
+# --- Meldung an die Bridge (#105, rundfunk#253) ---------------------------------------------------
+
+
+@pytest.fixture
+def bruecke(monkeypatch):
+    """Ersetzt an_bruecke: sammelt, was an die Bridge ginge. `da` schaltet die Leitung ab."""
+
+    class Falsch:
+        da = True
+
+    f = Falsch()
+    f.gesendet = []
+
+    def fake(nachricht):
+        if not f.da:
+            return False
+        f.gesendet.append(nachricht)
+        return True
+
+    monkeypatch.setattr(dienst, "an_bruecke", fake)
+    return f
+
+
+def test_post_meldet_genau_einmal_an_die_bridge(server, bruecke):
+    assert setze(server, 42)[0] == 200
+    assert bruecke.gesendet == [{"type": "lautstaerke", "wert": 42}]
+
+
+def test_bridge_befehl_meldet_den_neuen_wert_zurueck(aufrufe, bruecke):
+    dienst.ausfuehren(
+        Leitung().nachricht(json.dumps({"type": "lautstaerke", "wert": 140}))
+    )
+    assert bruecke.gesendet == [{"type": "lautstaerke", "wert": 100}]
+
+
+def test_ziehen_meldet_in_reihenfolge_der_letzte_ist_der_endstand(aufrufe, bruecke):
+    for wert in (10, 20, 35):
+        dienst.lautstaerke(wert)
+    assert [n["wert"] for n in bruecke.gesendet] == [10, 20, 35]
+
+
+def test_ungueltiger_post_meldet_nichts(server, bruecke):
+    assert setze(server, 101)[0] == 400
+    assert setze(server, 50, header={})[0] == 403
+    assert bruecke.gesendet == []
+
+
+def test_ohne_leitung_geht_nichts_raus_und_nichts_bricht(aufrufe, bruecke):
+    bruecke.da = False
+    dienst.lautstaerke(33)
+    assert bruecke.gesendet == []
+    assert dienst.lautstaerke_stand.stellung == 33
+    bruecke.da = True  # nichts wurde gestaut
+    assert bruecke.gesendet == []
+
+
+def test_an_bruecke_ohne_verbindung_sendet_nichts(monkeypatch, aufrufe):
+    """Der echte Weg: ws ist None, also kein Aufruf in die Schleife und keine Ausnahme."""
+    monkeypatch.setattr(dienst, "ws", None)
+    dienst.lautstaerke(33)  # darf nicht werfen
+
+
+def test_meldung_wartet_nicht_auf_das_netz(aufrufe, monkeypatch):
+    """Mit Leitung wird die Nachricht nur in die Schleife gelegt (run_coroutine_threadsafe), nicht gesendet."""
+    gelegt = []
+    monkeypatch.setattr(dienst, "ws", object())
+    monkeypatch.setattr(dienst, "schleife", object())
+
+    def fake(coro, schleife):
+        gelegt.append(schleife)
+        coro.close()
+
+    monkeypatch.setattr(dienst.asyncio, "run_coroutine_threadsafe", fake)
+    dienst.lautstaerke(77)
+    assert len(gelegt) == 1
+
+
+def test_hallo_traegt_die_gemerkte_stellung(aufrufe, tmp_path):
+    (tmp_path / "lautstaerke").write_text("80\n")
+    dienst.lautstaerke_stand.laden()  # PipeWire wurde nicht gestellt: das hallo braucht es nicht
+    assert aufrufe == []
+    assert dienst.hallo_nachricht() == {
+        "type": "hallo",
+        "apps": dienst.APPS,
+        "lautstaerke": 80,
+    }

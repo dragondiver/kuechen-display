@@ -663,6 +663,11 @@ def lautstaerke(wert: int) -> None:
         # Alle offenen Kiosk-Seiten zeigen den neuen Stand (#103), egal wer ihn ausgelöst hat. Unter der
         # Sperre, damit zwei gleichzeitige Aufrufe ihre Meldungen nicht vertauschen (put blockiert nicht).
         an_seite("lautstaerke", {"wert": wert})
+        # Die Bridge erfährt den Stand auch (rundfunk#253). an_bruecke legt die Nachricht nur in die
+        # Schleife der Bridge-Verbindung und wartet nicht auf das Netz. Jede Stellung geht einzeln raus,
+        # in der Reihenfolge der Aufrufe; die zuletzt gemeldete ist so immer der Endstand. Ohne Leitung
+        # geschieht nichts, beim nächsten Verbinden steht der Stand im hallo.
+        an_bruecke({"type": "lautstaerke", "wert": wert})
 
 
 def lautstaerke_wiederherstellen(versuche: int = 30, pause_s: float = 2.0) -> None:
@@ -885,6 +890,11 @@ def netz_schleife() -> None:
 
 
 # --- Bridge -------------------------------------------------------------------
+def hallo_nachricht() -> dict:
+    """Erste Nachricht an die Bridge. Aufrufer hält die Lautstärke-Sperre, wenn Stand und Leitung zusammenpassen müssen."""
+    return {"type": "hallo", "apps": APPS, "lautstaerke": lautstaerke_stand.stellung}
+
+
 async def bruecke_schleife() -> None:
     global ws
     token = geheimnis("RUNDFUNK_GERAETE_TOKEN", TOKEN_DATEI)
@@ -899,8 +909,12 @@ async def bruecke_schleife() -> None:
                 },
                 max_size=None,
             ) as verbindung:
-                await verbindung.send(json.dumps({"type": "hallo", "apps": APPS}))
-                ws = verbindung
+                # Stand und Leitung unter derselben Sperre: Ändert sich die Stellung danach, sieht
+                # lautstaerke() die Leitung und meldet sie; davor steht sie im hallo.
+                with lautstaerke_stand.sperre:
+                    hallo = hallo_nachricht()
+                    ws = verbindung
+                await verbindung.send(json.dumps(hallo))
                 warte = 1
                 log.info("Mit der Bridge verbunden: %s als %s", BRUECKE, GERAET)
                 an_seite("verbindung", {"da": True})
