@@ -111,6 +111,9 @@ SPERRE_ENTITAET = os.environ.get("SPERRE_ENTITAET", "input_boolean.termine_priva
 ZONE = ZoneInfo(os.environ.get("ZEITZONE", "Europe/Berlin"))
 # Termine alle zwei Minuten (Wunsch 15.11.2026), das Wetter weiter alle zehn.
 TERMINE_TAKT_S = 120
+# So oft fragt der Dienst nur den Sperr-Helfer ab (eine Zustandsabfrage); ein Wechsel stößt den
+# Terminzyklus sofort an (kuechen-display#107).
+SPERRE_TAKT_S = 3
 WETTER_TAKT_S = 600
 NETZ_TAKT_S = 5
 WPCTL_TIMEOUT_S = 2
@@ -125,6 +128,7 @@ schleife: asyncio.AbstractEventLoop | None = None
 # Letzter Stand je Ereignisart, den eine neu geöffnete Seite sofort bekommt (z. B. "wetter").
 letzte_daten: dict[str, dict] = {}
 sperre = Sperre(SPERRE_ENTITAET)
+termine_wecker = threading.Event()
 ha_verbindung: HomeAssistant | None = None  # gesetzt, sobald der Dienst ein Token hat
 ws = None  # aktuelle Leitung zur Bridge oder None
 # Befehle für eine offene App ohne Kiosk-Seite; die Rückweg-Erweiterung holt sie über /lage (#70).
@@ -805,7 +809,7 @@ class Abruf:
 
 
 def daten_schleife() -> None:
-    """Holt alle zwei Minuten die Termine und alle zehn Minuten das Wetter und schickt beides
+    """Holt alle zwei Minuten (bei einem Wechsel der Sperre sofort) die Termine und alle zehn Minuten das Wetter und schickt beides
     der Seite."""
     token = geheimnis("HA_TOKEN", HA_TOKEN_DATEI)
     if token is None:
@@ -819,6 +823,13 @@ def daten_schleife() -> None:
     gemeldet = None
     fehlt_gemeldet: list[str] = []
     wetter_zuletzt = None
+    if sperre.aktiv:
+        threading.Thread(
+            target=sperre.beobachten,
+            args=(ha, termine_wecker.set, SPERRE_TAKT_S),
+            daemon=True,
+            name="sperre_beobachten",
+        ).start()
     while True:
         karte = None
         if wetter_zuletzt is None or time.monotonic() - wetter_zuletzt >= WETTER_TAKT_S:
@@ -875,7 +886,9 @@ def daten_schleife() -> None:
                 len(termine["morgen"]),
                 sum(len(t["termine"]) for t in termine["woche"]),
             )
-        time.sleep(TERMINE_TAKT_S)
+        # Wartet höchstens einen Takt, bei einem Wechsel des Sperr-Helfers kürzer.
+        termine_wecker.wait(TERMINE_TAKT_S)
+        termine_wecker.clear()
 
 
 def netz_schleife() -> None:

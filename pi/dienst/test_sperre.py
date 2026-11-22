@@ -308,3 +308,150 @@ def test_ohne_sperre_gilt_sperrbar_nein():
     zyklus(s, ha, b)
     ((_, daten),) = b.ereignisse
     assert daten["gesperrt"] is False and daten["sperrbar"] is False
+
+
+# --- schnelles Lesen (#107) ----------------------------------------------------
+TAKT = 3
+
+
+class Uhr:
+    """Ersetzte Uhr für `beobachten`: `warten` zählt nur, schläft nicht, und löst geplante Änderungen aus."""
+
+    def __init__(self):
+        self.jetzt = 0.0
+        self.geplant = []  # (Zeitpunkt, Aufruf)
+
+    def planen(self, zeit, aufruf):
+        self.geplant.append((zeit, aufruf))
+
+    def warten(self, sekunden):
+        self.jetzt += sekunden
+        for eintrag in list(self.geplant):
+            if eintrag[0] <= self.jetzt:
+                self.geplant.remove(eintrag)
+                eintrag[1]()
+
+
+class Helfer(FakeHA):
+    """Home Assistant, dessen Helfer sich ändern lässt; `beim_lesen` läuft einmal nach dem Lesen."""
+
+    beim_lesen = None
+
+    def setzen(self, zustand):
+        self.antworten[f"/api/states/{HELFER}"] = {"state": zustand}
+
+    def _anfrage(self, methode, pfad, body=None):
+        antwort = super()._anfrage(methode, pfad, body)
+        if pfad.endswith(HELFER) and self.beim_lesen:
+            aufruf, self.beim_lesen = self.beim_lesen, None
+            aufruf()
+        return antwort
+
+
+def beobachten(s, ha, uhr, sekunden, wecken=None, b=None):
+    """Lässt den Wächter `sekunden` virtuelle Sekunden laufen. Jedes Wecken läuft wie in dienst.py
+    als Terminzyklus; gibt die Zeiten der Weckrufe zurück."""
+    weckrufe = []
+    b = b or Buehne()
+
+    def geweckt():
+        weckrufe.append(uhr.jetzt)
+        zyklus(s, ha, b)
+
+    s.beobachten(ha, wecken or geweckt, TAKT, uhr.warten, lambda: uhr.jetzt < sekunden)
+    return weckrufe
+
+
+def test_entsperren_vom_handy_wirkt_innerhalb_eines_takts():
+    s, b, uhr = Sperre(HELFER), Buehne(), Uhr()
+    ha = Helfer(ha_mit("on").antworten)
+    zyklus(s, ha, b)  # Stand: gesperrt, wie nach dem Sperren am Display
+    assert s.gesperrt is True
+    uhr.planen(10, lambda: ha.setzen("off"))
+    weckrufe = beobachten(s, ha, uhr, 30, b=b)
+    assert len(weckrufe) == 1 and 10 < weckrufe[0] <= 10 + TAKT
+    assert s.gesperrt is False
+    art, daten = b.ereignisse[-1]
+    assert art == "termine" and daten["gesperrt"] is False and daten["heute"]
+
+
+def test_sperren_vom_handy_wirkt_innerhalb_eines_takts_und_danach_geht_nichts_raus():
+    s, b, uhr = Sperre(HELFER), Buehne(), Uhr()
+    ha = Helfer(ha_mit("off").antworten)
+    zyklus(s, ha, b)
+    assert GEHEIM in b.alles_als_text()
+    b.ereignisse.clear()
+    uhr.planen(7, lambda: ha.setzen("on"))
+    weckrufe = beobachten(s, ha, uhr, 60, b=b)
+    assert len(weckrufe) == 1 and 7 < weckrufe[0] <= 7 + TAKT
+    assert s.gesperrt is True
+    assert GEHEIM not in b.alles_als_text()
+    assert b.ablage["termine"] == {"gesperrt": True, "sperrbar": True}
+
+
+@pytest.mark.parametrize("zustand", ["unknown", "unavailable"])
+def test_nicht_lesbarer_helfer_aendert_beim_beobachten_nichts(zustand):
+    s, b, uhr = Sperre(HELFER), Buehne(), Uhr()
+    ha = Helfer(ha_mit("on").antworten)
+    zyklus(s, ha, b)
+    uhr.planen(5, lambda: ha.setzen(zustand))
+    assert beobachten(s, ha, uhr, 30, b=b) == []
+    assert s.gesperrt is True
+
+
+def test_ha_nicht_erreichbar_beim_beobachten_haelt_die_sperre(caplog):
+    s, b, uhr = Sperre(HELFER), Buehne(), Uhr()
+    zyklus(s, ha_mit("on"), b)
+    with caplog.at_level("INFO", logger="dienst"):
+        assert beobachten(s, HaKaputt({}), uhr, 30, b=b) == []
+    assert s.gesperrt is True
+    assert GEHEIM not in b.alles_als_text()
+    # zehn Versuche, aber nur eine Warnung im Journal
+    assert len([r for r in caplog.records if "nicht lesbar" in r.message]) == 1
+
+
+def test_schnelles_lesen_von_vor_dem_sperren_am_display_entsperrt_nicht():
+    s, b, uhr = Sperre(HELFER), Buehne(), Uhr()
+    ha = Helfer(ha_mit("on").antworten)
+    zyklus(s, ha, b)  # gesperrt
+    ha.setzen("off")  # Handy entsperrt, der Wächter liest „off“ ...
+    ha.beim_lesen = lambda: s.sperren(  # ... während das Display erneut sperrt
+        Helfer(ha_mit().antworten), b.ablage, b.senden, b.hinweis
+    )
+    weckrufe = beobachten(s, ha, uhr, TAKT, b=b)  # genau ein Durchlauf
+    assert weckrufe == [] and s.gesperrt is True
+    assert b.ablage["termine"] == {"gesperrt": True, "sperrbar": True}
+
+
+def test_waechter_und_terminzyklus_ueberschreiben_sich_nicht():
+    """Der Terminzyklus liest „off“, der Wächter liest dazwischen „on“ und sperrt: kein Entsperren."""
+    s, b = Sperre(HELFER), Buehne()
+    ha = Helfer(ha_mit("off").antworten)
+    zyklus(s, ha, b)
+
+    def waechter_liest_on():
+        ha.setzen("on")
+        s.abgleichen(ha)
+
+    ha.beim_lesen = waechter_liest_on  # mitten im Zyklus, nach dessen Lesen von „off“
+    b.ereignisse.clear()
+    zyklus(s, ha, b)
+    assert s.gesperrt is True
+    assert GEHEIM not in b.alles_als_text()
+    zyklus(s, ha, b)
+    assert b.ablage["termine"] == {"gesperrt": True, "sperrbar": True}
+
+
+def test_leere_entitaet_fragt_beim_beobachten_nichts_ab():
+    s, uhr = Sperre(""), Uhr()
+    ha = Helfer(ha_mit("on").antworten)
+    assert beobachten(s, ha, uhr, 30, wecken=lambda: pytest.fail("geweckt")) == []
+    assert ha.anfragen == [] and uhr.jetzt == 0
+
+
+def test_beobachten_fragt_nur_den_helfer_und_keinen_kalender():
+    s, uhr = Sperre(HELFER), Uhr()
+    ha = Helfer(ha_mit("off").antworten)
+    beobachten(s, ha, uhr, 30, wecken=lambda: None)
+    assert len(ha.anfragen) == 10
+    assert {p for _, p, _ in ha.anfragen} == {f"/api/states/{HELFER}"}
