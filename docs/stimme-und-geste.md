@@ -58,6 +58,16 @@ Beim Beenden per Tipp schickt das Display `{"type":"ende"}` an die Bridge (seit 
 rundfunk#238). Sie schließt die Live-Sitzung sofort und antwortet mit dem Zustand „aus“. Vorher
 wartete sie bis zu ihrer Ruhezeit.
 
+**Lautstärke an die Bridge (#105, rundfunk#253).** Das Display meldet seine Schieberstellung. Die erste
+Nachricht nach dem Verbinden ist `{"type":"hallo","apps":[…],"lautstaerke":N}` mit N von 0 bis 100, der
+Stellung beim Verbinden (die gemerkte, auch wenn PipeWire noch nicht da ist). Danach geht bei jeder Änderung
+`{"type":"lautstaerke","wert":N}` an die Bridge, egal ob der Schieber in der Leiste, der auf den Hauptseiten
+oder ein Befehl der Bridge sie ausgelöst hat. Beim Ziehen kommt jede Zwischenstellung einzeln, in der
+Reihenfolge der Änderungen, der zuletzt gemeldete Wert ist der Endstand. Die Bridge antwortet nicht. Ohne
+Leitung wird nichts gesendet und nichts aufgehoben; beim nächsten Verbinden steht der Stand im hallo. Eine
+Bridge ohne diese Nachricht warnt im Log und ignoriert das Feld im hallo. Von der Bridge zum Display gilt
+weiter `{"type":"lautstaerke","wert":0..100}`.
+
 ## Diktat ins Suchfeld
 
 Ohne Elektra (#70, Festlegung 15.11.2026). Bekommt in einer App ein Textfeld den Fokus, zum Beispiel

@@ -1,8 +1,11 @@
 """POST /lautstaerke (#99): Header-Pflicht, Prüfung, Weg des Bridge-Befehls, Wiederherstellen beim Start."""
 
+import asyncio
 import http.client
 import json
+import subprocess
 import threading
+import time
 from http.server import ThreadingHTTPServer
 
 import dienst
@@ -193,3 +196,178 @@ def test_meldung_geht_unter_der_sperre_raus(aufrufe, monkeypatch):
     )
     dienst.lautstaerke(30)
     assert gehalten == [True]
+
+
+# --- Meldung an die Bridge (#105, rundfunk#253) ---------------------------------------------------
+
+
+@pytest.fixture
+def bruecke(monkeypatch):
+    """Ersetzt an_bruecke: sammelt, was an die Bridge ginge. `da` schaltet die Leitung ab."""
+
+    class Falsch:
+        da = True
+
+    f = Falsch()
+    f.gesendet = []
+
+    def fake(nachricht):
+        if not f.da:
+            return False
+        f.gesendet.append(nachricht)
+        return True
+
+    monkeypatch.setattr(dienst, "an_bruecke", fake)
+    return f
+
+
+def test_post_meldet_genau_einmal_an_die_bridge(server, bruecke):
+    assert setze(server, 42)[0] == 200
+    assert bruecke.gesendet == [{"type": "lautstaerke", "wert": 42}]
+
+
+def test_bridge_befehl_meldet_den_neuen_wert_zurueck(aufrufe, bruecke):
+    dienst.ausfuehren(
+        Leitung().nachricht(json.dumps({"type": "lautstaerke", "wert": 140}))
+    )
+    assert bruecke.gesendet == [{"type": "lautstaerke", "wert": 100}]
+
+
+def test_ziehen_meldet_in_reihenfolge_der_letzte_ist_der_endstand(aufrufe, bruecke):
+    for wert in (10, 20, 35):
+        dienst.lautstaerke(wert)
+    assert [n["wert"] for n in bruecke.gesendet] == [10, 20, 35]
+
+
+def test_ungueltiger_post_meldet_nichts(server, bruecke):
+    assert setze(server, 101)[0] == 400
+    assert setze(server, 50, header={})[0] == 403
+    assert bruecke.gesendet == []
+
+
+def test_meldung_wartet_nicht_auf_das_netz(aufrufe, monkeypatch):
+    """Mit Leitung wird die Nachricht nur in die Schleife gelegt (run_coroutine_threadsafe), nicht gesendet."""
+    gelegt = []
+    monkeypatch.setattr(dienst, "ws", object())
+    monkeypatch.setattr(dienst, "schleife", object())
+
+    def fake(coro, schleife):
+        gelegt.append(schleife)
+        coro.close()
+
+    monkeypatch.setattr(dienst.asyncio, "run_coroutine_threadsafe", fake)
+    dienst.lautstaerke(77)
+    assert len(gelegt) == 1
+
+
+def test_hallo_traegt_die_gemerkte_stellung(aufrufe, tmp_path):
+    (tmp_path / "lautstaerke").write_text("80\n")
+    dienst.lautstaerke_stand.laden()  # PipeWire wurde nicht gestellt: das hallo braucht es nicht
+    assert aufrufe == []
+    assert dienst.hallo_nachricht() == {
+        "type": "hallo",
+        "apps": dienst.APPS,
+        "lautstaerke": 80,
+    }
+
+
+def test_ohne_leitung_stellt_um_ohne_zu_senden(aufrufe, monkeypatch):
+    """Der echte an_bruecke ohne Verbindung: kein Aufruf in die Schleife, Stellung trotzdem gemerkt."""
+    monkeypatch.setattr(dienst, "ws", None)
+    gelegt = []
+    monkeypatch.setattr(
+        dienst.asyncio, "run_coroutine_threadsafe", lambda *a: gelegt.append(a)
+    )
+    dienst.lautstaerke(33)
+    assert gelegt == []
+    assert dienst.lautstaerke_stand.stellung == 33
+    assert aufrufe != []
+
+
+# --- Reihenfolge hallo/Meldung mit echter Schleife --------------------------------------------------
+
+
+class FakeWs:
+    def __init__(self, verzoegerung=0.0):
+        self.gesendet = []
+        self.verzoegerung = verzoegerung
+
+    async def send(self, daten):
+        await asyncio.sleep(self.verzoegerung)
+        self.gesendet.append(json.loads(daten))
+
+
+@pytest.fixture
+def schleife_im_faden(monkeypatch):
+    loop = asyncio.new_event_loop()
+    t = threading.Thread(target=loop.run_forever, daemon=True)
+    t.start()
+    monkeypatch.setattr(dienst, "schleife", loop)
+    monkeypatch.setattr(dienst, "ws", None)
+    yield loop
+    loop.call_soon_threadsafe(loop.stop)
+    t.join(2)
+
+
+def warte_auf(bedingung, sek=2):
+    ende = time.monotonic() + sek
+    while time.monotonic() < ende and not bedingung():
+        time.sleep(0.01)
+    assert bedingung()
+
+
+def test_hallo_kommt_zuerst_auch_bei_aenderung_waehrend_des_verbindens(
+    aufrufe, schleife_im_faden
+):
+    fake = FakeWs(verzoegerung=0.2)  # send yieldet: das hallo ist lange unterwegs
+    dienst.lautstaerke_stand.stellung = 60
+    zukunft = asyncio.run_coroutine_threadsafe(
+        dienst.bruecke_beginnen(fake), schleife_im_faden
+    )
+    time.sleep(0.05)  # hallo (mit 60) ist gelesen, aber noch nicht raus
+    dienst.lautstaerke(25)
+    zukunft.result(2)
+    warte_auf(lambda: len(fake.gesendet) == 2)
+    assert fake.gesendet[0] == {"type": "hallo", "apps": dienst.APPS, "lautstaerke": 60}
+    assert fake.gesendet[1] == {"type": "lautstaerke", "wert": 25}
+
+
+def test_aenderung_nach_dem_hallo_kommt_einmal_und_der_endstand_zuletzt(
+    aufrufe, schleife_im_faden
+):
+    fake = FakeWs()
+    asyncio.run_coroutine_threadsafe(
+        dienst.bruecke_beginnen(fake), schleife_im_faden
+    ).result(2)
+    for wert in (10, 20, 30):
+        dienst.lautstaerke(wert)
+    warte_auf(lambda: len(fake.gesendet) == 4)
+    assert fake.gesendet[0]["type"] == "hallo"
+    assert [n["wert"] for n in fake.gesendet[1:]] == [10, 20, 30]
+
+
+def test_lautstaerke_kehrt_bei_langsamem_send_sofort_zurueck(
+    aufrufe, schleife_im_faden, monkeypatch
+):
+    fake = FakeWs(verzoegerung=0.5)
+    monkeypatch.setattr(dienst, "ws", fake)
+    start = time.monotonic()
+    dienst.lautstaerke(44)
+    assert time.monotonic() - start < 0.2
+    warte_auf(lambda: fake.gesendet == [{"type": "lautstaerke", "wert": 44}], sek=3)
+
+
+def test_haengendes_wpctl_gilt_als_fehlschlag(monkeypatch, tmp_path, caplog):
+    monkeypatch.setattr(dienst, "lautstaerke_stand", Lautstaerke(tmp_path / "l"))
+    gesehen = {}
+
+    def haengt(kommando, **kw):
+        gesehen.update(kw)
+        raise subprocess.TimeoutExpired(kommando, kw["timeout"])
+
+    monkeypatch.setattr(dienst.subprocess, "run", haengt)
+    assert dienst.pipewire_setzen(50) is False
+    assert gesehen["timeout"] == 2
+    assert "wpctl antwortet nicht" in caplog.text
+    dienst.lautstaerke(50)  # bricht nicht, Stellung bleibt gemerkt
+    assert dienst.lautstaerke_stand.stellung == 50

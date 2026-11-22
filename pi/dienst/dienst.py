@@ -113,6 +113,7 @@ ZONE = ZoneInfo(os.environ.get("ZEITZONE", "Europe/Berlin"))
 TERMINE_TAKT_S = 120
 WETTER_TAKT_S = 600
 NETZ_TAKT_S = 5
+WPCTL_TIMEOUT_S = 2
 
 log = logging.getLogger("dienst")
 leitung = Leitung()
@@ -647,7 +648,12 @@ def pipewire_setzen(stellung: int) -> bool:
                 f"{pipewire_anteil(stellung):.3f}",
             ],
             check=False,
+            timeout=WPCTL_TIMEOUT_S,
         )
+    except subprocess.TimeoutExpired:
+        # Der Aufruf läuft unter der Lautstärke-Sperre und über den Bridge-Befehl im Faden der Schleife.
+        log.warning("Lautstärke: wpctl antwortet nicht (%d s)", WPCTL_TIMEOUT_S)
+        return False
     except OSError as e:
         log.warning("Lautstärke: wpctl nicht gestartet: %s", e)
         return False
@@ -663,6 +669,11 @@ def lautstaerke(wert: int) -> None:
         # Alle offenen Kiosk-Seiten zeigen den neuen Stand (#103), egal wer ihn ausgelöst hat. Unter der
         # Sperre, damit zwei gleichzeitige Aufrufe ihre Meldungen nicht vertauschen (put blockiert nicht).
         an_seite("lautstaerke", {"wert": wert})
+        # Die Bridge erfährt den Stand auch (rundfunk#253). an_bruecke legt die Nachricht nur in die
+        # Schleife der Bridge-Verbindung und wartet nicht auf das Netz. Jede Stellung geht einzeln raus,
+        # in der Reihenfolge der Aufrufe; die zuletzt gemeldete ist so immer der Endstand. Ohne Leitung
+        # geschieht nichts, beim nächsten Verbinden steht der Stand im hallo.
+        an_bruecke({"type": "lautstaerke", "wert": wert})
 
 
 def lautstaerke_wiederherstellen(versuche: int = 30, pause_s: float = 2.0) -> None:
@@ -885,6 +896,27 @@ def netz_schleife() -> None:
 
 
 # --- Bridge -------------------------------------------------------------------
+def hallo_nachricht() -> dict:
+    """Erste Nachricht an die Bridge. Aufrufer hält die Lautstärke-Sperre, wenn Stand und Leitung zusammenpassen müssen."""
+    return {"type": "hallo", "apps": APPS, "lautstaerke": lautstaerke_stand.stellung}
+
+
+async def bruecke_beginnen(verbindung) -> None:
+    """hallo senden, dann erst die Leitung freigeben (`ws`), damit keine Meldung vor dem hallo rausgeht,
+    egal wie `send` sich verhält. Hat sich die Stellung seit dem Lesen fürs hallo geändert, geht die
+    aktuelle als Meldung nach. Die Prüfung und das Setzen von `ws` laufen unter der Lautstärke-Sperre:
+    Eine Änderung davor sieht die Prüfung, eine danach sieht `lautstaerke()` mit gesetzter Leitung. Das
+    Nachschicken geht über an_bruecke (Schleife), damit es hinter keiner späteren Meldung einsortiert wird."""
+    global ws
+    with lautstaerke_stand.sperre:
+        hallo = hallo_nachricht()
+    await verbindung.send(json.dumps(hallo))
+    with lautstaerke_stand.sperre:
+        ws = verbindung
+        if lautstaerke_stand.stellung != hallo["lautstaerke"]:
+            an_bruecke({"type": "lautstaerke", "wert": lautstaerke_stand.stellung})
+
+
 async def bruecke_schleife() -> None:
     global ws
     token = geheimnis("RUNDFUNK_GERAETE_TOKEN", TOKEN_DATEI)
@@ -899,8 +931,7 @@ async def bruecke_schleife() -> None:
                 },
                 max_size=None,
             ) as verbindung:
-                await verbindung.send(json.dumps({"type": "hallo", "apps": APPS}))
-                ws = verbindung
+                await bruecke_beginnen(verbindung)
                 warte = 1
                 log.info("Mit der Bridge verbunden: %s als %s", BRUECKE, GERAET)
                 an_seite("verbindung", {"da": True})
