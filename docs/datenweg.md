@@ -232,8 +232,10 @@ mit Terminen, ohne Zahl (auch „Morgen ›“ trägt keine mehr). Per Stimme un
 
 **Entsperren** geht nur am Handy. In der Home-Assistant-App den Schalter
 „Termine privat“ (`input_boolean.termine_privat`, Symbol Kalender mit Schloss) ausschalten, zu finden unter Einstellungen → Geräte & Dienste →
-Helfer oder auf dem Dashboard, wenn er dort liegt. Spätestens zwei Minuten später (so oft fragt der
-Dienst die Termine ab) stehen sie wieder da. Am Display gibt es keinen Weg zurück, auch keinen Code.
+Helfer oder auf dem Dashboard, wenn er dort liegt. Der Dienst fragt den Helfer alle 3 Sekunden ab
+(`SPERRE_TAKT_S`, eine einfache Zustandsabfrage an Home Assistant, kein Kalenderabruf). Ändert er sich,
+läuft die Terminschleife sofort, die Termine stehen nach etwa 3 bis 5 Sekunden wieder da. Fürs Einschalten
+am Handy gilt dasselbe. Die Termine selbst holt der Dienst weiter alle zwei Minuten. Am Display gibt es keinen Weg zurück, auch keinen Code.
 Jeden Morgen um 6 Uhr schaltet die Automation „Termine privat morgens aus“ in Home Assistant den Helfer aus (nicht Teil dieses
 Repos).
 
@@ -242,7 +244,7 @@ langes Drücken ─▶ Seite: POST /sperren ─▶ Dienst: input_boolean/turn_on
                                               │ klappt: Schloss sofort (Ereignis „termine“)
                                               │ klappt nicht: Hinweis „Sperren hat nicht geklappt“,
                                               ▼            das Display bleibt entsperrt
-Handy: Helfer aus ─▶ HA ─▶ Dienst liest den Helfer bei jedem Terminabruf (alle 2 Minuten)
+Handy: Helfer aus ─▶ HA ─▶ Dienst liest den Helfer alle 3 Sekunden, bei Wechsel sofort Termine
 ```
 
 Der Helfer in Home Assistant ist die einzige Wahrheit (`pi/dienst/sperre.py`, getestet):

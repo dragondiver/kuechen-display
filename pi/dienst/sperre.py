@@ -2,7 +2,7 @@
 
 Gesperrt wird am Display durch langes Drücken auf die Terminkarte, entsperrt nur übers Handy:
 Der Helfer `input_boolean.termine_privat` in Home Assistant ist die einzige Wahrheit ("on" =
-gesperrt). Der Dienst liest ihn bei jedem Terminabruf und setzt ihn beim Sperren.
+gesperrt). Der Dienst liest ihn alle drei Sekunden (und bei jedem Terminabruf) und setzt ihn beim Sperren.
 
 Wichtig ist, was *nicht* geschieht: Solange gesperrt ist, verlässt keine Terminangabe den
 Dienst, weder Titel noch Zeiten noch eine Anzahl. Die Seite bekommt dann nur `gesperrt: true`
@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 
 log = logging.getLogger("dienst")
 
@@ -39,6 +40,9 @@ class Sperre:
         # Zählt jede Änderung. Ein Lesen, das vor einem Sperren begann, darf dessen Ergebnis
         # nicht mehr überschreiben (sonst entsperrt ein veralteter Zustand „off“ das Display).
         self._lauf = 0
+        # Nur für das Protokoll: Beim schnellen Lesen alle paar Sekunden soll ein Ausfall von
+        # Home Assistant einmal ins Journal, nicht zwanzigmal je Minute.
+        self._lesefehler = False
 
     @property
     def aktiv(self) -> bool:
@@ -59,10 +63,15 @@ class Sperre:
         try:
             zustand = ha.zustand(self.entitaet)
         except (OSError, ValueError) as fehler:
-            log.warning(
-                "Sperre: %s nicht lesbar, Stand bleibt: %s", self.entitaet, fehler
-            )
+            if not self._lesefehler:
+                log.warning(
+                    "Sperre: %s nicht lesbar, Stand bleibt: %s", self.entitaet, fehler
+                )
+            self._lesefehler = True
             return False
+        if self._lesefehler:
+            log.info("Sperre: %s wieder lesbar", self.entitaet)
+        self._lesefehler = False
         with self._lock:
             neu = neuer_stand(zustand, self.gesperrt)
             if lauf != self._lauf or neu == self.gesperrt:
@@ -71,6 +80,24 @@ class Sperre:
             self._lauf += 1
         log.info("Sperre: Termine %s (vom Handy)", "gesperrt" if neu else "wieder frei")
         return True
+
+    def beobachten(
+        self, ha, wecken, takt_s, warten=time.sleep, weiter=lambda: True
+    ) -> None:
+        """Fragt den Helfer alle `takt_s` Sekunden ab (eine leichte Zustandsabfrage, kein Kalender).
+        Ändert sich der Stand, ruft sie `wecken()` auf, und die Terminschleife läuft sofort, statt
+        bis zu zwei Minuten zu warten. Gelesen und übernommen wird über `abgleichen`, also mit
+        denselben Regeln und demselben Zähler wie im Terminzyklus. Ohne Entität passiert nichts."""
+        if not self.aktiv:
+            return
+        while weiter():
+            try:
+                if self.abgleichen(ha):
+                    wecken()
+            except Exception:
+                # Der Wächter darf nicht sterben; der Terminzyklus liest weiter.
+                log.exception("Sperre: Abgleich fehlgeschlagen")
+            warten(takt_s)
 
     def sperren(self, ha, ablage: dict, senden, hinweis) -> bool:
         """Lange gedrückt: Helfer in Home Assistant einschalten. Erst wenn das klappt, gilt die Sperre,
