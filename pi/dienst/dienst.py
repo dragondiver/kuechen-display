@@ -279,6 +279,7 @@ class Handler(StatischOhneCache):
         # Neue Seite: gleich den aktuellen Stand, damit nach einem Neuladen nichts falsch steht.
         q.put(("verbindung", {"da": ws is not None}))
         q.put(("zustand", {"wert": leitung.zustand}))
+        q.put(("lautstaerke", {"wert": lautstaerke_stand.stellung}))
         for befehl in offen:
             log.info("Befehl %s an die neue Kiosk-Seite", befehl.get("name"))
             q.put(("befehl", befehl))
@@ -659,6 +660,8 @@ def lautstaerke(wert: int) -> None:
         lautstaerke_stand.setzen(wert)
         log.info("Lautstärke: %d", wert)
         pipewire_setzen(wert)
+    # Alle offenen Kiosk-Seiten zeigen den neuen Stand (#103), egal wer ihn ausgelöst hat.
+    an_seite("lautstaerke", {"wert": wert})
 
 
 def lautstaerke_wiederherstellen(versuche: int = 30, pause_s: float = 2.0) -> None:

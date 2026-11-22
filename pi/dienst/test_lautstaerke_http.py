@@ -148,3 +148,36 @@ def test_start_versucht_es_erneut_wenn_pipewire_noch_fehlt(monkeypatch, tmp_path
     monkeypatch.setattr(dienst.subprocess, "run", lambda *a, **k: R(next(antworten)))
     dienst.lautstaerke_wiederherstellen(versuche=5, pause_s=0)
     assert next(antworten, None) is None  # genau drei Aufrufe, beim dritten klappte es
+
+
+def lies_ereignisse(port, anzahl_lautstaerke, ausloeser=None):
+    """Öffnet /ereignisse und sammelt die `lautstaerke`-Meldungen (#103). `ausloeser` läuft, sobald die erste da ist."""
+    c = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+    c.request("GET", "/ereignisse")
+    r = c.getresponse()
+    werte, art, ausgeloest = [], None, False
+    while len(werte) < anzahl_lautstaerke:
+        zeile = r.fp.readline().decode().strip()
+        if zeile.startswith("event:"):
+            art = zeile[6:].strip()
+        elif zeile.startswith("data:") and art == "lautstaerke":
+            werte.append(json.loads(zeile[5:])["wert"])
+            if ausloeser and not ausgeloest:
+                ausgeloest = True
+                ausloeser()
+    c.close()
+    return werte
+
+
+def test_neue_kiosk_seite_bekommt_den_stand_beim_verbinden(server):
+    setze(server, 42)
+    assert lies_ereignisse(server, 1) == [42]
+
+
+def test_ereignis_nach_setzen_ueber_post(server):
+    assert lies_ereignisse(server, 2, lambda: setze(server, 17)) == [60, 17]
+
+
+def test_ereignis_nach_bridge_befehl(server):
+    aktionen = Leitung().nachricht(json.dumps({"type": "lautstaerke", "wert": 5}))
+    assert lies_ereignisse(server, 2, lambda: dienst.ausfuehren(aktionen)) == [60, 5]
