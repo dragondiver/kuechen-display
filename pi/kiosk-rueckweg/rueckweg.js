@@ -15,6 +15,84 @@
   const schatten = wirt.attachShadow({ mode: 'closed' });
   // Gleiche Strichstärke und Ecken wie die Symbole auf der Apps-Seite (pi/kiosk/index.html).
   const linie = 'fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"';
+  // === Lautstärke-Schieber (#99) ===================================================================
+  // Übergangslösung, bis ein Drehregler in der Gehäusefront sitzt. Alles dazu steht in diesem Block und
+  // hängt an vier Stellen: dem Block selbst, ${regler.css} und ${regler.html} in der Vorlage unten,
+  // regler.start() nach dem Aufbau und regler.zeige() in frage(). Rückbau: docs/kiosk-und-gesten.md.
+  // Der Stand kommt aus /lage (lautstaerke, 0 bis 100) und gehört dem Küchen-Dienst. Dort wird auch
+  // umgerechnet; der Schieber kennt nur die Stellung.
+  const regler = (function () {
+    const ruhe = { wert: 60, bereit: false, zieht: false, bis: 0 };  // bis: so lange keinem /lage-Stand glauben
+    let feld = null, symbol = null, sendeZeitgeber = 0, wirt = null, melden = null;
+    const lautsprecher = 'M12 26h8l12-10v32L20 38h-8z';
+    const wellen = '<path d="M42 24a12 12 0 0 1 0 16M48 18a20 20 0 0 1 0 28"/>';
+    const stumm = '<path d="M42 26l12 12M54 26L42 38"/>';
+    function anzeigen(wert) {
+      feld.value = wert;
+      feld.style.setProperty('--fuellung', wert + '%');
+      symbol.innerHTML = '<path d="' + lautsprecher + '"/>' + (wert === 0 ? stumm : wellen);
+      wirt.dataset.stumm = wert === 0 ? 'ja' : 'nein';
+    }
+    function senden() {
+      sendeZeitgeber = 0;
+      melden('/lautstaerke', { wert: ruhe.wert }).then(function (a) {
+        if (!a.ok) console.warn('Küchen-Display: Lautstärke ging nicht:', a.daten.fehler || a);
+      });
+    }
+    return {
+      css: `
+      /* Schieber: gleiche Höhe wie die Knöpfe (44 px), Spur 6 px, Griff 28 px in der Orange des Mikros.
+         Die Fläche zum Greifen ist die ganze Höhe des Felds, nicht nur der Griff. */
+      .regler { display: flex; align-items: center; gap: 2px; padding: 0 10px 0 6px; opacity: .25; transition: opacity .3s; }
+      .regler[data-bereit="ja"] { opacity: 1; }
+      .regler svg { width: 26px; height: 26px; flex: none; }
+      .regler[data-stumm="ja"] svg { opacity: .6; }
+      .regler input { -webkit-appearance: none; appearance: none; width: 150px; height: 44px; margin: 0; background: transparent;
+                      touch-action: none; cursor: pointer; -webkit-tap-highlight-color: transparent; outline: none;
+                      --fuellung: 60%; }
+      .regler input::-webkit-slider-runnable-track {
+        height: 6px; border-radius: 3px;
+        background: linear-gradient(to right, rgb(243,154,43) var(--fuellung), rgba(255,255,255,.22) var(--fuellung)); }
+      .regler input::-webkit-slider-thumb {
+        -webkit-appearance: none; appearance: none; width: 28px; height: 28px; margin-top: -11px; border-radius: 50%;
+        background: #fff4e2; border: 0; box-shadow: 0 0 0 4px rgba(243,154,43,.35), 0 2px 8px rgba(0,0,0,.45); }
+      .regler input:active::-webkit-slider-thumb { box-shadow: 0 0 0 8px rgba(243,154,43,.35), 0 2px 8px rgba(0,0,0,.45); }`,
+      html: `
+      <i class="trenner"></i>
+      <div class="regler" data-bereit="nein" data-stumm="nein">
+        <svg viewBox="0 0 64 64" ${linie}></svg>
+        <input type="range" min="0" max="100" step="1" value="60" aria-label="Lautstärke">
+      </div>`,
+      start: function (schattenWurzel, meldeFunktion) {
+        wirt = schattenWurzel.querySelector('.regler');
+        feld = wirt.querySelector('input');
+        symbol = wirt.querySelector('svg');
+        melden = meldeFunktion;
+        anzeigen(ruhe.wert);
+        // Beim Ziehen alle 120 ms senden, damit man die Lautstärke schon beim Schieben hört; der letzte
+        // Wert geht auf jeden Fall noch raus.
+        feld.addEventListener('input', function () {
+          ruhe.wert = Number(feld.value);
+          ruhe.zieht = true;
+          ruhe.bis = Date.now() + 1500;
+          anzeigen(ruhe.wert);
+          if (!sendeZeitgeber) sendeZeitgeber = setTimeout(senden, 120);
+        });
+        feld.addEventListener('change', function () { ruhe.zieht = false; });
+      },
+      // Stand aus /lage. Solange man zieht und kurz danach gilt der eigene Wert, sonst sprang der Griff
+      // mit einer Antwort zurück, die vor der letzten Änderung abgeschickt wurde.
+      zeige: function (wert) {
+        if (!feld || typeof wert !== 'number') return;
+        wirt.dataset.bereit = 'ja';
+        if (ruhe.zieht || sendeZeitgeber || Date.now() < ruhe.bis) return;
+        if (wert !== ruhe.wert || !ruhe.bereit) { ruhe.wert = wert; anzeigen(wert); }
+        ruhe.bereit = true;
+      },
+    };
+  })();
+  // === Ende Lautstärke-Schieber ====================================================================
+
   schatten.innerHTML = `
     <style>
       :host { all: initial; position: fixed; top: 8px; left: 8px; z-index: 2147483647; }
@@ -41,6 +119,7 @@
       @keyframes atmen { 50% { background: rgba(243,154,43,.1); } }
       svg { width: 26px; height: 26px; }
       .trenner { width: 1px; height: 22px; background: rgba(255,255,255,.18); }
+      ${regler.css}
     </style>
     <div class="leiste" data-zustand="aus" data-verbunden="nein">
       <a href="${RUHE}?seite=apps" aria-label="Apps">
@@ -54,6 +133,7 @@
       <button aria-label="Mit Elektra sprechen">
         <svg viewBox="0 0 64 64" ${linie}><rect x="24" y="10" width="16" height="28" rx="8"/><path d="M16 32a16 16 0 0 0 32 0M32 48v8M24 56h16"/></svg>
       </button>
+      ${regler.html}
     </div>`;
   document.documentElement.append(wirt);
 
@@ -132,12 +212,14 @@
           }
           letztesWort = lage.wort;
         }
+        regler.zeige(lage.lautstaerke);
         if (lage.befehl) ausfuehren(lage.befehl);
         diktatLage(!!lage.diktat);
       });
     } catch (e) { leiste.dataset.verbunden = 'nein'; leiste.dataset.weckwort = 'nein'; }
   }
   schatten.querySelector('button').addEventListener('click', function () { melde('/tipp').then(frage); });
+  regler.start(schatten, melde);
   frage();
   setInterval(frage, 1000);
 

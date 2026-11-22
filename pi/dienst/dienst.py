@@ -45,6 +45,7 @@ from diktat import (
 )
 from hass import HomeAssistant, termine_karte, wetter_karte
 from konfig import geheimnis
+from lautstaerke import Lautstaerke, pipewire_anteil, pruefen
 from netz import Netz, hat_route
 from sperre import HINWEIS_FEHLER, Sperre
 from statisch import StatischOhneCache
@@ -138,6 +139,7 @@ GESCHUETZT = {
     "/video",
     "/rezept",
     "/sperren",
+    "/lautstaerke",
 }
 # Was das Display wach hält (#48): Elektra und Video; der Schlafwächter fragt über GET /wach.
 wach = Wach()
@@ -160,6 +162,14 @@ weckwort = Weckwort()
 weckwort_sperre = threading.Lock()
 lauscher: Lauscher | None = None
 lokal_zaehler = 0
+# Lautstärke (#99): eine Stellung 0 bis 100 für Schieber und Bridge-Befehl, gemerkt über Neustarts.
+LAUTSTAERKE_DATEI = Path(
+    os.environ.get(
+        "LAUTSTAERKE_DATEI",
+        os.path.expanduser("~/.config/kuechen-display/lautstaerke"),
+    )
+)
+lautstaerke_stand = Lautstaerke(LAUTSTAERKE_DATEI)
 
 
 # --- Seite --------------------------------------------------------------------
@@ -306,6 +316,7 @@ class Handler(StatischOhneCache):
                 "diktat": aufnahme.aktiv,
                 "weckwort": weckwort_hoert(),
                 "wort": weckwort.gehoert,
+                "lautstaerke": lautstaerke_stand.stellung,
             },
             ensure_ascii=False,
         ).encode()
@@ -441,6 +452,18 @@ class Handler(StatischOhneCache):
                 ablage.kiosk_geht()
             self.send_response(204)
             self.end_headers()
+            return
+        if self.path == "/lautstaerke":
+            # Der Schieber der Rückweg-Leiste (#99). Ungültige Werte ändern nichts.
+            stellung = pruefen(daten.get("wert"))
+            if stellung is None:
+                log.warning("Lautstärke: ungültiger Wert %s", roh[:80])
+                self.antworte(
+                    400, {"fehler": "wert muss eine ganze Zahl von 0 bis 100 sein"}
+                )
+                return
+            lautstaerke(stellung)
+            self.antworte(200, {"wert": stellung})
             return
         if self.path == "/video":
             # Die Rückweg-Erweiterung meldet die <video>-Elemente der offenen Seite (#48).
@@ -612,11 +635,48 @@ def verwerfen() -> None:
         log.info("Wiedergabe: %d Rahmen verworfen", n)
 
 
+def pipewire_setzen(stellung: int) -> bool:
+    """Stellt PipeWire auf die Lautstärke zur Stellung (lautstaerke.py). False, wenn wpctl scheitert."""
+    try:
+        r = subprocess.run(
+            [
+                "wpctl",
+                "set-volume",
+                "@DEFAULT_AUDIO_SINK@",
+                f"{pipewire_anteil(stellung):.3f}",
+            ],
+            check=False,
+        )
+    except OSError as e:
+        log.warning("Lautstärke: wpctl nicht gestartet: %s", e)
+        return False
+    return r.returncode == 0
+
+
 def lautstaerke(wert: int) -> None:
-    log.info("Lautstärke: %d", wert)
-    subprocess.run(
-        ["wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", f"{wert / 100:.2f}"],
-        check=False,
+    """Der eine Weg für Schieber (POST /lautstaerke) und Bridge-Befehl: merken und einstellen."""
+    with lautstaerke_stand.sperre:
+        lautstaerke_stand.setzen(wert)
+        log.info("Lautstärke: %d", wert)
+        pipewire_setzen(wert)
+
+
+def lautstaerke_wiederherstellen(versuche: int = 30, pause_s: float = 2.0) -> None:
+    """Beim Start die gemerkte Stellung einstellen (geladen wird sie in main, damit /lage sie sofort
+    kennt). PipeWire läuft beim Systemstart oft noch nicht, deshalb ein paar Versuche. Stellt in der
+    Zwischenzeit jemand die Lautstärke, gilt das."""
+    with lautstaerke_stand.sperre:
+        stellung = lautstaerke_stand.stellung
+    for versuch in range(versuche):
+        with lautstaerke_stand.sperre:
+            if lautstaerke_stand.stellung != stellung:
+                return
+            if pipewire_setzen(stellung):
+                log.info("Lautstärke: Stellung %d wiederhergestellt", stellung)
+                return
+        time.sleep(pause_s)
+    log.warning(
+        "Lautstärke: PipeWire nicht erreicht, Stellung %d nicht gesetzt", stellung
     )
 
 
@@ -885,7 +945,9 @@ def main() -> None:
         log.error("RUNDFUNK_GERAETE_TOKEN fehlt (siehe docs/stimme-und-geste.md)")
         sys.exit(1)
     weckwort_starten()
+    lautstaerke_stand.laden()
     for ziel in (
+        lautstaerke_wiederherstellen,
         bruecke_faden,
         wiedergabe_schleife,
         mikro_schleife,
