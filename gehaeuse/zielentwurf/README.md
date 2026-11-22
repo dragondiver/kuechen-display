@@ -8,6 +8,17 @@ nur über Maße, wenn sie nicht passen.
 
 Die Konstruktion A vom 19.11. (`gehaeuse/cad/gehaeuse.py`, PR #98) ist gestrichen.
 
+## Wo das Ziel zu sehen ist
+
+Maßgeblich ist das drehbare Modell auf der Projektseite:
+<https://dragondiver.github.io/kuechen-display/projekt/>
+
+Dort sieht man Holzmaserung, Bildschirminhalt und Skala so, wie das Gerät aussehen soll.
+Die Screenshots in `projektseite/` halten diesen Stand vom 22.11.2026 fest, falls sich die
+Seite später ändert. `projektseite/seite_uebersicht.jpg` zeigt alle acht Richtungen auf einem Blatt.
+
+![Projektseite aus acht Richtungen](projektseite/seite_uebersicht.jpg)
+
 ## Was hier liegt
 
 | Datei | Inhalt |
@@ -15,6 +26,8 @@ Die Konstruktion A vom 19.11. (`gehaeuse/cad/gehaeuse.py`, PR #98) ist gestriche
 | `ansichten.py` | holt das Modell aus `docs/projekt/modell.js` und rendert die Ansichten |
 | `entwurf_o.glb` | das Modell der Projektseite als GLB (wird vom Skript geschrieben) |
 | `ansichten/` | acht Rundumansichten, vier gerade Ansichten, zwei Übersichtsblätter |
+| `projektseite.py` | nimmt Screenshots des drehbaren Modells der Projektseite auf |
+| `projektseite/` | die Screenshots: acht Richtungen, ein Blick von oben, ein Übersichtsblatt |
 
 Quelle des Modells ist `gehaeuse/blender/entwurf_o.py`; `werkzeuge/modell_exportieren.py`
 macht daraus `docs/projekt/modell.js`.
@@ -25,7 +38,13 @@ macht daraus `docs/projekt/modell.js`.
 uv run --with pyvista --with trimesh --with pillow python gehaeuse/zielentwurf/ansichten.py
 ```
 
-Der Lauf braucht kein Fenster und dauert unter einer Minute. Das Skript gibt außerdem die
+Die Screenshots der Projektseite neu aufnehmen (braucht Google Chrome und Netz):
+
+```bash
+uv run --with playwright --with pillow python gehaeuse/zielentwurf/projektseite.py
+```
+
+Der Lauf von `ansichten.py` braucht kein Fenster und dauert unter einer Minute. Das Skript gibt außerdem die
 Maße jeder Baugruppe aus. `entwurf_o.glb` und `ansichten/` stehen in `.gitignore`, weil
 sie sich jederzeit neu erzeugen lassen.
 

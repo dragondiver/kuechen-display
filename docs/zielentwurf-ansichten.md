@@ -24,6 +24,17 @@ was festgelegt ist und welche Maße gelten. Diese Seite beschreibt nur, wie die 
 Der erste Lauf lädt pyvista und VTK herunter, etwa 100 MB. Danach dauert ein Lauf unter
 einer Minute. Das GLB und die Bilder stehen in `.gitignore`.
 
+## Screenshots der Projektseite
+
+```bash
+uv run --with playwright --with pillow python gehaeuse/zielentwurf/projektseite.py
+```
+
+Das Skript öffnet die Projektseite im installierten Google Chrome ohne Fenster, dreht das
+Modell in 45°-Schritten und legt neun Bilder und ein Übersichtsblatt nach
+`gehaeuse/zielentwurf/projektseite/`. Diese Bilder liegen im Repo, weil sie den
+festgelegten Stand zeigen.
+
 ## Wenn sich das Modell ändert
 
 Erst `blender -b -P werkzeuge/modell_exportieren.py` laufen lassen, das schreibt
