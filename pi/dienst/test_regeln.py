@@ -72,3 +72,27 @@ def lang(dauer_ms, weg_px):
 )
 def test_langer_druck_braucht_zeit_und_ruhe(dauer_ms, weg_px, erwartet):
     assert lang(dauer_ms, weg_px) is erwartet
+
+
+def uebernehmen(eigen_aktiv, jetzt_ms, schutz_bis_ms):
+    skript = (
+        f"const r = require({json.dumps(str(REGELN))});"
+        f"console.log(JSON.stringify(r.standUebernehmen({json.dumps(eigen_aktiv)}, {jetzt_ms}, {schutz_bis_ms})));"
+    )
+    aus = subprocess.run(
+        ["node", "-e", skript], capture_output=True, text=True, check=True
+    )
+    return json.loads(aus.stdout)
+
+
+@pytest.mark.parametrize(
+    "eigen,jetzt,bis,erwartet",
+    [
+        (False, 5000, 0, True),  # Ruhe: dem Dienst glauben
+        (True, 5000, 0, False),  # Finger liegt oder Senden steht aus
+        (False, 5000, 5001, False),  # kurz nach dem Loslassen
+        (False, 5001, 5001, True),  # Schutzzeit genau um
+    ],
+)
+def test_schieber_folgt_dem_stand_nur_in_ruhe(eigen, jetzt, bis, erwartet):
+    assert uebernehmen(eigen, jetzt, bis) is erwartet

@@ -15,6 +15,14 @@
   function langerDruck(dauerMs, wegPx) {
     return dauerMs >= LANG_MS && wegPx <= WACKEL_PX;
   }
+  // Lautstärke-Schieber (#103): Solange man zieht, etwas senden will und kurz danach gilt der eigene Wert,
+  // sonst spränge der Griff mit einem Stand zurück, der vor der letzten Änderung abgeschickt wurde.
+  const LAUTSTAERKE_SCHUTZ_MS = 1500;
+  function standUebernehmen(eigenAktiv, jetztMs, schutzBisMs) {
+    return !eigenAktiv && jetztMs >= schutzBisMs;
+  }
+  aussen.LAUTSTAERKE_SCHUTZ_MS = LAUTSTAERKE_SCHUTZ_MS;
+  aussen.standUebernehmen = standUebernehmen;
   aussen.ALT_MS = ALT_MS;
   aussen.istAlt = istAlt;
   aussen.LANG_MS = LANG_MS;

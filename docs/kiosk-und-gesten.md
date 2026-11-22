@@ -16,6 +16,7 @@ blättert die Seiten um. Uhr, Datum und Wetter sind echt (`docs/datenweg.md`), d
 | Kameradienst | `pi/gesten/gesten.py`, `geste.py` | Dienst `kuechen-gesten`, nur beim Testen an |
 | Rückweg-Leiste auf App-Seiten mit Mikro-Knopf (#10, #70) | `pi/kiosk-rueckweg/` | `~/kuechen-display/kiosk-rueckweg/`, siehe `docs/spotify.md` |
 | Lautstärke: Schieber in der Rückweg-Leiste, Umrechnung im Dienst (#99) | `pi/kiosk-rueckweg/rueckweg.js`, `pi/dienst/lautstaerke.py` | siehe „Lautstärke“ unten |
+| Lautstärke: Schieber auf den Hauptseiten neben dem Mikrofon (#103) | `pi/kiosk/index.html`, `pi/kiosk/regeln.js` | siehe „Lautstärke“ unten |
 | Fensterregel und Panel (Bildschirmtastatur) | `pi/kiosk/labwc-rc.xml`, `pi/kiosk/wf-panel-pi.ini` | `~/.config/labwc/rc.xml`, `~/.config/wf-panel-pi/wf-panel-pi.ini` |
 | Chromium-Autostart | `pi/kiosk/kiosk.desktop`, `pi/kiosk-start.sh` | `~/.config/autostart/kiosk.desktop`, `~/kuechen-display/kiosk-start.sh` |
 | Display nach Ruhe aus (#48) | `pi/schlafen/` | Dienst `kuechen-schlafen`, siehe `docs/schlafen.md` |
@@ -62,9 +63,9 @@ Siehe `docs/deploy.md`. Die erste Einrichtung (Token, Gerätewerte der Bridge) s
 ## Lautstärke
 
 Seit 22.11.2026 (#99). In der Rückweg-Leiste sitzt rechts vom Mikro-Knopf ein Schieber. Er ist eine
-Übergangslösung, bis ein Drehregler in der Gehäusefront sitzt. Er gibt es nur dort, wo die Leiste ist, also in den Apps (`https`-Seiten). Die Seiten des Kiosks selbst
-haben keine Leiste mit Mikro-Knopf (dort hängt das Mikrofon an der Figur), also bekommen sie auch keinen
-Schieber.
+Übergangslösung, bis ein Drehregler in der Gehäusefront sitzt. Er gibt es nur dort, wo die Leiste ist, also in den Apps (`https`-Seiten). Auf den Hauptseiten des Kiosks
+gibt es keine Leiste (dort hängt das Mikrofon an der Figur); dort sitzt seit #103 ein eigener Schieber,
+siehe unten.
 
 Die Stellung des Schiebers geht von 0 bis 100. 0 ist stumm, 1 bis 100 werden linear auf 35 bis 100 %
 PipeWire umgerechnet. Der Grund steht im Tischtest vom 22.11.2026 (#18): PipeWire rechnet kubisch auf den
@@ -86,6 +87,22 @@ Der Dienst merkt sich die Stellung in `~/.config/kuechen-display/lautstaerke` (a
 von 0 bis 100, gilt 60. PipeWire läuft beim Systemstart oft noch nicht, deshalb versucht der Dienst es bis
 zu 30-mal im Abstand von 2 s. Der ALSA-Regler `PCM`,1 am Board steht fest auf -10 dB und gehört nicht dazu.
 
+### Schieber auf den Hauptseiten (#103)
+
+Auf den Seiten des Kiosks (Apps, Heute, Morgen) steht am rechten Rand, rechts neben dem Mikrofon der Figur,
+ein senkrechter Schieber in einer Glaspille (56 × 330 px, rechts oben ist laut). Links vom Mikrofon wäre die
+Sprechzeile im Weg, deshalb nicht dort. Er sendet wie der Schieber der Leiste `POST /lautstaerke`, gedrosselt
+alle 120 ms, und bleibt nach dem Loslassen stehen.
+
+Den Stand bekommt er als Ereignis `lautstaerke` (`{"wert": 0..100}`) aus `/ereignisse`. Der Dienst schickt es
+einer neuen Kiosk-Seite beim Verbinden und allen offenen Seiten bei jeder Änderung, egal ob Schieber, Leiste
+oder Bridge sie ausgelöst hat. Er ruft nicht `GET /lage` ab: Das hat Nebenwirkungen (es meldet dem Dienst, dass
+eine App vorn ist, und nimmt einen wartenden Befehl aus der Ablage). Nur die Rückweg-Leiste darf `/lage` abfragen.
+
+Berührungen des Schiebers sehen die Wisch- und Langdruck-Regeln der Seite nicht, und er liegt nicht in der
+Figur, löst also kein Gespräch aus. Ob ein neuer Stand übernommen wird, entscheidet `Regeln.standUebernehmen`
+(`regeln.js`, mit Test).
+
 ### Rückbau, wenn der Drehregler sitzt
 
 Der Schieber hängt an einem Block in `pi/kiosk-rueckweg/rueckweg.js`, markiert mit
@@ -96,6 +113,10 @@ Der Schieber hängt an einem Block in `pi/kiosk-rueckweg/rueckweg.js`, markiert 
 2. In `pi/kiosk-rueckweg/hintergrund.js` `'/lautstaerke'` aus `ERLAUBT`. Die Manifest-Version erhöhen.
 3. In `pi/dienst/dienst.py` die Route `POST /lautstaerke` samt Eintrag in `GESCHUETZT` und
    `test_lautstaerke_http.py` (die Tests der Route).
+4. Den Schieber der Hauptseiten (#103): in `pi/kiosk/index.html` die drei Blöcke mit
+   `=== Lautstärke-Schieber (#103) ===` (CSS, Markup `#lautstaerke`, Skript) bis `=== Ende Lautstärke-Schieber ===`,
+   in `pi/kiosk/regeln.js` `standUebernehmen` und `LAUTSTAERKE_SCHUTZ_MS` samt Test in `test_regeln.py`.
+   Die Meldung `lautstaerke` in `/ereignisse` und ihre Tests kann bleiben, ein Drehregler mit Anzeige braucht sie.
 
 Bleiben muss, was der Drehregler und Elektra weiter brauchen: `lautstaerke.py` mit der Umrechnung und der
 gemerkten Stellung, `lautstaerke()` für den Bridge-Befehl und das Wiederherstellen beim Start. Der Eintrag
