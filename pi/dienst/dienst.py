@@ -660,8 +660,9 @@ def lautstaerke(wert: int) -> None:
         lautstaerke_stand.setzen(wert)
         log.info("Lautstärke: %d", wert)
         pipewire_setzen(wert)
-    # Alle offenen Kiosk-Seiten zeigen den neuen Stand (#103), egal wer ihn ausgelöst hat.
-    an_seite("lautstaerke", {"wert": wert})
+        # Alle offenen Kiosk-Seiten zeigen den neuen Stand (#103), egal wer ihn ausgelöst hat. Unter der
+        # Sperre, damit zwei gleichzeitige Aufrufe ihre Meldungen nicht vertauschen (put blockiert nicht).
+        an_seite("lautstaerke", {"wert": wert})
 
 
 def lautstaerke_wiederherstellen(versuche: int = 30, pause_s: float = 2.0) -> None:

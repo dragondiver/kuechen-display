@@ -181,3 +181,15 @@ def test_ereignis_nach_setzen_ueber_post(server):
 def test_ereignis_nach_bridge_befehl(server):
     aktionen = Leitung().nachricht(json.dumps({"type": "lautstaerke", "wert": 5}))
     assert lies_ereignisse(server, 2, lambda: dienst.ausfuehren(aktionen)) == [60, 5]
+
+
+def test_meldung_geht_unter_der_sperre_raus(aufrufe, monkeypatch):
+    """Zwei gleichzeitige Aufrufe dürfen ihre Meldungen nicht vertauschen: gesendet wird unter der Sperre."""
+    gehalten = []
+    monkeypatch.setattr(
+        dienst,
+        "an_seite",
+        lambda art, daten: gehalten.append(dienst.lautstaerke_stand.sperre.locked()),
+    )
+    dienst.lautstaerke(30)
+    assert gehalten == [True]

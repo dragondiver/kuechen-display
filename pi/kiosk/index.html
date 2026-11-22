@@ -577,7 +577,12 @@
       anzeigen(wert);
       if (!sendeZeitgeber) sendeZeitgeber = setTimeout(senden, 120);
     });
+    // Auch ein abgebrochenes Ziehen (pointercancel, blur) gibt den Schieber wieder für den Stand des Dienstes frei.
     feld.addEventListener('change', function () { zieht = false; });
+    feld.addEventListener('pointercancel', function () { zieht = false; });
+    feld.addEventListener('blur', function () { zieht = false; });
+    // Bricht der Strom ab, ist der Stand ungewiss: gedimmt, bis beim Wiederverbinden ein neuer kommt.
+    quelle.addEventListener('error', function () { wirt.dataset.bereit = 'nein'; });
     quelle.addEventListener('lautstaerke', function (e) {
       const neu = JSON.parse(e.data).wert;
       if (typeof neu !== 'number') return;
