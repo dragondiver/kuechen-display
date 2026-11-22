@@ -54,9 +54,11 @@ Oben im Skript steht der Block `MASSE`. Gemessen am 19.11.2026:
 
 Die Breite der Kameraplatine (25 mm) stammt aus dem Datenblatt von Raspberry Pi.
 
-## Noch nicht geprüft
+## Stand
 
-Die erste Leiste ist am 19.11.2026 gedruckt: Die Kamera passt in die Tasche. Die Mikrofonablage
-mit zwei durchgehenden Schienen passte nicht (kein Platz fürs Kabel, Platine lag lose) und ist
-durch die Endtaschen ersetzt; die sind noch nicht gedruckt. Der Sockel ist auch noch nicht gedruckt,
-damit ist offen, ob Zapfen und Löcher mit 0,35 mm Luft gut sitzen.
+Beide Teile sind gedruckt (Leiste in PLA Matte, Sockel in PLA Basic) und seit dem 22.11.2026 im
+Tischtest im Einsatz. Display, Kamera und Lautsprecher passen, die Leiste sitzt auf den Zapfen.
+
+Die Mikrofonplatine lässt sich in die Endtaschen einlegen, sitzt aber nicht fest, weil das
+Flachbandkabel an ihr zieht. Für den Test wird sie beschwert. Eine erste Fassung mit zwei
+durchgehenden Schienen ließ dem Kabel keinen Platz und wurde ersetzt.
