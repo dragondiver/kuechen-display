@@ -15,3 +15,7 @@ docs/entwuerfe/wetter/roh/
 docs/entwuerfe/wetter/pruefung/
 docs/entwuerfe/wetter/*/roh/
 docs/entwuerfe/wetter/*/pruefung/
+
+# Zielentwurf: Modell und Ansichten erzeugt gehaeuse/zielentwurf/ansichten.py neu.
+gehaeuse/zielentwurf/entwurf_o.glb
+gehaeuse/zielentwurf/ansichten/
