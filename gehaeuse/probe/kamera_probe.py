@@ -53,7 +53,7 @@ KAM_PLATINE_DICK = 1.12
 
 # --- was das Probestück ausprobiert
 LIPPE = 1.0  # Rahmenlippe über dem Glas (Entwurf: 2,8)
-LINSE_ZURUECK = 1.0  # Linsenfront hinter der Frontfläche
+FUEHRUNG = 2.5  # Höhe der drei Wände; sie führen nur das silberne Gehäuse und bleiben unter der Platine
 KAM_S = 133.5  # Linsenmitte auf der Schräge (Entwurf 137, entschieden 132,5, hier 1 mm höher)
 SPIEL = 0.5  # rundum
 BREITE = 60.0
@@ -75,8 +75,11 @@ def quader(x0, x1, y0, y1, z0, z1):
 
 
 def baue():
-    z_platine = LINSE_ZURUECK + KAM_LINSE_UEBER_PLATINE  # Platinenvorderseite
-    z_gehaeuse = z_platine - KAM_GEHAEUSE_HOCH
+    # Das silberne Kameragehäuse liegt auf der Rückseite der Frontplatte auf. Die Platine ist
+    # kein Anschlag: Die Kamera sitzt schräg darauf, und neben ihr stehen Bauteile (Foto 22.11.).
+    z_gehaeuse = WAND
+    z_platine = z_gehaeuse + KAM_GEHAEUSE_HOCH  # Platinenvorderseite
+    linse = z_platine - KAM_LINSE_UEBER_PLATINE  # Linsenfront hinter der Frontfläche
     z_glas = LIPPE + GLAS_DICK  # Glasrückseite
     tasche = GLAS_OBEN + SPIEL
 
@@ -97,14 +100,13 @@ def baue():
     r = KAM_TUBUS_R + SPIEL
     teil -= Pos(0, KAM_S, WAND / 2) * Cylinder(r, WAND + 2)
     teil -= Pos(0, KAM_S, 0.25) * Cone(r + 0.5, r, 0.5)
-    # Anschlag für die Kamera: drei Wände ums Kameragehäuse, unten offen zum Display.
-    # Die Platine liegt auf den Wänden auf, das legt die Tiefe der Linse fest.
+    # Führung für die Kamera: drei niedrige Wände ums Kameragehäuse, unten offen zum Display.
     i = KAM_GEHAEUSE / 2 + SPIEL
     a = i + 1.6
     unten = tasche + 0.5
-    teil += quader(-a, -i, unten, KAM_S + a, WAND, z_platine)
-    teil += quader(i, a, unten, KAM_S + a, WAND, z_platine)
-    teil += quader(-a, a, KAM_S + i, KAM_S + a, WAND, z_platine)
+    teil += quader(-a, -i, unten, KAM_S + a, WAND, WAND + FUEHRUNG)
+    teil += quader(i, a, unten, KAM_S + a, WAND, WAND + FUEHRUNG)
+    teil += quader(-a, a, KAM_S + i, KAM_S + a, WAND, WAND + FUEHRUNG)
 
     g = KAM_GEHAEUSE / 2
     px0 = -(KAM_PLATINE[0] - KAM_LINSE_ZUR_STECKERKANTE)
@@ -123,8 +125,8 @@ def baue():
             z_glas,
             z_glas + LCD_DICK,
         ),
-        "kam_tubus": Pos(0, KAM_S, (LINSE_ZURUECK + z_gehaeuse) / 2)
-        * Cylinder(KAM_TUBUS_R, z_gehaeuse - LINSE_ZURUECK),
+        "kam_tubus": Pos(0, KAM_S, (linse + z_gehaeuse) / 2)
+        * Cylinder(KAM_TUBUS_R, z_gehaeuse - linse),
         "kam_gehaeuse": quader(-g, g, KAM_S - g, KAM_S + g, z_gehaeuse, z_platine),
         "kam_platine": quader(px0, px1, py0, py1, z_platine, z_pl_hinten),
         "kam_stecker": quader(
@@ -146,7 +148,8 @@ def baue():
             dach_s(z_pl_hinten + KAM_STECKER_HOCH, True) - (KAM_S + 9.8)
         )
         * math.sin(T),
-        "Frontdicke vor dem Kameragehäuse": z_gehaeuse,
+        "Wände bis zur Platine (Platz für Bauteile)": z_platine - WAND - FUEHRUNG,
+        "Linse hinter der Frontfläche": linse,
     }
     return teil, einbauten, masse
 
@@ -155,10 +158,10 @@ def pruefe(teil, einbauten, masse):
     fehler = []
     for name, wert in masse.items():
         print(f"  {name:45s} {wert:+.2f} mm")
-        if name != "Frontdicke vor dem Kameragehäuse" and wert < 0.3:
+        if name != "Linse hinter der Frontfläche" and wert < 0.3:
             fehler.append(f"zu wenig Luft: {name} {wert:+.2f} mm")
-    if masse["Frontdicke vor dem Kameragehäuse"] < WAND:
-        fehler.append("Kameragehäuse ragt in die Frontplatte")
+    if masse["Linse hinter der Frontfläche"] < 0:
+        fehler.append("Linse steht über die Frontfläche hinaus")
     for name, k in einbauten.items():
         schnitt = teil & k
         v = schnitt.volume if schnitt is not None else 0

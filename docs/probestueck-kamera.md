@@ -11,7 +11,7 @@ Anschlag für die Kamera und 20 mm Dach. Hintergrund und Messwerte stehen in
 uv run --with build123d --with pyvista --with pillow python gehaeuse/probe/kamera_probe.py
 ```
 
-Das Skript rechnet die Luft an fünf Stellen aus, prüft auf Durchdringungen und schreibt nach
+Das Skript rechnet die Luft an sechs Stellen aus, prüft auf Durchdringungen und schreibt nach
 `gehaeuse/probe/ausgabe/`:
 
 - `kamera_probe.stl` und `kamera_probe.step` zum Drucken
@@ -30,12 +30,13 @@ getrennt nach gemessen, aus der Zeichnung und zum Ausprobieren.
 
 1. Display mit der Bildseite gegen die dünne Lippe halten, Glasoberkante an die Stufe schieben.
    Liegt das Glas flach in der Tasche?
-2. Kamera quer einsetzen, Stecker zur Seite. Die Linse geht durchs Loch, die Platine liegt auf
-   den drei Wänden auf.
+2. Kamera quer einsetzen, Stecker zur Seite. Die Linse geht durchs Loch, das silberne
+   Kameragehäuse liegt auf der Rückseite der Frontplatte auf. Die drei niedrigen Wände führen
+   es nur seitlich, die Platine schwebt 3 mm darüber.
 3. Ansehen und aufschreiben:
    - Berührt das Kameragehäuse das Glas?
    - Stößt die Platine oben ans Dach?
-   - Sitzt die Linse hinter der Frontfläche, und wie weit?
+   - Sitzt die Linse hinter der Frontfläche, und wie weit? Gerechnet sind 0,3 mm.
    - Steht die Kamera gerade im Loch, obwohl sie schräg auf der Platine sitzt?
    - Kommt das Flachbandkabel seitlich heraus, ohne zu knicken?
 4. Kamera anschließen und ein Bild aufnehmen: Schattet der Lochrand die Bildecken ab?
