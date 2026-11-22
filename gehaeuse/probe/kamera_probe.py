@@ -39,15 +39,16 @@ FENSTER_OBEN = 124.1  # Oberkante des Bildfensters
 GLAS_DICK = 1.55  # 1,5 bis 1,6 mit Folie
 UEBERSTAND = 2.0  # Glas über dem LCD-Modul, oben
 KAM_LINSE_UEBER_PLATINE = 8.2  # Platinenvorderseite bis Linsenfront
-KAM_GEHAEUSE_HOCH = 5.5  # schwarzes Gehäuse über der Platine
+KAM_GEHAEUSE_HOCH = 5.5  # silbernes Kameragehäuse über der Platine
 KAM_PLATINE = (23.8, 25.1)  # quer gedreht: 23,8 quer, 25,1 entlang der Schräge
 KAM_LINSE_ZUR_STECKERKANTE = 8.6
 KAM_STECKER_HOCH = 2.45
 
+KAM_GEHAEUSE = 10.8  # Kantenlänge des Kameragehäuses
+KAM_TUBUS_R = 7.1 / 2  # Linsentubus
+
 # --- aus den Zeichnungen, nicht gemessen
 LCD_DICK = 4.8
-KAM_GEHAEUSE = 10.8  # Kantenlänge des schwarzen Gehäuses
-KAM_TUBUS_R = 3.475
 KAM_PLATINE_DICK = 1.12
 
 # --- was das Probestück ausprobiert
@@ -96,7 +97,7 @@ def baue():
     r = KAM_TUBUS_R + SPIEL
     teil -= Pos(0, KAM_S, WAND / 2) * Cylinder(r, WAND + 2)
     teil -= Pos(0, KAM_S, 0.25) * Cone(r + 0.5, r, 0.5)
-    # Anschlag für die Kamera: drei Wände ums schwarze Gehäuse, unten offen zum Display.
+    # Anschlag für die Kamera: drei Wände ums Kameragehäuse, unten offen zum Display.
     # Die Platine liegt auf den Wänden auf, das legt die Tiefe der Linse fest.
     i = KAM_GEHAEUSE / 2 + SPIEL
     a = i + 1.6
@@ -180,7 +181,7 @@ FARBEN = {
     "glas": (0.35, 0.55, 0.70),
     "lcd": (0.55, 0.57, 0.60),
     "kam_tubus": (0.12, 0.12, 0.13),
-    "kam_gehaeuse": (0.12, 0.12, 0.13),
+    "kam_gehaeuse": (0.72, 0.73, 0.75),
     "kam_platine": (0.10, 0.45, 0.20),
     "kam_stecker": (0.85, 0.82, 0.70),
 }
