@@ -28,6 +28,7 @@ Braun-Stil, für die offene Küche. Es spricht als Elektra (Repo
 - [Tischtest XVF3800](tischtest-xvf3800.html): Aufbau, Fotos und Messwerte
 - [Tischständer](tischstaender.html): gedruckter Halter für Display, Kamera, Mikrofon und Lautsprecher
 - [Stimme auf dem Display](stimme-und-geste.html): Gespräch mit Elektra, Einrichtung, Kamera beim Testen
+- [Probe fürs Aktivierungswort](weckwort-probe.html): „Elektra“ mit openWakeWord aufnehmen und auszählen
 - [Kiosk und Gesten](kiosk-und-gesten.html): Ruhebildschirm, Gestenregeln und Messwerte
 - [Schlafen](schlafen.html): Display nach 5 Minuten Ruhe aus, Weck-Tipp, Prüfen am Gerät
 - [Datenweg](datenweg.html): Wetter aus Home Assistant, Token einrichten, Termine noch offen
