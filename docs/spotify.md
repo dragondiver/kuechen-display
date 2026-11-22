@@ -70,6 +70,7 @@ Im Kiosk gibt es keine Tabs und keinen Zurück-Knopf. Deshalb liegt oben links e
 | Raster (vier Quadrate) | zurück auf die Apps-Seite (`http://localhost:8080/?seite=apps`) |
 | Uhr | zurück auf Heute |
 | Mikrofon | Gespräch mit Elektra, wie der Tipp aufs Mikrofon der Kiosk-Seite (#70, `docs/stimme-und-geste.md`) |
+| Schieber | Lautstärke, bis ein Drehregler in der Front sitzt (#99, `docs/kiosk-und-gesten.md`, „Lautstärke“) |
 
 Die Musik läuft auf dem Evoke weiter, weil Spotify Connect sie dort hält. Kommt man zurück zu
 Spotify, lädt der Player neu und zeigt sie wieder an.

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Küchen-Display: Rückweg",
-  "version": "17",
-  "description": "Kleine Leiste oben links auf fremden Seiten (Spotify, später YouTube, Browser): zurück zu den Apps oder zu Heute, Mikro-Knopf für Elektra. Dazu fester Zoom für Spotify, die Meldung „Video läuft“ ans Schlafen und die Meldung „Rezept offen“ fürs Weckwort. kuechen-display#10, #70, #48, #75, #89, mise-en-place#223",
+  "version": "18",
+  "description": "Kleine Leiste oben links auf fremden Seiten (Spotify, später YouTube, Browser): zurück zu den Apps oder zu Heute, Mikro-Knopf für Elektra. Dazu fester Zoom für Spotify, die Meldung „Video läuft“ ans Schlafen und die Meldung „Rezept offen“ fürs Weckwort. Schieber für die Lautstärke (Übergang bis zum Drehregler). kuechen-display#10, #70, #48, #75, #89, #99, mise-en-place#223",
   "content_scripts": [
     {
       "matches": [

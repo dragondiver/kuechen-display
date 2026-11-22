@@ -15,6 +15,7 @@ blättert die Seiten um. Uhr, Datum und Wetter sind echt (`docs/datenweg.md`), d
 | Küchen-Dienst: Seite und Ereignisse | `pi/dienst/dienst.py` | Dienst `kuechen-dienst` |
 | Kameradienst | `pi/gesten/gesten.py`, `geste.py` | Dienst `kuechen-gesten`, nur beim Testen an |
 | Rückweg-Leiste auf App-Seiten mit Mikro-Knopf (#10, #70) | `pi/kiosk-rueckweg/` | `~/kuechen-display/kiosk-rueckweg/`, siehe `docs/spotify.md` |
+| Lautstärke: Schieber in der Rückweg-Leiste, Umrechnung im Dienst (#99) | `pi/kiosk-rueckweg/rueckweg.js`, `pi/dienst/lautstaerke.py` | siehe „Lautstärke“ unten |
 | Fensterregel und Panel (Bildschirmtastatur) | `pi/kiosk/labwc-rc.xml`, `pi/kiosk/wf-panel-pi.ini` | `~/.config/labwc/rc.xml`, `~/.config/wf-panel-pi/wf-panel-pi.ini` |
 | Chromium-Autostart | `pi/kiosk/kiosk.desktop`, `pi/kiosk-start.sh` | `~/.config/autostart/kiosk.desktop`, `~/kuechen-display/kiosk-start.sh` |
 | Display nach Ruhe aus (#48) | `pi/schlafen/` | Dienst `kuechen-schlafen`, siehe `docs/schlafen.md` |
@@ -57,6 +58,49 @@ pi/push.sh
 
 Siehe `docs/deploy.md`. Die erste Einrichtung (Token, Gerätewerte der Bridge) steht in
 `docs/stimme-und-geste.md`.
+
+## Lautstärke
+
+Seit 22.11.2026 (#99). In der Rückweg-Leiste sitzt rechts vom Mikro-Knopf ein Schieber. Er ist eine
+Übergangslösung, bis ein Drehregler in der Gehäusefront sitzt. Er gibt es nur dort, wo die Leiste ist, also in den Apps (`https`-Seiten). Die Seiten des Kiosks selbst
+haben keine Leiste mit Mikro-Knopf (dort hängt das Mikrofon an der Figur), also bekommen sie auch keinen
+Schieber.
+
+Die Stellung des Schiebers geht von 0 bis 100. 0 ist stumm, 1 bis 100 werden linear auf 35 bis 100 %
+PipeWire umgerechnet. Der Grund steht im Tischtest vom 22.11.2026 (#18): PipeWire rechnet kubisch auf den
+ALSA-Regler um. 15 % sind stumm, 30 % sind -31 dB, 60 % -13 dB, 100 % 0 dB. Unter 35 % gäbe es nichts
+Hörbares. Die Umrechnung steht in `pi/dienst/lautstaerke.py` (`pipewire_anteil`, mit Tests) und gilt für
+jeden Weg:
+
+- Der Schieber schickt `POST /lautstaerke` mit `{"wert": 0..100}` (Header `X-Kuechen: 1` wie bei
+  `/tipp`, sonst 403). Keine Zahl, keine ganze Zahl oder außerhalb von 0 bis 100 gibt 400 und ändert nichts.
+- Der Bridge-Befehl `lautstaerke` (rundfunk) geht durch dieselbe Funktion (`lautstaerke()` in
+  `dienst.py`). Sein Wertebereich bleibt 0 bis 100, nur die Bedeutung hat sich geändert: Früher war
+  `wert` der PipeWire-Anteil in Prozent, jetzt ist es die Stellung des Schiebers.
+- Der Schieber zeigt, was der Dienst meldet (`lautstaerke` in `GET /lage`, das die Leiste jede Sekunde
+  holt). Stellt Elektra über die Bridge um, zieht der Schieber nach. Beim Ziehen und anderthalb Sekunden
+  danach gilt der eigene Wert.
+
+Der Dienst merkt sich die Stellung in `~/.config/kuechen-display/lautstaerke` (anderer Ort:
+`LAUTSTAERKE_DATEI`) und stellt sie beim Start wieder ein. Fehlt die Datei oder ist ihr Inhalt keine Zahl
+von 0 bis 100, gilt 60. PipeWire läuft beim Systemstart oft noch nicht, deshalb versucht der Dienst es bis
+zu 30-mal im Abstand von 2 s. Der ALSA-Regler `PCM`,1 am Board steht fest auf -10 dB und gehört nicht dazu.
+
+### Rückbau, wenn der Drehregler sitzt
+
+Der Schieber hängt an einem Block in `pi/kiosk-rueckweg/rueckweg.js`, markiert mit
+`=== Lautstärke-Schieber (#99) ===` bis `=== Ende Lautstärke-Schieber ===`. Entfernen:
+
+1. Diesen Block und die drei Stellen, die ihn benutzen: `${regler.css}` und `${regler.html}` in der Vorlage,
+   `regler.start(schatten, melde)` unter dem Klick auf den Mikro-Knopf und `regler.zeige(lage.lautstaerke)` in `frage()`.
+2. In `pi/kiosk-rueckweg/hintergrund.js` `'/lautstaerke'` aus `ERLAUBT`. Die Manifest-Version erhöhen.
+3. In `pi/dienst/dienst.py` die Route `POST /lautstaerke` samt Eintrag in `GESCHUETZT` und
+   `test_lautstaerke_http.py` (die Tests der Route).
+
+Bleiben muss, was der Drehregler und Elektra weiter brauchen: `lautstaerke.py` mit der Umrechnung und der
+gemerkten Stellung, `lautstaerke()` für den Bridge-Befehl und das Wiederherstellen beim Start. Der Eintrag
+`lautstaerke` in `/lage` kann bleiben, die Leiste liest ihn dann nur nicht mehr. Wie der Drehregler später
+die Stellung setzt (Hardware, Weg zum Dienst), ist offen.
 
 ## Bildschirmtastatur
 
