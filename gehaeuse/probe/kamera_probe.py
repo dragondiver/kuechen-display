@@ -233,8 +233,11 @@ if __name__ == "__main__":
     for z in fehler:
         print("  FEHLER " + z)
     print("  keine Fehler" if not fehler else f"  {len(fehler)} Fehler")
-    export_stl(teil, os.path.join(ZIEL, "kamera_probe.stl"))
-    export_step(teil, os.path.join(ZIEL, "kamera_probe.step"))
+    # Für den Slicer in die Mitte des Betts (256 x 256 mm) schieben, sonst liegt das Teil halb daneben.
+    m = teil.bounding_box().center()
+    druck = Pos(128 - m.X, 128 - m.Y, 0) * teil
+    export_stl(druck, os.path.join(ZIEL, "kamera_probe.stl"))
+    export_step(druck, os.path.join(ZIEL, "kamera_probe.step"))
     netze = {"teil": netz(teil), **{n: netz(k) for n, k in einbauten.items()}}
     bild(netze, "1_schnitt_mitte.png", (1, 0, 0), (0, 1, 0), schnitt_x=0)
     bild(netze, "2_innen_schraeg.png", (0.5, -0.6, 1), (0, 1, 0))
