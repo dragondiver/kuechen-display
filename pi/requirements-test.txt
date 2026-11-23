@@ -1,5 +1,5 @@
 # Nur für Tests und Lint (CI und Mac). Auf dem Pi wird das nicht installiert.
 pytest==9.2.0
-ruff==0.17.5
+ruff==0.17.6
 # dienst.py importiert websockets (test_wach_http.py); auf dem Pi gilt >=15,<16 (install-kiosk.sh).
-websockets>=15,<16
+websockets>=17.4,<18
