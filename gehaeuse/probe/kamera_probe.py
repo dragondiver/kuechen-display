@@ -47,8 +47,10 @@ KAM_STECKER_HOCH = 2.45
 KAM_GEHAEUSE = 10.8  # Kantenlänge des Kameragehäuses
 KAM_TUBUS_R = 7.1 / 2  # Linsentubus
 
-KAM_LOCH_PAAR = 20.93  # Mittenabstand der zwei Löcher einer Reihe (außen 23,13)
-KAM_LOCH_REIHE = 12.3  # Mittenabstand der beiden Reihen (außen 14,5)
+KAM_LOCH_PAAR = (
+    21.0  # Mittenabstand der zwei Löcher einer Reihe: außen 23,13, Loch 1,98 bis 2,2
+)
+KAM_LOCH_REIHE = 12.5  # Mittenabstand der beiden Reihen: außen 14,5, Loch 1,98 bis 2,2
 
 # --- aus den Zeichnungen, nicht gemessen
 KAM_LOCH_RAND = 2.0  # erste Lochreihe: Abstand zur Platinenkante gegenüber dem Stecker
