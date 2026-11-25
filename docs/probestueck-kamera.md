@@ -33,7 +33,11 @@ getrennt nach gemessen, aus der Zeichnung und zum Ausprobieren.
 2. Kamera quer einsetzen, Stecker zur Seite. Die Linse geht durchs Loch, das silberne
    Kameragehäuse liegt auf der Rückseite der Frontplatte auf. Die drei niedrigen Wände führen
    es nur seitlich, die Platine schwebt 3 mm darüber.
+   Zwei Stützen stehen unter den oberen Löchern der Platine. Je einen Gummiring oder ein Stück
+   Moosgummi (0,5 mm) auflegen und mit M2 × 6 handfest anschrauben, die Schraube schneidet sich
+   ihr Gewinde selbst. Die unteren Löcher bleiben frei, sie liegen über dem Display.
 3. Ansehen und aufschreiben:
+   - Treffen die beiden Schrauben die Löcher der Platine?
    - Berührt das Kameragehäuse das Glas?
    - Stößt die Platine oben ans Dach?
    - Sitzt die Linse hinter der Frontfläche, und wie weit? Gerechnet sind 0,3 mm.

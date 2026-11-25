@@ -48,11 +48,16 @@ KAM_GEHAEUSE = 10.8  # Kantenlänge des Kameragehäuses
 KAM_TUBUS_R = 7.1 / 2  # Linsentubus
 
 # --- aus den Zeichnungen, nicht gemessen
+KAM_LOCH_RAND = 2.0  # Befestigungslöcher: Abstand zum Platinenrand
+KAM_LOCH_REIHE = 12.5  # Abstand der zweiten Lochreihe von der ersten
 LCD_DICK = 4.8
 KAM_PLATINE_DICK = 1.12
 
 # --- was das Probestück ausprobiert
 LIPPE = 1.0  # Rahmenlippe über dem Glas (Entwurf: 2,8)
+STUETZE_LUFT = 0.5  # Stützen enden unter der Platine, dazwischen ein Gummiring
+STUETZE_R = 2.2
+SCHRAUBLOCH_R = 0.85  # Kernloch für M2 direkt im Kunststoff
 FUEHRUNG = 2.5  # Höhe der drei Wände; sie führen nur das silberne Gehäuse und bleiben unter der Platine
 KAM_S = 133.5  # Linsenmitte auf der Schräge (Entwurf 137, entschieden 132,5, hier 1 mm höher)
 SPIEL = 0.5  # rundum
@@ -107,6 +112,31 @@ def baue():
     teil += quader(-a, -i, unten, KAM_S + a, WAND, WAND + FUEHRUNG)
     teil += quader(i, a, unten, KAM_S + a, WAND, WAND + FUEHRUNG)
     teil += quader(-a, a, KAM_S + i, KAM_S + a, WAND, WAND + FUEHRUNG)
+    # Zwei Stützen an den oberen Löchern der Platine. Die unteren Löcher liegen über dem Display.
+    kante = -(
+        KAM_PLATINE[0] - KAM_LINSE_ZUR_STECKERKANTE
+    )  # Platinenkante gegenüber dem Stecker
+    loch_y = KAM_S + KAM_PLATINE[1] / 2 - KAM_LOCH_RAND
+    loecher = [
+        (kante + KAM_LOCH_RAND, loch_y),
+        (kante + KAM_LOCH_RAND + KAM_LOCH_REIHE, loch_y),
+    ]
+    z_stuetze = z_platine - STUETZE_LUFT
+    for lx, ly in loecher:
+        teil += Pos(lx, ly, (WAND + z_stuetze) / 2) * Cylinder(
+            STUETZE_R, z_stuetze - WAND
+        )
+    # Steg zwischen der Stütze in der Mitte und der oberen Führungswand, sonst bleibt ein Spalt
+    teil += quader(
+        loecher[1][0] - STUETZE_R,
+        loecher[1][0] + STUETZE_R,
+        KAM_S + a - 0.1,
+        loch_y,
+        WAND,
+        WAND + FUEHRUNG,
+    )
+    for lx, ly in loecher:
+        teil -= Pos(lx, ly, z_stuetze - 2.5 + 0.5) * Cylinder(SCHRAUBLOCH_R, 5 + 1)
 
     g = KAM_GEHAEUSE / 2
     px0 = -(KAM_PLATINE[0] - KAM_LINSE_ZUR_STECKERKANTE)
@@ -149,6 +179,7 @@ def baue():
         )
         * math.sin(T),
         "Wände bis zur Platine (Platz für Bauteile)": z_platine - WAND - FUEHRUNG,
+        "Stützen unter der Platine (Gummiring)": z_platine - z_stuetze,
         "Linse hinter der Frontfläche": linse,
     }
     return teil, einbauten, masse
