@@ -41,15 +41,17 @@ UEBERSTAND = 2.0  # Glas über dem LCD-Modul, oben
 KAM_LINSE_UEBER_PLATINE = 8.2  # Platinenvorderseite bis Linsenfront
 KAM_GEHAEUSE_HOCH = 5.5  # silbernes Kameragehäuse über der Platine
 KAM_PLATINE = (23.8, 25.1)  # quer gedreht: 23,8 quer, 25,1 entlang der Schräge
-KAM_LINSE_ZUR_STECKERKANTE = 8.6
+KAM_LINSE_ZUR_STECKERKANTE = 9.3  # aus 25.11.: Kante gegenüber bis Gehäuse-Unterseite 19,9, also Linse 14,5 von dort
 KAM_STECKER_HOCH = 2.45
 
 KAM_GEHAEUSE = 10.8  # Kantenlänge des Kameragehäuses
 KAM_TUBUS_R = 7.1 / 2  # Linsentubus
 
+KAM_LOCH_PAAR = 20.93  # Mittenabstand der zwei Löcher einer Reihe (außen 23,13)
+KAM_LOCH_REIHE = 12.3  # Mittenabstand der beiden Reihen (außen 14,5)
+
 # --- aus den Zeichnungen, nicht gemessen
-KAM_LOCH_RAND = 2.0  # Befestigungslöcher: Abstand zum Platinenrand
-KAM_LOCH_REIHE = 12.5  # Abstand der zweiten Lochreihe von der ersten
+KAM_LOCH_RAND = 2.0  # erste Lochreihe: Abstand zur Platinenkante gegenüber dem Stecker
 LCD_DICK = 4.8
 KAM_PLATINE_DICK = 1.12
 
@@ -116,7 +118,7 @@ def baue():
     kante = -(
         KAM_PLATINE[0] - KAM_LINSE_ZUR_STECKERKANTE
     )  # Platinenkante gegenüber dem Stecker
-    loch_y = KAM_S + KAM_PLATINE[1] / 2 - KAM_LOCH_RAND
+    loch_y = KAM_S + KAM_LOCH_PAAR / 2
     loecher = [
         (kante + KAM_LOCH_RAND, loch_y),
         (kante + KAM_LOCH_RAND + KAM_LOCH_REIHE, loch_y),
