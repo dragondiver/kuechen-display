@@ -30,7 +30,7 @@ ZIEL = os.path.join(HIER, "ausgabe")
 
 # --- Entwurf O (gehaeuse/zielentwurf)
 NEIGUNG = 75.0  # Grad
-SCHRAEGE = 148.0  # Länge der Front
+SCHRAEGE = 150.0  # Länge der Front: 148 im Entwurf, am 27.11.2026 um 2 mm verlängert (Dach höher)
 WAND = 3.0  # Dach und Front, angenommen
 GLAS_OBEN = 128.5  # Glasoberkante auf der Schräge (S0 - 2 + 59,5)
 FENSTER_OBEN = 124.1  # Oberkante des Bildfensters
@@ -40,7 +40,10 @@ GLAS_DICK = 1.55  # 1,5 bis 1,6 mit Folie
 UEBERSTAND = 2.0  # Glas über dem LCD-Modul, oben
 KAM_LINSE_UEBER_PLATINE = 8.2  # Platinenvorderseite bis Linsenfront
 KAM_GEHAEUSE_HOCH = 5.5  # silbernes Kameragehäuse über der Platine
-KAM_PLATINE = (23.8, 25.1)  # quer gedreht: 23,8 quer, 25,1 entlang der Schräge
+KAM_PLATINE = (
+    25.1,
+    23.8,
+)  # normal eingebaut (27.11.2026): 25,1 quer, 23,8 entlang der Schräge, Stecker unten
 KAM_LINSE_ZUR_STECKERKANTE = 9.3  # aus 25.11.: Kante gegenüber bis Gehäuse-Unterseite 19,9, also Linse 14,5 von dort
 KAM_STECKER_HOCH = 2.45
 
@@ -116,36 +119,37 @@ def baue():
     teil += quader(-a, -i, unten, KAM_S + a, WAND, WAND + FUEHRUNG)
     teil += quader(i, a, unten, KAM_S + a, WAND, WAND + FUEHRUNG)
     teil += quader(-a, a, KAM_S + i, KAM_S + a, WAND, WAND + FUEHRUNG)
-    # Zwei Stützen an den oberen Löchern der Platine. Die unteren Löcher liegen über dem Display.
-    kante = -(
-        KAM_PLATINE[0] - KAM_LINSE_ZUR_STECKERKANTE
-    )  # Platinenkante gegenüber dem Stecker
-    loch_y = KAM_S + KAM_LOCH_PAAR / 2
+    # Vier Stützen an allen Löchern der Platine. Normal eingebaut liegt die untere Lochreihe
+    # auf Höhe der Linse und damit über der Glaskante, die obere 12,5 mm darüber.
+    kante = KAM_S + (
+        KAM_PLATINE[1] - KAM_LINSE_ZUR_STECKERKANTE
+    )  # Platinenkante gegenüber dem Stecker, oben
+    lx = KAM_LOCH_PAAR / 2
+    reihe_oben = kante - KAM_LOCH_RAND
+    reihe_unten = reihe_oben - KAM_LOCH_REIHE
     loecher = [
-        (kante + KAM_LOCH_RAND, loch_y),
-        (kante + KAM_LOCH_RAND + KAM_LOCH_REIHE, loch_y),
+        (-lx, reihe_oben),
+        (lx, reihe_oben),
+        (-lx, reihe_unten),
+        (lx, reihe_unten),
     ]
     z_stuetze = z_platine - STUETZE_LUFT
-    for lx, ly in loecher:
-        teil += Pos(lx, ly, (WAND + z_stuetze) / 2) * Cylinder(
+    for hx, hy in loecher:
+        teil += Pos(hx, hy, (WAND + z_stuetze) / 2) * Cylinder(
             STUETZE_R, z_stuetze - WAND
         )
-    # Steg zwischen der Stütze in der Mitte und der oberen Führungswand, sonst bleibt ein Spalt
-    teil += quader(
-        loecher[1][0] - STUETZE_R,
-        loecher[1][0] + STUETZE_R,
-        KAM_S + a - 0.1,
-        loch_y,
-        WAND,
-        WAND + FUEHRUNG,
-    )
-    for lx, ly in loecher:
-        teil -= Pos(lx, ly, z_stuetze - 2.5 + 0.5) * Cylinder(SCHRAUBLOCH_R, 5 + 1)
+    # Stege von den unteren Stützen zu den seitlichen Führungswänden, sonst bleibt ein schmaler Spalt
+    for seite in (-1, 1):
+        x0, x1 = sorted((seite * (a - 0.1), seite * lx))
+        teil += quader(
+            x0, x1, reihe_unten - 1.0, reihe_unten + 1.0, WAND, WAND + FUEHRUNG
+        )
+    for hx, hy in loecher:
+        teil -= Pos(hx, hy, z_stuetze - 2.5 + 0.5) * Cylinder(SCHRAUBLOCH_R, 5 + 1)
 
     g = KAM_GEHAEUSE / 2
-    px0 = -(KAM_PLATINE[0] - KAM_LINSE_ZUR_STECKERKANTE)
-    px1 = KAM_LINSE_ZUR_STECKERKANTE
-    py0, py1 = KAM_S - KAM_PLATINE[1] / 2, KAM_S + KAM_PLATINE[1] / 2
+    px0, px1 = -KAM_PLATINE[0] / 2, KAM_PLATINE[0] / 2
+    py0, py1 = KAM_S - KAM_LINSE_ZUR_STECKERKANTE, kante
     z_pl_hinten = z_platine + KAM_PLATINE_DICK
     einbauten = {
         "glas": quader(
@@ -164,10 +168,10 @@ def baue():
         "kam_gehaeuse": quader(-g, g, KAM_S - g, KAM_S + g, z_gehaeuse, z_platine),
         "kam_platine": quader(px0, px1, py0, py1, z_platine, z_pl_hinten),
         "kam_stecker": quader(
-            px1 - 5.71,
-            px1,
-            KAM_S - 9.8,
-            KAM_S + 9.8,
+            -9.8,
+            9.8,
+            py0,
+            py0 + 5.71,
             z_pl_hinten,
             z_pl_hinten + KAM_STECKER_HOCH,
         ),
@@ -178,10 +182,8 @@ def baue():
         "Loch zur Glastasche (Schräge)": KAM_S - r - tasche,
         "Platine vorn oben zum Dach (senkrecht)": (dach_s(z_platine, True) - py1)
         * math.sin(T),
-        "Stecker hinten oben zum Dach (senkrecht)": (
-            dach_s(z_pl_hinten + KAM_STECKER_HOCH, True) - (KAM_S + 9.8)
-        )
-        * math.sin(T),
+        "Platine über der LCD-Rückseite (Tiefe)": z_platine - (z_glas + LCD_DICK),
+        "Untere Stützen zur Glastasche (Schräge)": reihe_unten - STUETZE_R - tasche,
         "Wände bis zur Platine (Platz für Bauteile)": z_platine - WAND - FUEHRUNG,
         "Stützen unter der Platine (Gummiring)": z_platine - z_stuetze,
         "Linse hinter der Frontfläche": linse,
