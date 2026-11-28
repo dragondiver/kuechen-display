@@ -355,7 +355,7 @@
   }
   // Beim Verlassen (App öffnen, Neuladen) dem Dienst Bescheid geben, sonst schickt er Befehle
   // noch bis zu 15 s an diese Seite (verifier zu #71).
-  addEventListener('pagehide', function () { navigator.sendBeacon('/weg'); });
+  addEventListener('pagehide', function () { fetch('/weg', { method: 'POST', keepalive: true, headers: { 'X-Kuechen': '1' } }); });
   const quelle = new EventSource('/ereignisse');
   quelle.addEventListener('hand', function (e) {
     const h = JSON.parse(e.data);
@@ -620,7 +620,7 @@
       }
       const ergebnis = { gleiten: auswerten(abstaende.gleiten), ruhe: auswerten(abstaende.ruhe) };
       zeigeDebug(JSON.stringify(ergebnis));
-      fetch('/messung', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ergebnis) });
+      fetch('/messung', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Kuechen': '1' }, body: JSON.stringify(ergebnis) });
     }, 60000);
   }
 })();

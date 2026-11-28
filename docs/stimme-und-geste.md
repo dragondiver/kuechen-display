@@ -296,7 +296,7 @@ ssh kuechen-display.local 'curl -sN http://127.0.0.1:8080/ereignisse'
 Einen Text in der Zeile der Seite anzeigen (zum Beispiel Anweisungen beim Messen):
 
 ```bash
-ssh kuechen-display.local 'curl -s -X POST -d "{\"text\": \"Hallo\"}" http://127.0.0.1:8080/hinweis'
+ssh kuechen-display.local 'curl -s -X POST -H "X-Kuechen: 1" -d "{\"text\": \"Hallo\"}" http://127.0.0.1:8080/hinweis'
 ```
 
 ## Kamera beim Testen
