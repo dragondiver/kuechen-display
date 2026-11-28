@@ -200,7 +200,7 @@ ssh kuechen-display.local 'journalctl -u kuechen-dienst -n 40 --no-pager | grep 
 ssh kuechen-display.local 'journalctl -u kuechen-dienst -f | grep -i -E "weckwort|rezept"'
 
 # Stand: hört die Erkennung (weckwort), wie viele Wörter, was hält wach, Zähler fürs Wecken
-ssh kuechen-display.local 'curl -s -H 'X-Kuechen: 1' localhost:8080/lage; echo; curl -s localhost:8080/wach'
+ssh kuechen-display.local "curl -s -H 'X-Kuechen: 1' localhost:8080/lage; echo; curl -s localhost:8080/wach"
 
 # Last der Erkennung
 ssh kuechen-display.local 'top -b -n1 -H -p $(systemctl show -p MainPID --value kuechen-dienst) | head -15'
