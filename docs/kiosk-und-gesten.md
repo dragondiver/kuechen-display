@@ -100,7 +100,8 @@ alle 120 ms, und bleibt nach dem Loslassen stehen.
 Den Stand bekommt er als Ereignis `lautstaerke` (`{"wert": 0..100}`) aus `/ereignisse`. Der Dienst schickt es
 einer neuen Kiosk-Seite beim Verbinden und allen offenen Seiten bei jeder Änderung, egal ob Schieber, Leiste
 oder Bridge sie ausgelöst hat. Er ruft nicht `GET /lage` ab: Das hat Nebenwirkungen (es meldet dem Dienst, dass
-eine App vorn ist, und nimmt einen wartenden Befehl aus der Ablage). Nur die Rückweg-Leiste darf `/lage` abfragen.
+eine App vorn ist, und nimmt einen wartenden Befehl aus der Ablage). Nur die Rückweg-Leiste darf `/lage` abfragen. Der Dienst verlangt dafür den Header `X-Kuechen: 1` und antwortet sonst
+403, ohne die App als vorn zu melden und ohne einen Befehl herauszugeben (#120).
 
 Berührungen des Schiebers sehen die Wisch- und Langdruck-Regeln der Seite nicht, und er liegt nicht in der
 Figur, löst also kein Gespräch aus. Ob ein neuer Stand übernommen wird, entscheidet `Regeln.standUebernehmen`

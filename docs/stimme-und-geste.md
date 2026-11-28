@@ -48,8 +48,9 @@ Eine neue App braucht drei Stellen: den Namen in `APPS` (`pi/dienst/dienst.py`),
 Kachel (`pi/kiosk/index.html`) und den Eintrag in `APPS` von `pi/kiosk-rueckweg/rueckweg.js`.
 
 **Befehle in einer App.** Ist eine App vorn, hält der Küchen-Dienst einen Befehl der Bridge vier
-Sekunden bereit. Die Rückweg-Leiste fragt jede Sekunde `GET http://localhost:8080/lage` ab (über
-`hintergrund.js`, weil die https-Seite localhost nicht selbst fragen darf), bekommt Elektras
+Sekunden bereit. Die Rückweg-Leiste fragt jede Sekunde `GET http://localhost:8080/lage` mit dem Header
+`X-Kuechen: 1` ab (über `hintergrund.js`, weil die https-Seite localhost nicht selbst fragen darf; ohne den Header
+antwortet der Dienst 403, #120), bekommt Elektras
 Zustand und einen wartenden Befehl, führt ihn aus und quittiert. Holt ihn niemand ab, hört Elektra
 „Die Anzeige ist nicht offen“. Als „App vorn“ gilt: Die Leiste hat in den letzten 2,5 Sekunden
 gefragt und seitdem hat sich keine Kiosk-Seite verbunden.
@@ -199,7 +200,7 @@ ssh kuechen-display.local 'journalctl -u kuechen-dienst -n 40 --no-pager | grep 
 ssh kuechen-display.local 'journalctl -u kuechen-dienst -f | grep -i -E "weckwort|rezept"'
 
 # Stand: hört die Erkennung (weckwort), wie viele Wörter, was hält wach, Zähler fürs Wecken
-ssh kuechen-display.local 'curl -s localhost:8080/lage; echo; curl -s localhost:8080/wach'
+ssh kuechen-display.local "curl -s -H 'X-Kuechen: 1' localhost:8080/lage; echo; curl -s localhost:8080/wach"
 
 # Last der Erkennung
 ssh kuechen-display.local 'top -b -n1 -H -p $(systemctl show -p MainPID --value kuechen-dienst) | head -15'
@@ -211,7 +212,7 @@ Mit Florian, in dieser Reihenfolge. Bis hierher ist nichts davon am Gerät gelau
 
 1. Nach `pi/push.sh`: Journal zeigt `Weckwort bereit (Modell vosk-model-small-de-0.15)`. Die Erweiterung ist neu
    zu laden (Version 17); sonst fehlt die Meldung „Rezept offen“.
-2. Rezept öffnen (Koch-Ansicht), `curl -s localhost:8080/lage` zeigt `"weckwort": true`, am Mikro-Knopf steht der
+2. Rezept öffnen (Koch-Ansicht), `curl -s -H 'X-Kuechen: 1' localhost:8080/lage` zeigt `"weckwort": true`, am Mikro-Knopf steht der
    Punkt. „Weiter“ sagen: Das Rezept blättert, der Punkt wächst kurz, das Journal zeigt `blättern vor`.
    Dasselbe mit „Zurück“. Auf der Übersicht: „Weiter“ startet das Kochen, „Zurück“ tut nichts.
 3. Kein Rezept (Heute, Spotify): „Weiter“ sagen, nichts passiert, kein Punkt, kein Journaleintrag.

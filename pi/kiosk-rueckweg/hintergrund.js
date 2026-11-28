@@ -23,7 +23,9 @@ const ERLAUBT = ['/tipp', '/quittung', '/diktat/start', '/diktat/stopp', '/dikta
 // externally_connectable bzw. onMessageExternal, und die gibt es nicht. Erlaubt sind nur die Pfade in ERLAUBT.
 chrome.runtime.onMessage.addListener(function (nachricht, absender, antwort) {
   if (nachricht.art === 'lage') {
-    fetch(DIENST + '/lage', { cache: 'no-store' })
+    // Der Dienst verlangt den Header auch hier (#120). Mit host_permissions für den Dienst läuft das
+    // ohne Vorabfrage; der Dienst kennt kein OPTIONS.
+    fetch(DIENST + '/lage', { cache: 'no-store', headers: { 'X-Kuechen': '1' } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(antwort, function () { antwort(null); });
     return true;

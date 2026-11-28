@@ -106,7 +106,7 @@ def test_ohne_wert_und_mit_kaputtem_json_abgelehnt(server, aufrufe):
 
 def test_lage_zeigt_die_stellung(server):
     setze(server, 73)
-    status, lage = anfrage(server, "GET", "/lage")
+    status, lage = anfrage(server, "GET", "/lage", header=HEADER)
     assert status == 200 and lage["lautstaerke"] == 73
 
 
@@ -117,7 +117,7 @@ def test_bridge_befehl_nimmt_denselben_weg(server, aufrufe, tmp_path):
     assert dienst.lautstaerke_stand.stellung == 1
     assert (tmp_path / "lautstaerke").read_text().strip() == "1"
     # Der Schieber sieht die Änderung, die Elektra gemacht hat.
-    assert anfrage(server, "GET", "/lage")[1]["lautstaerke"] == 1
+    assert anfrage(server, "GET", "/lage", header=HEADER)[1]["lautstaerke"] == 1
 
 
 def test_bridge_befehl_ueber_100_wird_auf_100_begrenzt(aufrufe):

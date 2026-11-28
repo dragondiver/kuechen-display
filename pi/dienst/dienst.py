@@ -316,6 +316,11 @@ class Handler(StatischOhneCache):
 
     def lage(self) -> None:
         """Für die Rückweg-Erweiterung in einer App: Elektras Zustand und ein wartender Befehl."""
+        # Der Aufruf meldet eine App als vorn und nimmt einen Befehl aus der Ablage. Eine fremde Seite im
+        # Kiosk soll ihn nicht abholen können, also wie bei den POST-Wegen nur mit eigenem Header (#120).
+        if self.headers.get("X-Kuechen") != "1":
+            self.send_error(403)
+            return
         jetzt = time.monotonic()
         with ablage_sperre:
             ablage.app_meldet(jetzt)
