@@ -650,7 +650,7 @@ def weckwort_starten() -> None:
         log.error("Weckwort nicht verfügbar: %s", fehler)
         return
     lauscher = Lauscher(erkenner, weckwort_text)
-    threading.Thread(target=lauscher.lauf, daemon=True, name="weckwort").start()
+    faden_starten(lauscher.lauf, name="weckwort")
     log.info(
         "Weckwort bereit (Modell %s), hört bei offenem Rezept zu", WECKWORT_MODELL.name
     )
@@ -860,12 +860,13 @@ def daten_schleife() -> None:
     fehlt_gemeldet: list[str] = []
     wetter_zuletzt = None
     if sperre.aktiv:
-        threading.Thread(
-            target=sperre.beobachten,
-            args=(ha, termine_wecker.set, SPERRE_TAKT_S),
-            daemon=True,
+        faden_starten(
+            sperre.beobachten,
+            ha,
+            termine_wecker.set,
+            SPERRE_TAKT_S,
             name="sperre_beobachten",
-        ).start()
+        )
     while True:
         karte = None
         if wetter_zuletzt is None or time.monotonic() - wetter_zuletzt >= WETTER_TAKT_S:
@@ -1018,14 +1019,32 @@ async def bruecke_schleife() -> None:
         warte = min(warte * 2, 30)
 
 
+def faden_starten(ziel, *args, name: str | None = None) -> threading.Thread:
+    """Startet einen Daemon-Faden, dessen Ausnahme den ganzen Prozess beendet (#122).
+
+    Ein Faden, der an einer Ausnahme stirbt, ließe den HTTP-Server weiterlaufen, während Daten,
+    Ton oder Netzprüfung stillstehen. Also kommt der Traceback samt Fadenname ins Journal und
+    `os._exit(1)` beendet den Dienst; systemd startet ihn nach `RestartSec` neu (`Restart=on-failure`).
+    Ein regulär endender Faden (Weckwort ohne Modell, `lautstaerke_wiederherstellen` nach Erfolg)
+    beendet nichts, nur eine Ausnahme tut das. Fäden, die selbst alles fangen, bleiben unberührt."""
+    name = name or getattr(ziel, "__name__", "faden")
+
+    def lauf() -> None:
+        try:
+            ziel(*args)
+        except BaseException:
+            log.exception("Faden %s ausgefallen, der Dienst beendet sich", name)
+            os._exit(1)
+
+    faden = threading.Thread(target=lauf, daemon=True, name=name)
+    faden.start()
+    return faden
+
+
 def bruecke_faden() -> None:
     global schleife
     schleife = asyncio.new_event_loop()
-    try:
-        schleife.run_until_complete(bruecke_schleife())
-    except Exception:
-        log.exception("Bridge-Anbindung ausgefallen")
-        os._exit(1)
+    schleife.run_until_complete(bruecke_schleife())
 
 
 def main() -> None:
@@ -1045,7 +1064,7 @@ def main() -> None:
         daten_schleife,
         netz_schleife,
     ):
-        threading.Thread(target=ziel, daemon=True, name=ziel.__name__).start()
+        faden_starten(ziel)
     server = ThreadingHTTPServer(("127.0.0.1", PORT), partial(Handler, directory=SEITE))
     server.daemon_threads = True
     log.info("Kiosk-Seite aus %s auf http://localhost:%d/", SEITE, PORT)

@@ -42,6 +42,13 @@ Der Ablauf:
 
 Ein laufendes Gespräch mit Elektra am Display bricht beim Neustart ab.
 
+Stirbt einer der Fäden des Dienstes an einer Ausnahme (Bridge, Wiedergabe, Mikrofon, Daten, Netz, Weckwort,
+Sperr-Beobachter), steht der Traceback mit dem Fadennamen im Journal (`journalctl -u kuechen-dienst`), und der
+Dienst beendet sich mit Exit-Code 1. systemd startet ihn nach 5 s neu (`Restart=on-failure`, `RestartSec=5`);
+ein laufendes Gespräch bricht dabei ab, die Lautstärke kommt aus der gespeicherten Stellung zurück. Ein Faden, der
+regulär endet (Weckwort aus oder ohne Modell, Lautstärke wiederhergestellt), beendet nichts. Der Code dazu ist
+`faden_starten` in `pi/dienst/dienst.py` (#122).
+
 Der Küchen-Dienst liefert die Kiosk-Dateien mit `Cache-Control: no-cache` aus, Chromium fragt also bei jedem Laden nach
 und holt nach einem Deploy die neue Seite (bei unveränderter Datei kommt ein 304). Ohne den Header zeigte der Kiosk
 am 17.11.2026 auch nach einem Neustart die alte Startseite aus dem Plattencache; deshalb leert `kiosk-start.sh` einmalig
