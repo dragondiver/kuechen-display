@@ -4,7 +4,7 @@
 # dann Neustart). Aufruf mit Abschnitten "Anweisung|Sekunden", ohne Argumente die Handhaltungen
 # vom 8.11.2026. Ausgabe: /tmp/handpunkte.txt, Abschnittsgrenzen in /tmp/handpunkte-marken.txt
 DIENST=http://127.0.0.1:8080
-hinweis() { curl -s -X POST -H 'Content-Type: application/json' -d "{\"text\": \"$1\"}" "$DIENST/hinweis" >/dev/null; }
+hinweis() { curl -s -X POST -H 'Content-Type: application/json' -H 'X-Kuechen: 1' -d "{\"text\": \"$1\"}" "$DIENST/hinweis" >/dev/null; }
 if [ $# -eq 0 ]; then
   set -- "Flache Hand vor der Brust, Handfläche zum Display|10" "Flache Hand tiefer, auf Bauchhöhe|10" \
     "Faust|10" "Hand halb offen, wie um einen Kochlöffel|10" "Flache Hand weit rechts oder links|10" \

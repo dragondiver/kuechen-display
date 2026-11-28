@@ -145,6 +145,11 @@ GESCHUETZT = {
     "/rezept",
     "/sperren",
     "/lautstaerke",
+    "/geste",
+    "/hinweis",
+    "/hand",
+    "/messung",
+    "/weg",
 }
 # Obergrenze für POST-Bodies. Die größten echten (Videoliste der Rückweg-Erweiterung, /messung)
 # liegen unter 2 KiB.
@@ -467,7 +472,7 @@ class Handler(StatischOhneCache):
             self.send_error(403)
             return
         if self.path == "/weg":
-            # sendBeacon der Kiosk-Seite beim Verlassen (kein eigener Header möglich)
+            # fetch mit keepalive der Kiosk-Seite beim Verlassen (sendBeacon kann keinen Header setzen)
             with ablage_sperre:
                 ablage.kiosk_geht()
             self.send_response(204)
