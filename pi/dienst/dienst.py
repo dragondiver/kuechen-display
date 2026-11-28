@@ -825,6 +825,14 @@ class Abruf:
                 log.warning("%s: Home Assistant antwortet nicht: %s", self.was, fehler)
             self.gestoert = True
             return None
+        except Exception:
+            # Tiefer falsch geformte Antworten (AttributeError, TypeError, ...) dürfen den
+            # Datenfaden nicht beenden: Er startet nicht neu (#118). Der Traceback kommt einmal
+            # je Störung ins Journal, die Seite behält den letzten Stand.
+            if not self.gestoert:
+                log.exception("%s: Abruf fehlgeschlagen", self.was)
+            self.gestoert = True
+            return None
         if self.gestoert:
             log.info("%s: Home Assistant antwortet wieder", self.was)
         self.gestoert = False
