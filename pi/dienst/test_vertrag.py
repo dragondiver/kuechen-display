@@ -2,6 +2,7 @@ import json
 import logging
 from array import array
 
+import pytest
 from vertrag import RAHMEN_BYTES, ROH_BYTES, Ablage, Leitung, kanal
 
 
@@ -315,3 +316,9 @@ def test_tipp_ohne_bridge_zeigt_nur_einen_hinweis():
 
 def test_tipp_mit_bridge_bleibt_wie_vorher():
     assert arten(Leitung().tipp(verbunden=True)) == arten(Leitung().tipp())
+
+
+@pytest.mark.parametrize("roh", ["NaN", "Infinity", "-Infinity", "1e400"])
+def test_lautstaerke_nicht_endlich_ist_ohne_wirkung(roh):
+    # json.loads nimmt diese Werte an; int() darauf wirft (#102)
+    assert Leitung().nachricht('{"type":"lautstaerke","wert":' + roh + "}") == []

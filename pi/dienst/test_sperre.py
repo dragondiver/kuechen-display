@@ -1,12 +1,13 @@
 """Termine sperren (sperre.py, hass.HomeAssistant.dienst, #82), ohne Netz."""
 
+import http.client
 import json
 import urllib.error
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import pytest
-from hass import termine_karte
+from hass import HomeAssistant, termine_karte
 from sperre import HINWEIS_FEHLER, Sperre, neuer_stand
 from test_hass import FakeHA
 
@@ -455,3 +456,90 @@ def test_beobachten_fragt_nur_den_helfer_und_keinen_kalender():
     beobachten(s, ha, uhr, 30, wecken=lambda: None)
     assert len(ha.anfragen) == 10
     assert {p for _, p, _ in ha.anfragen} == {f"/api/states/{HELFER}"}
+
+
+@pytest.mark.parametrize(
+    "fehler", [http.client.IncompleteRead(b"{", 5), http.client.BadStatusLine("")]
+)
+def test_abgebrochene_antwort_entsperrt_nicht_und_wird_einmal_gemeldet(
+    monkeypatch, caplog, fehler
+):
+    # fail closed (#109): Ein Lesefehler lässt „gesperrt“ stehen
+    s, b, uhr = Sperre(HELFER), Buehne(), Uhr()
+    zyklus(s, ha_mit("on"), b)
+    assert s.gesperrt is True
+    ha = HomeAssistant("http://ha.test:8123", "geheim")
+    monkeypatch.setattr("hass.urllib.request.urlopen", _wirft(fehler))
+    with caplog.at_level("INFO", logger="dienst"):
+        assert beobachten(s, ha, uhr, 30, b=b) == []
+    assert s.gesperrt is True
+    assert GEHEIM not in b.alles_als_text()
+    assert len([r for r in caplog.records if "nicht lesbar" in r.message]) == 1
+    assert not [r for r in caplog.records if r.exc_info]
+
+
+@pytest.mark.parametrize("roh", [b"[]", b"1", b'"x"'])
+def test_antwort_ohne_objekt_entsperrt_nicht(monkeypatch, roh):
+    s, b = Sperre(HELFER), Buehne()
+    zyklus(s, ha_mit("on"), b)
+    ha = HomeAssistant("http://ha.test:8123", "geheim")
+    monkeypatch.setattr("hass.urllib.request.urlopen", _Antwort(roh))
+    assert s.abgleichen(ha) is False
+    assert s.gesperrt is True
+
+
+def _wirft(fehler):
+    def urlopen(req, timeout=None):
+        raise fehler
+
+    return urlopen
+
+
+class _Antwort:
+    def __init__(self, roh):
+        self.roh = roh
+
+    def __call__(self, req, timeout=None):
+        return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def read(self):
+        return self.roh
+
+
+def test_unerwarteter_fehler_beim_beobachten_steht_einmal_mit_traceback_im_journal(
+    caplog,
+):
+    class Kaputt(FakeHA):
+        def zustand(self, entity_id):
+            raise RuntimeError("unerwartet")
+
+    s, b, uhr = Sperre(HELFER), Buehne(), Uhr()
+    zyklus(s, ha_mit("on"), b)
+    with caplog.at_level("INFO", logger="dienst"):
+        assert beobachten(s, Kaputt({}), uhr, 30, b=b) == []  # zehn Durchläufe
+    assert s.gesperrt is True
+    assert len([r for r in caplog.records if r.exc_info]) == 1
+
+
+def test_beobachter_meldet_erneut_nach_zwischenzeitlicher_besserung(caplog):
+    class Wackelig(FakeHA):
+        aufrufe = 0
+
+        def zustand(self, entity_id):
+            Wackelig.aufrufe += 1
+            if Wackelig.aufrufe in (1, 2, 5, 6):
+                raise RuntimeError("unerwartet")
+            return "on"
+
+    s, uhr = Sperre(HELFER), Uhr()
+    with caplog.at_level("INFO", logger="dienst"):
+        s.beobachten(
+            Wackelig({}), lambda: None, TAKT, uhr.warten, lambda: uhr.jetzt < 8 * TAKT
+        )
+    assert len([r for r in caplog.records if r.exc_info]) == 2
