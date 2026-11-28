@@ -90,13 +90,20 @@ class Sperre:
         denselben Regeln und demselben Zähler wie im Terminzyklus. Ohne Entität passiert nichts."""
         if not self.aktiv:
             return
+        gemeldet = False
         while weiter():
             try:
                 if self.abgleichen(ha):
                     wecken()
+                if gemeldet:
+                    log.info("Sperre: Abgleich läuft wieder")
+                gemeldet = False
             except Exception:
-                # Der Wächter darf nicht sterben; der Terminzyklus liest weiter.
-                log.exception("Sperre: Abgleich fehlgeschlagen")
+                # Der Wächter darf nicht sterben; der Terminzyklus liest weiter. Der Traceback
+                # kommt einmal ins Journal, nicht alle drei Sekunden, bis es wieder geht (#109).
+                if not gemeldet:
+                    log.exception("Sperre: Abgleich fehlgeschlagen")
+                gemeldet = True
             warten(takt_s)
 
     def sperren(self, ha, ablage: dict, senden, hinweis) -> bool:
