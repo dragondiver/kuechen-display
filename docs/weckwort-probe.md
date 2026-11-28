@@ -2,6 +2,11 @@
 
 Stand 22.11.2026. Festlegungen stehen in [#111](https://github.com/dragondiver/kuechen-display/issues/111).
 
+> **Stand 28.11.2026:** Die Probe mit openWakeWord ist abgeschlossen. Das eigene Modell erkennt
+> Florians „Elektra“ nicht (#111, 25. und 27.11.). Welcher Erkenner es wird, ist offen; verglichen
+> wurden danach Vosk und Hark. Gültig bleiben `rufe` und `abend` zum Aufnehmen am XVF3800. `zaehlen`
+> und das Training im Colab gelten nur für openWakeWord und stehen hier als Beleg.
+
 Das Küchen-Display soll auf „Elektra“ hören. Bevor ein Erkenner in den Küchen-Dienst kommt, zeigt
 diese Probe, ob [openWakeWord](https://github.com/dscripka/openWakeWord) das Wort gut genug trifft.
 Am Dienst ändert die Probe nichts.
@@ -120,8 +125,8 @@ ohne Ton weiter, dann zählt die Zeile „Ruf 3/10 …“ als Zeichen.
 
 Ohne `--anzahl` sind es 20 Rufe. Andere Länge: `--sekunden 3`.
 
-Bricht die ssh-Sitzung mitten in einem Durchgang ab, bleibt der Dienst aus, bis er von Hand
-gestartet wird:
+Bricht die ssh-Sitzung mitten in einem Durchgang ab oder wird das Werkzeug mit `kill` beendet,
+bleibt der Dienst aus, bis er von Hand gestartet wird. Nach Strg-C oder einem Fehler startet das Werkzeug ihn selbst wieder:
 
 ```bash
 ssh kuechen-display.local 'sudo systemctl start kuechen-dienst'
