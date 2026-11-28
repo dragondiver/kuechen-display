@@ -650,7 +650,7 @@ def weckwort_starten() -> None:
         log.error("Weckwort nicht verfügbar: %s", fehler)
         return
     lauscher = Lauscher(erkenner, weckwort_text)
-    threading.Thread(target=lauscher.lauf, daemon=True, name="weckwort").start()
+    thread_starten(lauscher.lauf, name="weckwort")
     log.info(
         "Weckwort bereit (Modell %s), hört bei offenem Rezept zu", WECKWORT_MODELL.name
     )
@@ -727,7 +727,7 @@ def lautstaerke_wiederherstellen(versuche: int = 30, pause_s: float = 2.0) -> No
     )
 
 
-def wiedergabe_schleife() -> None:
+def wiedergabe_schleife(weiter=lambda: True, warten=time.sleep) -> None:
     """Schreibt im 60-ms-Takt an pw-cat: Elektras Stimme oder Stille.
 
     Die Stille hält den Ausgang wach. Bluetooth verschluckt sonst beim Aufwachen
@@ -735,26 +735,38 @@ def wiedergabe_schleife() -> None:
     nichts in der Pipe, Verwerfen wirkt sofort.
     """
     stille = bytes(RAHMEN_BYTES)
-    while True:
-        prozess = subprocess.Popen(
-            [
-                "pw-cat",
-                "--playback",
-                "--raw",
-                "--format",
-                "s16",
-                "--rate",
-                str(RATE),
-                "--channels",
-                "1",
-                "--latency",
-                "60ms",
-                "--media-role",
-                "Assistant",
-                "-",
-            ],
-            stdin=subprocess.PIPE,
-        )
+    gestoert = False
+    while weiter():
+        try:
+            prozess = subprocess.Popen(
+                [
+                    "pw-cat",
+                    "--playback",
+                    "--raw",
+                    "--format",
+                    "s16",
+                    "--rate",
+                    str(RATE),
+                    "--channels",
+                    "1",
+                    "--latency",
+                    "60ms",
+                    "--media-role",
+                    "Assistant",
+                    "-",
+                ],
+                stdin=subprocess.PIPE,
+            )
+        except OSError as fehler:
+            # Fehlt pw-cat, wäre ein Prozessende ein Neustart alle 5 s ohne Aussicht auf Besserung (#122).
+            if not gestoert:
+                log.warning("pw-cat startet nicht: %s, neuer Versuch in 2 s", fehler)
+            gestoert = True
+            warten(2)
+            continue
+        if gestoert:
+            log.info("pw-cat läuft wieder")
+            gestoert = False
         takt = time.monotonic()
         try:
             while True:
@@ -775,27 +787,36 @@ def wiedergabe_schleife() -> None:
             time.sleep(1)
 
 
-def mikro_schleife() -> None:
+def mikro_schleife(weiter=lambda: True, warten=time.sleep) -> None:
     """Liest den XVF3800 direkt über ALSA (PipeWire reicht im Profil 2.1 nur zwei Kanäle durch)
     und schickt Kanal 0, solange das Mikrofon offen ist."""
-    while True:
-        prozess = subprocess.Popen(
-            [
-                "arecord",
-                "-q",
-                "-D",
-                MIKRO,
-                "-f",
-                "S16_LE",
-                "-r",
-                str(RATE),
-                "-c",
-                str(XVF_KANAELE),
-                "-t",
-                "raw",
-            ],
-            stdout=subprocess.PIPE,
-        )
+    gestoert = False
+    while weiter():
+        try:
+            prozess = subprocess.Popen(
+                [
+                    "arecord",
+                    "-q",
+                    "-D",
+                    MIKRO,
+                    "-f",
+                    "S16_LE",
+                    "-r",
+                    str(RATE),
+                    "-c",
+                    str(XVF_KANAELE),
+                    "-t",
+                    "raw",
+                ],
+                stdout=subprocess.PIPE,
+            )
+        except OSError as fehler:
+            if not gestoert:
+                log.warning("arecord startet nicht: %s, neuer Versuch in 2 s", fehler)
+            gestoert = True
+            warten(2)
+            continue
+        gestoert = False
         log.info("Mikrofon %s offen", MIKRO)
         while True:
             roh = prozess.stdout.read(ROH_BYTES)
@@ -860,12 +881,13 @@ def daten_schleife() -> None:
     fehlt_gemeldet: list[str] = []
     wetter_zuletzt = None
     if sperre.aktiv:
-        threading.Thread(
-            target=sperre.beobachten,
-            args=(ha, termine_wecker.set, SPERRE_TAKT_S),
-            daemon=True,
+        thread_starten(
+            sperre.beobachten,
+            ha,
+            termine_wecker.set,
+            SPERRE_TAKT_S,
             name="sperre_beobachten",
-        ).start()
+        )
     while True:
         karte = None
         if wetter_zuletzt is None or time.monotonic() - wetter_zuletzt >= WETTER_TAKT_S:
@@ -1018,14 +1040,32 @@ async def bruecke_schleife() -> None:
         warte = min(warte * 2, 30)
 
 
+def thread_starten(ziel, *args, name: str | None = None) -> threading.Thread:
+    """Startet einen Daemon-Thread, dessen Ausnahme den ganzen Prozess beendet (#122).
+
+    Ein Thread, der an einer Ausnahme stirbt, ließe den HTTP-Server weiterlaufen, während Daten,
+    Ton oder Netzprüfung stillstehen. Also kommt der Traceback samt Threadname ins Journal und
+    `os._exit(1)` beendet den Dienst; systemd startet ihn nach `RestartSec` neu (`Restart=on-failure`).
+    Ein regulär endender Thread (Weckwort ohne Modell, `lautstaerke_wiederherstellen` nach Erfolg)
+    beendet nichts, nur eine Ausnahme tut das. Threads, die selbst alles fangen, bleiben unberührt."""
+    name = name or getattr(ziel, "__name__", "thread")
+
+    def lauf() -> None:
+        try:
+            ziel(*args)
+        except BaseException:
+            log.exception("Thread %s ausgefallen, der Dienst beendet sich", name)
+            os._exit(1)
+
+    thread = threading.Thread(target=lauf, daemon=True, name=name)
+    thread.start()
+    return thread
+
+
 def bruecke_faden() -> None:
     global schleife
     schleife = asyncio.new_event_loop()
-    try:
-        schleife.run_until_complete(bruecke_schleife())
-    except Exception:
-        log.exception("Bridge-Anbindung ausgefallen")
-        os._exit(1)
+    schleife.run_until_complete(bruecke_schleife())
 
 
 def main() -> None:
@@ -1045,7 +1085,7 @@ def main() -> None:
         daten_schleife,
         netz_schleife,
     ):
-        threading.Thread(target=ziel, daemon=True, name=ziel.__name__).start()
+        thread_starten(ziel)
     server = ThreadingHTTPServer(("127.0.0.1", PORT), partial(Handler, directory=SEITE))
     server.daemon_threads = True
     log.info("Kiosk-Seite aus %s auf http://localhost:%d/", SEITE, PORT)
