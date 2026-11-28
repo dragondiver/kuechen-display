@@ -3,7 +3,8 @@
 Ein kleines Druckteil, an dem sich Display und Kamera anhalten lassen, bevor das Gehäuse
 konstruiert wird. Es zeigt die obere Mitte der Front: Rahmenlippe, Glasstufe, Linsenloch,
 Anschlag für die Kamera und 20 mm Dach. Stand 27.11.2026: Kamera normal eingebaut (Breitbild,
-Stecker unten), Schräge 150 statt 148 mm. Hintergrund und Messwerte stehen in
+Stecker unten), Schräge 150 statt 148 mm. Fünfte Fassung vom 28.11.2026: Loch 8,9 mm mit
+Freistich dahinter, Linsenmitte 134,0 mm, Stützen als Kegel mit Kernloch 1,9 mm. Hintergrund und Messwerte stehen in
 [#6](https://github.com/dragondiver/kuechen-display/issues/6).
 
 ## Erzeugen
@@ -41,11 +42,12 @@ getrennt nach gemessen, aus der Zeichnung und zum Ausprobieren.
    - Treffen alle vier Schrauben die Löcher der Platine?
    - Stoßen die beiden unteren Stützen an Bauteile neben dem Kameragehäuse?
    - Berührt das Kameragehäuse das Glas?
-   - Stößt die Platine oben ans Dach? Gerechnet ist 1,1 mm Luft.
+   - Stößt die Platine oben ans Dach? Gerechnet sind 0,65 mm Luft.
    - Sitzt die Linse hinter der Frontfläche, und wie weit? Gerechnet sind 0,3 mm.
    - Federt die Kamera noch, wenn alle vier Schrauben sitzen?
    - Kommt das Flachbandkabel nach unten hinter dem Display heraus, ohne zu knicken?
-4. Kamera anschließen und ein Bild aufnehmen: Schattet der Lochrand die Bildecken ab?
+4. Kamera anschließen und ein Bild aufnehmen: Schattet der Lochrand die Bildecken ab? Wird das
+   Bild scharf? In der vierten Fassung hielt das Loch die Linse fest, der Autofokus kam nicht an.
 
 Was nicht passt, als Maß in #6 schreiben. Die Werte unter „was das Probestück ausprobiert“
 im Skript ändern und neu drucken.

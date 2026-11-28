@@ -63,10 +63,22 @@ KAM_PLATINE_DICK = 1.12
 # --- was das Probestück ausprobiert
 LIPPE = 1.0  # Rahmenlippe über dem Glas (Entwurf: 2,8)
 STUETZE_LUFT = 0.0  # Platine liegt auf, kein Polster (Florian, 28.11.2026)
-STUETZE_R = 2.2
-SCHRAUBLOCH_R = 0.85  # Kernloch für M2 direkt im Kunststoff
+STUETZE_R = 2.2  # oben an der Platine
+STUETZE_FUSS_R = 3.2  # unten; mit 2,2 durchgehend ist am 28.11. eine Stütze abgebrochen
+SCHRAUBLOCH_R = (
+    0.95  # Kernloch für M2; 1,7 mm war für die stumpfen DIN-912-Schrauben zu eng
+)
+LOCH_SPIEL = (
+    0.9  # Luft um den Tubus; mit 0,5 konnte die Linse nicht scharfstellen (28.11.)
+)
+FREISTICH_R = (
+    4.9  # hinten rund ums Loch frei, damit nichts auf den Fuß des Tubus drückt
+)
+FREISTICH_TIEF = 1.0
 FUEHRUNG = 2.5  # Höhe der drei Wände; sie führen nur das silberne Gehäuse und bleiben unter der Platine
-KAM_S = 133.5  # Linsenmitte auf der Schräge (Entwurf 137, entschieden 132,5, hier 1 mm höher)
+KAM_S = (
+    134.0  # Linsenmitte auf der Schräge (Entwurf 137; 133,5 bis zur vierten Fassung)
+)
 SPIEL = 0.5  # rundum
 BREITE = 60.0
 DACH_TIEF = 20.0
@@ -109,9 +121,13 @@ def baue():
     # Tasche fürs Glas: bleibt nur die Lippe stehen
     teil -= quader(-BREITE, BREITE, FENSTER_OBEN - 1, tasche, LIPPE, WAND + 1)
     # Loch für den Linsentubus, vorn leicht angefast
-    r = KAM_TUBUS_R + SPIEL
+    r = KAM_TUBUS_R + LOCH_SPIEL
     teil -= Pos(0, KAM_S, WAND / 2) * Cylinder(r, WAND + 2)
     teil -= Pos(0, KAM_S, 0.25) * Cone(r + 0.5, r, 0.5)
+    # Freistich von hinten: Das Kameragehäuse liegt nur noch außen auf.
+    teil -= Pos(0, KAM_S, WAND - FREISTICH_TIEF / 2 + 0.01) * Cylinder(
+        FREISTICH_R, FREISTICH_TIEF + 0.02
+    )
     # Führung für die Kamera: drei niedrige Wände ums Kameragehäuse, unten offen zum Display.
     i = KAM_GEHAEUSE / 2 + SPIEL
     a = i + 1.6
@@ -135,8 +151,8 @@ def baue():
     ]
     z_stuetze = z_platine - STUETZE_LUFT
     for hx, hy in loecher:
-        teil += Pos(hx, hy, (WAND + z_stuetze) / 2) * Cylinder(
-            STUETZE_R, z_stuetze - WAND
+        teil += Pos(hx, hy, (WAND + z_stuetze) / 2) * Cone(
+            STUETZE_FUSS_R, STUETZE_R, z_stuetze - WAND
         )
     # Stege von den unteren Stützen zu den seitlichen Führungswänden, sonst bleibt ein schmaler Spalt
     for seite in (-1, 1):
@@ -183,7 +199,9 @@ def baue():
         "Platine vorn oben zum Dach (senkrecht)": (dach_s(z_platine, True) - py1)
         * math.sin(T),
         "Platine über der LCD-Rückseite (Tiefe)": z_platine - (z_glas + LCD_DICK),
-        "Untere Stützen zur Glastasche (Schräge)": reihe_unten - STUETZE_R - tasche,
+        "Untere Stützen zur Glastasche (Schräge)": reihe_unten
+        - STUETZE_FUSS_R
+        - tasche,
         "Wände bis zur Platine (Platz für Bauteile)": z_platine - WAND - FUEHRUNG,
         "Stützen unter der Platine (Auflage)": z_platine - z_stuetze,
         "Linse hinter der Frontfläche": linse,
