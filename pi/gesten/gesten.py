@@ -55,7 +55,7 @@ def sende_schleife() -> None:
         anfrage = urllib.request.Request(
             f"{DIENST}/{art}",
             data=json.dumps(ereignis).encode(),
-            headers={"Content-Type": "application/json"},
+            headers={"Content-Type": "application/json", "X-Kuechen": "1"},
             method="POST",
         )
         try:

@@ -1,9 +1,11 @@
+import http.client
 import io
 import json
 import urllib.error
+from datetime import datetime
 
 import pytest
-from hass import HomeAssistant, wetter_karte
+from hass import HassFehler, HomeAssistant, wetter_karte
 
 
 class FakeHA(HomeAssistant):
@@ -139,3 +141,68 @@ def test_warnsensor_scheitert_wetter_kommt_trotzdem(fehler, caplog):
     assert karte["warnung"] is None
     assert (karte["zustand"], karte["temperatur"]) == ("Regen", "7°")
     assert "sensor.warnung" in caplog.text
+
+
+class Urlopen:
+    """Ersetzt urllib.request.urlopen: liefert Bytes oder wirft."""
+
+    def __init__(self, antwort):
+        self.antwort = antwort
+
+    def __call__(self, req, timeout=None):
+        if isinstance(self.antwort, Exception):
+            raise self.antwort
+        return self
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def read(self):
+        return self.antwort
+
+
+def ha_mit_antwort(monkeypatch, antwort):
+    monkeypatch.setattr("hass.urllib.request.urlopen", Urlopen(antwort))
+    return HomeAssistant("http://ha.test:8123", "geheim")
+
+
+@pytest.mark.parametrize(
+    "fehler",
+    [http.client.IncompleteRead(b"{", 10), http.client.BadStatusLine("")],
+)
+def test_abgebrochene_antwort_wird_zur_hass_fehler(monkeypatch, fehler):
+    # HTTPException ist keine OSError; die Aufrufer fangen aber (OSError, ValueError) (#109)
+    ha = ha_mit_antwort(monkeypatch, fehler)
+    with pytest.raises(HassFehler):
+        ha.zustand("input_boolean.x")
+
+
+@pytest.mark.parametrize("roh", [b"[]", b"1", b'"x"'])
+def test_antwort_ohne_objekt_wird_zur_hass_fehler(monkeypatch, roh):
+    ha = ha_mit_antwort(monkeypatch, roh)
+    with pytest.raises(HassFehler):
+        ha.zustand("input_boolean.x")
+    with pytest.raises(HassFehler):
+        ha.vorhersage("weather.kueche")
+    with pytest.raises(HassFehler):
+        ha.termine(["calendar.a"], datetime(2026, 1, 1), datetime(2026, 1, 8))
+
+
+def test_geschachtelte_antwort_ohne_objekt_wird_zur_hass_fehler(monkeypatch):
+    ha = ha_mit_antwort(monkeypatch, b'{"service_response": {"calendar.a": []}}')
+    with pytest.raises(HassFehler):
+        ha.termine(["calendar.a"], datetime(2026, 1, 1), datetime(2026, 1, 8))
+
+
+def test_abruf_faengt_abgebrochene_antwort_und_meldet_einmal(monkeypatch, caplog):
+    import dienst
+
+    ha = ha_mit_antwort(monkeypatch, http.client.IncompleteRead(b"", 5))
+    abruf = dienst.Abruf("Termine")
+    with caplog.at_level("INFO", logger="dienst"):
+        assert abruf(lambda: ha.zustand("x")) is None
+        assert abruf(lambda: ha.zustand("x")) is None
+    assert len([r for r in caplog.records if "antwortet nicht" in r.message]) == 1

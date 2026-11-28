@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from array import array
 from dataclasses import dataclass, field
 
@@ -134,7 +135,12 @@ class Leitung:
             ]
         if typ == "lautstaerke":
             wert = msg.get("wert")
-            if isinstance(wert, (int, float)) and not isinstance(wert, bool):
+            # json.loads nimmt NaN, Infinity und 1e400 an; int() würde daran scheitern (#102).
+            if (
+                isinstance(wert, (int, float))
+                and not isinstance(wert, bool)
+                and math.isfinite(wert)
+            ):
                 return [Aktion("lautstaerke", {"wert": max(0, min(100, int(wert)))})]
             return []
         if typ == "befehl":

@@ -145,7 +145,15 @@ GESCHUETZT = {
     "/rezept",
     "/sperren",
     "/lautstaerke",
+    "/geste",
+    "/hinweis",
+    "/hand",
+    "/messung",
+    "/weg",
 }
+# Obergrenze für POST-Bodies. Die größten echten (Videoliste der Rückweg-Erweiterung, /messung)
+# liegen unter 2 KiB.
+POST_MAX_BYTES = 64 * 1024
 # Was das Display wach hält (#48): Elektra und Video; der Schlafwächter fragt über GET /wach.
 wach = Wach()
 wach_sperre = threading.Lock()
@@ -440,7 +448,18 @@ class Handler(StatischOhneCache):
         self.antworte(200, {"text": begriff})
 
     def do_POST(self):
-        laenge = int(self.headers.get("Content-Length", 0))
+        try:
+            laenge = int(self.headers.get("Content-Length", 0))
+        except ValueError:
+            laenge = -1
+        if laenge < 0:
+            self.antworte(400, {"fehler": "Content-Length ungültig"})
+            return
+        if laenge > POST_MAX_BYTES:
+            # Den Body nicht lesen; die Verbindung schließen, sonst bliebe er im Strom hängen.
+            self.close_connection = True
+            self.antworte(413, {"fehler": f"Body größer als {POST_MAX_BYTES} Bytes"})
+            return
         roh = self.rfile.read(laenge).decode(errors="replace")
         try:
             daten = json.loads(roh) if roh else {}
@@ -453,11 +472,15 @@ class Handler(StatischOhneCache):
             self.send_error(403)
             return
         if self.path == "/weg":
-            # sendBeacon der Kiosk-Seite beim Verlassen (kein eigener Header möglich)
+            # fetch mit keepalive der Kiosk-Seite beim Verlassen (sendBeacon kann keinen Header setzen)
             with ablage_sperre:
                 ablage.kiosk_geht()
             self.send_response(204)
             self.end_headers()
+            return
+        if not isinstance(daten, dict):
+            log.warning("POST %s: Body ist kein JSON-Objekt: %s", self.path, roh[:80])
+            self.antworte(400, {"fehler": "Body muss ein JSON-Objekt sein"})
             return
         if self.path == "/lautstaerke":
             # Der Schieber der Rückweg-Leiste (#99). Ungültige Werte ändern nichts.
@@ -930,6 +953,19 @@ async def bruecke_beginnen(verbindung) -> None:
             an_bruecke({"type": "lautstaerke", "wert": lautstaerke_stand.stellung})
 
 
+def nachricht_verarbeiten(nachricht: str) -> None:
+    """Eine Textnachricht der Bridge. Was dabei schiefgeht, steht im Journal, und die
+    Verbindung bleibt: Eine kaputte Nachricht darf den Sprachweg nicht beenden (#102)."""
+    try:
+        with leitung_sperre:
+            aktionen = leitung.nachricht(nachricht)
+        if not aktionen:
+            log.warning("Nachricht der Bridge ohne Wirkung: %s", nachricht[:200])
+        ausfuehren(aktionen)
+    except Exception:
+        log.exception("Nachricht der Bridge nicht verarbeitbar: %s", nachricht[:200])
+
+
 async def bruecke_schleife() -> None:
     global ws
     token = geheimnis("RUNDFUNK_GERAETE_TOKEN", TOKEN_DATEI)
@@ -958,13 +994,7 @@ async def bruecke_schleife() -> None:
                                 len(nachricht),
                             )
                     else:
-                        with leitung_sperre:
-                            aktionen = leitung.nachricht(nachricht)
-                        if not aktionen:
-                            log.warning(
-                                "Nachricht der Bridge ohne Wirkung: %s", nachricht[:200]
-                            )
-                        ausfuehren(aktionen)
+                        nachricht_verarbeiten(nachricht)
         except (OSError, websockets.WebSocketException) as fehler:
             log.warning("Bridge nicht erreichbar oder getrennt: %s", fehler)
         ws = None

@@ -26,7 +26,7 @@ blättert die Seiten um. Uhr, Datum und Wetter sind echt (`docs/datenweg.md`), d
 Der Küchen-Dienst liefert die Seite auf `http://localhost:8080/` aus (nur lokal erreichbar) und
 schickt ihr Ereignisse als Server-Sent Events an `/ereignisse`. Der Kameradienst liest die Kamera,
 findet mit MediaPipe die Hände und schickt erkannte Gesten per POST an den Küchen-Dienst
-(`/geste`, `/hand`). Bilder verlassen das Gerät nicht und werden nicht gespeichert.
+(`/geste`, `/hand`, mit dem Header `X-Kuechen: 1`, sonst antwortet der Dienst 403; das gilt auch für `/hinweis`, `/messung` und `/weg`). Bilder verlassen das Gerät nicht und werden nicht gespeichert.
 
 ## Gesten
 

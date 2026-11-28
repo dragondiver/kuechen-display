@@ -6,6 +6,7 @@ auf dem Pi bei `websockets` bleibt. Die Antworten bereitet daten.py auf.
 
 from __future__ import annotations
 
+import http.client
 import json
 import logging
 import time
@@ -17,6 +18,20 @@ from zoneinfo import ZoneInfo
 from daten import termine_aufbereiten, warnung_aufbereiten, wetter_aufbereiten
 
 log = logging.getLogger("dienst")
+
+
+class HassFehler(ValueError):
+    """Home Assistant hat unbrauchbar geantwortet (abgebrochen oder in unerwarteter Form).
+    Eine ValueError, damit alle Aufrufer, die JSON-Fehler schon fangen (Abruf, Sperre), sie auch fangen."""
+
+
+def _objekt(wert, was: str) -> dict:
+    """None wird zu {}; alles andere als ein JSON-Objekt ist ein Fehler, kein stilles Weglassen."""
+    if wert is None:
+        return {}
+    if not isinstance(wert, dict):
+        raise HassFehler(f"{was}: Objekt erwartet, bekommen {type(wert).__name__}")
+    return wert
 
 
 class HomeAssistant:
@@ -35,18 +50,29 @@ class HomeAssistant:
                 "Content-Type": "application/json",
             },
         )
-        with urllib.request.urlopen(req, timeout=self._timeout) as antwort:
-            roh = antwort.read()
+        try:
+            with urllib.request.urlopen(req, timeout=self._timeout) as antwort:
+                roh = antwort.read()
+        except http.client.HTTPException as fehler:
+            # IncompleteRead, BadStatusLine …: keine OSError, aber derselbe Fall wie ein Netzfehler.
+            raise HassFehler(
+                f"Antwort von Home Assistant abgebrochen: {type(fehler).__name__}"
+            ) from fehler
         return json.loads(roh) if roh else None
 
     def entitaet(self, entity_id: str) -> dict | None:
         """Entität samt Attributen; None, wenn HA sie nicht kennt (404)."""
         try:
-            return self._anfrage("GET", f"/api/states/{entity_id}")
+            antwort = self._anfrage("GET", f"/api/states/{entity_id}")
         except urllib.error.HTTPError as fehler:
             if fehler.code == 404:
                 return None
             raise
+        if antwort is not None and not isinstance(antwort, dict):
+            raise HassFehler(
+                f"{entity_id}: Objekt erwartet, bekommen {type(antwort).__name__}"
+            )
+        return antwort
 
     def zustand(self, entity_id: str) -> str | None:
         z = self.entitaet(entity_id)
@@ -64,7 +90,9 @@ class HomeAssistant:
             "/api/services/weather/get_forecasts?return_response",
             {"entity_id": entity_id, "type": art},
         )
-        eintrag = (antwort or {}).get("service_response", {}).get(entity_id) or {}
+        antwort = _objekt(antwort, "Vorhersage")
+        ergebnis = _objekt(antwort.get("service_response"), "Vorhersage")
+        eintrag = _objekt(ergebnis.get(entity_id), "Vorhersage")
         return eintrag.get("forecast") or []
 
     def termine(
@@ -81,8 +109,12 @@ class HomeAssistant:
                 "end_date_time": bis.isoformat(),
             },
         )
-        ergebnis = (antwort or {}).get("service_response") or {}
-        return {e: (ergebnis.get(e) or {}).get("events") or [] for e in entitaeten}
+        antwort = _objekt(antwort, "Termine")
+        ergebnis = _objekt(antwort.get("service_response"), "Termine")
+        return {
+            e: _objekt(ergebnis.get(e), "Termine").get("events") or []
+            for e in entitaeten
+        }
 
 
 def wetter_karte(
