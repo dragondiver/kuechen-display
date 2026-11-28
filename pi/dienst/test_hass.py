@@ -206,3 +206,78 @@ def test_abruf_faengt_abgebrochene_antwort_und_meldet_einmal(monkeypatch, caplog
         assert abruf(lambda: ha.zustand("x")) is None
         assert abruf(lambda: ha.zustand("x")) is None
     assert len([r for r in caplog.records if "antwortet nicht" in r.message]) == 1
+
+
+def test_abruf_faengt_jede_ausnahme_und_gibt_none(caplog):
+    import dienst
+
+    def kaputt():
+        raise AttributeError("'list' object has no attribute 'get'")
+
+    abruf = dienst.Abruf("Termine")
+    with caplog.at_level("INFO", logger="dienst"):
+        assert abruf(kaputt) is None
+
+
+def test_abruf_schreibt_dauerhaften_fehler_einmal_mit_traceback(caplog):
+    import dienst
+
+    def kaputt():
+        raise TypeError("kaputt")
+
+    abruf = dienst.Abruf("Termine")
+    with caplog.at_level("INFO", logger="dienst"):
+        for _ in range(3):
+            assert abruf(kaputt) is None
+    mit_traceback = [r for r in caplog.records if r.exc_info]
+    assert len(mit_traceback) == 1
+    assert "Termine" in mit_traceback[0].message
+
+
+def test_abruf_meldet_nach_fehler_wieder_da_und_liefert_ergebnis(caplog):
+    import dienst
+
+    def kaputt():
+        raise TypeError("kaputt")
+
+    abruf = dienst.Abruf("Termine")
+    with caplog.at_level("INFO", logger="dienst"):
+        assert abruf(kaputt) is None
+        assert abruf(lambda: {"ok": 1}) == {"ok": 1}
+    assert len([r for r in caplog.records if "antwortet wieder" in r.message]) == 1
+    assert abruf.gestoert is False
+
+
+@pytest.mark.parametrize(
+    "antwort",
+    [
+        {"state": "on", "attributes": ["kein", "Objekt"]},
+        {"state": "on", "attributes": {"friendly_name": "A"}},
+    ],
+)
+def test_abruf_mit_falsch_geformter_kalenderantwort_bleibt_im_abruf(antwort, caplog):
+    import dienst
+    from hass import termine_karte
+
+    ereignisse = [
+        {"service_response": {"calendar.a": {"events": "kein Array"}}},
+        {"service_response": {"calendar.a": {"events": ["kein Objekt"]}}},
+    ]
+    for events in ereignisse:
+        ha = FakeHA(
+            {
+                "/api/states/calendar.a": antwort,
+                "/api/services/calendar/get_events?return_response": events,
+            }
+        )
+        abruf = dienst.Abruf("Termine")
+        with caplog.at_level("INFO", logger="dienst"):
+            assert (
+                abruf(
+                    lambda ha=ha: termine_karte(
+                        ha, ["calendar.a"], datetime(2026, 1, 1)
+                    )
+                )
+                is None
+            )
+        assert abruf.gestoert
