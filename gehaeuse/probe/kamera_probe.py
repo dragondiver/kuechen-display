@@ -62,7 +62,7 @@ KAM_PLATINE_DICK = 1.12
 
 # --- was das Probestück ausprobiert
 LIPPE = 1.0  # Rahmenlippe über dem Glas (Entwurf: 2,8)
-STUETZE_LUFT = 0.5  # Stützen enden unter der Platine, dazwischen ein Gummiring
+STUETZE_LUFT = 0.0  # Platine liegt auf, kein Polster (Florian, 28.11.2026)
 STUETZE_R = 2.2
 SCHRAUBLOCH_R = 0.85  # Kernloch für M2 direkt im Kunststoff
 FUEHRUNG = 2.5  # Höhe der drei Wände; sie führen nur das silberne Gehäuse und bleiben unter der Platine
@@ -185,7 +185,7 @@ def baue():
         "Platine über der LCD-Rückseite (Tiefe)": z_platine - (z_glas + LCD_DICK),
         "Untere Stützen zur Glastasche (Schräge)": reihe_unten - STUETZE_R - tasche,
         "Wände bis zur Platine (Platz für Bauteile)": z_platine - WAND - FUEHRUNG,
-        "Stützen unter der Platine (Gummiring)": z_platine - z_stuetze,
+        "Stützen unter der Platine (Auflage)": z_platine - z_stuetze,
         "Linse hinter der Frontfläche": linse,
     }
     return teil, einbauten, masse
@@ -195,8 +195,12 @@ def pruefe(teil, einbauten, masse):
     fehler = []
     for name, wert in masse.items():
         print(f"  {name:45s} {wert:+.2f} mm")
-        if name != "Linse hinter der Frontfläche" and wert < 0.3:
+        if name.startswith(("Linse hinter", "Stützen unter")):
+            continue
+        if wert < 0.3:
             fehler.append(f"zu wenig Luft: {name} {wert:+.2f} mm")
+    if abs(masse["Stützen unter der Platine (Auflage)"]) > 0.01:
+        fehler.append("Stützen enden nicht an der Platine")
     if masse["Linse hinter der Frontfläche"] < 0:
         fehler.append("Linse steht über die Frontfläche hinaus")
     for name, k in einbauten.items():

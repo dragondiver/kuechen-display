@@ -34,8 +34,9 @@ getrennt nach gemessen, aus der Zeichnung und zum Ausprobieren.
 2. Kamera normal einsetzen, Stecker nach unten zum Display. Die Linse geht durchs Loch, das
    silberne Kameragehäuse liegt auf der Rückseite der Frontplatte auf. Die drei niedrigen Wände
    führen es nur seitlich, die Platine schwebt 3 mm darüber.
-   Vier Stützen stehen unter den vier Löchern der Platine. Je ein Stück EPDM (1 mm) auflegen und
-   mit M2 × 6 handfest anschrauben, die Schraube schneidet sich ihr Gewinde selbst.
+   Vier Stützen stehen unter den vier Löchern der Platine, die Platine liegt direkt auf. Mit
+   M2 × 6 handfest anschrauben, die Schraube schneidet sich ihr Gewinde selbst. Zwei Schrauben
+   diagonal halten schon (Probe vom 28.11.2026), ein Polster kommt nicht dazwischen.
 3. Ansehen und aufschreiben:
    - Treffen alle vier Schrauben die Löcher der Platine?
    - Stoßen die beiden unteren Stützen an Bauteile neben dem Kameragehäuse?
